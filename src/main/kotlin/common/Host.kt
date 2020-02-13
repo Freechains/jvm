@@ -4,8 +4,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
+import org.freechains.platform.fsRoot
 import java.io.File
-import org.freechains.platform.getRoot
 
 @Serializable
 data class Host (
@@ -33,7 +33,7 @@ fun String.fromJsonToHost () : Host {
 fun Host.createChain (path: String) : Chain {
     val (name,work) = path.pathToChainNW()
     val chain = Chain(this.path,name,work)
-    val file = File(getRoot(),this.path + "/chains/" + chain.toPath() + ".chain")
+    val file = File(fsRoot,this.path + "/chains/" + chain.toPath() + ".chain")
     assert(!file.exists()) { "chain already exists: $chain"}
     chain.save()
     val genesis = Node(0,0, "", emptyArray())
@@ -43,29 +43,29 @@ fun Host.createChain (path: String) : Chain {
 }
 
 fun Host.loadChain (path: String) : Chain {
-    val file = File(getRoot(),this.path + "/chains" + path + ".chain")
+    val file = File(fsRoot,this.path + "/chains" + path + ".chain")
     return file.readText().fromJsonToChain()
 }
 
 // FILE SYSTEM
 
 fun Host.save () {
-    File(getRoot(),this.path + "/host").writeText(this.toJson()+"\n")
+    File(fsRoot,this.path + "/host").writeText(this.toJson()+"\n")
 }
 
 fun Host_load (dir: String) : Host {
     assert(dir.substring(0,1) == "/")
-    return File(getRoot(),dir + "/host").readText().fromJsonToHost()
+    return File(fsRoot,dir + "/host").readText().fromJsonToHost()
 }
 
 fun Host_exists (dir: String) : Boolean {
     assert(dir.substring(0,1) == "/")
-    return File(getRoot(),dir).exists()
+    return File(fsRoot,dir).exists()
 }
 
 fun Host_create (dir: String, port: Int = 8330) : Host {
     assert(dir.substring(0,1) == "/")
-    val fs = File(getRoot(),dir)
+    val fs = File(fsRoot,dir)
     assert(!fs.exists()) { "directory already exists" }
     fs.mkdirs()
     val host = Host(dir, port)
