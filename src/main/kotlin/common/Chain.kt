@@ -106,28 +106,28 @@ private fun Chain.toByteArray () : ByteArray {
 // FILE SYSTEM
 
 fun Chain.save () {
-    val dir = File(this.root + "/chains/" + this.toPath())
+    val dir = File(this.root + this.toPath())
     if (!dir.exists()) {
         dir.mkdirs()
     }
-    File(this.root + "/chains/" + this.toPath() + ".chain").writeText(this.toJson())
+    File(this.root + this.toPath() + ".chain").writeText(this.toJson())
 }
 
 // NDOE
 
 fun Chain.saveNode (node: Node) {
-    File(this.root + "/chains/" + this.toPath() + "/" + node.hash!! + ".node").writeText(node.toJson()+"\n")
+    File(this.root + this.toPath() + "/" + node.hash!! + ".node").writeText(node.toJson()+"\n")
 }
 
 fun Chain.loadNodeFromHash (hash: Hash): Node {
-    return File(this.root + "/chains/" + this.toPath() + "/" + hash + ".node").readText().jsonToNode()
+    return File(this.root + this.toPath() + "/" + hash + ".node").readText().jsonToNode()
 }
 
 fun Chain.containsNode (hash: Hash) : Boolean {
     if (this.hash == hash) {
         return true
     } else {
-        val file = File(this.root + "/chains/" + this.toPath() + "/" + hash + ".node")
+        val file = File(this.root + this.toPath() + "/" + hash + ".node")
         return file.exists()
     }
 }

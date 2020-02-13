@@ -9,7 +9,7 @@ import java.io.File
 
 @Serializable
 data class Host (
-    val path : String,
+    val root : String,
     val port : Int,
     val timestamp : Boolean = true
 )
@@ -32,8 +32,8 @@ fun String.fromJsonToHost () : Host {
 
 fun Host.createChain (path: String) : Chain {
     val (name,work) = path.pathToChainNW()
-    val chain = Chain(fsRoot+this.path,name,work)
-    val file = File(this.path + "/chains/" + chain.toPath() + ".chain")
+    val chain = Chain(this.root+"/chains/",name,work)
+    val file = File(chain.root + chain.toPath() + ".chain")
     assert(!file.exists()) { "chain already exists: $chain"}
     chain.save()
     val genesis = Node(0,0, "", emptyArray())
@@ -43,29 +43,29 @@ fun Host.createChain (path: String) : Chain {
 }
 
 fun Host.loadChain (path: String) : Chain {
-    val file = File(fsRoot,this.path + "/chains" + path + ".chain")
+    val file = File(this.root + "/chains/" + path + ".chain")
     return file.readText().fromJsonToChain()
 }
 
 // FILE SYSTEM
 
 fun Host.save () {
-    File(fsRoot,this.path + "/host").writeText(this.toJson()+"\n")
+    File(this.root + "/host").writeText(this.toJson()+"\n")
 }
 
 fun Host_load (dir: String) : Host {
     assert(dir.substring(0,1) == "/")
-    return File(fsRoot,dir + "/host").readText().fromJsonToHost()
+    return File(fsRoot + "/" + dir + "/host").readText().fromJsonToHost()
 }
 
 fun Host_exists (dir: String) : Boolean {
     assert(dir.substring(0,1) == "/")
-    return File(fsRoot,dir).exists()
+    return File(fsRoot + "/" + dir).exists()
 }
 
 fun Host_create (dir: String, port: Int = 8330) : Host {
     assert(dir.substring(0,1) == "/")
-    val fs = File(fsRoot,dir)
+    val fs = File(fsRoot + "/" + dir)
     assert(!fs.exists()) { "directory already exists" }
     fs.mkdirs()
     val host = Host(dir, port)

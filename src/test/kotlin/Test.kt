@@ -42,7 +42,7 @@ class Tests {
     @Test
     fun b1_chain () {
         val host1 = Host_create("/tmp/freechains/tests/local/")
-        val chain1 = Chain("/tmp/freechains/tests/local/", "/uerj", 0)
+        val chain1 = Chain("/tmp/freechains/tests/local/chains/", "/uerj", 0)
         //println("Chain /uerj/0: ${chain1.toHash()}")
         chain1.save()
         val chain2 = host1.loadChain(chain1.toPath())
@@ -51,7 +51,7 @@ class Tests {
 
     @Test
     fun b2_node () {
-        val chain = Chain("/tmp/freechains/tests/local/", "/uerj",0)
+        val chain = Chain("/tmp/freechains/tests/local/chains/", "/uerj",0)
         val node = Node(0,0,"111", arrayOf(chain.toGenHash()))
         node.setNonceHashWithWork(0)
         chain.saveNode(node)
@@ -114,7 +114,7 @@ class Tests {
 
     @Test
     fun e1_graph () {
-        val chain = Chain("/tmp/freechains/tests/local/", "/graph",0)
+        val chain = Chain("/tmp/freechains/tests/local/chains/", "/graph",0)
         chain.save()
         val genesis = Node(0,0, "", emptyArray())
         genesis.hash = chain.toGenHash()
