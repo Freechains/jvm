@@ -9,7 +9,6 @@ echo "#### 1"
 
 freechains host create /tmp/freechains/8400 8400
 jq ".timestamp=false" /tmp/freechains/8400/host > /tmp/host.tmp && mv /tmp/host.tmp /tmp/freechains/8400/host
-freechains host stop --host=localhost:8400
 freechains host start /tmp/freechains/8400 &
 sleep 0.5
 freechains --host=localhost:8400 chain create /0
@@ -32,7 +31,6 @@ set +e
 echo "#### 2"
 
 freechains host create /tmp/freechains/8401 8401
-freechains host stop --host=localhost:8401
 freechains host start /tmp/freechains/8401 &
 sleep 0.5
 freechains --host=localhost:8401 chain create /0
@@ -56,7 +54,6 @@ while :
 do
   rm -Rf /tmp/freechains/8402
   freechains host create /tmp/freechains/8402 8402
-  freechains host stop --host=localhost:8402
   freechains host start /tmp/freechains/8402 &
   sleep 0.5
   freechains --host=localhost:8402 chain create /0
@@ -107,7 +104,6 @@ echo "#### 5"
 for i in $(seq 8411 8450)
 do
   freechains host create /tmp/freechains/$i $i
-  freechains host stop --host=localhost:$i
   freechains host start /tmp/freechains/$i &
   sleep 0.5
   freechains --host=localhost:$i chain create /0
@@ -137,6 +133,11 @@ do
   freechains --host=localhost:$i chain send /0 localhost:$(($i+20)) &
 done
 sleep 10
+
+for i in $(seq 8411 8450)
+do
+  freechains host stop --host=localhost:$i
+done
 
 set -e
 for i in $(seq 8421 8450)
