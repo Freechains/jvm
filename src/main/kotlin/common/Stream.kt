@@ -41,6 +41,6 @@ fun DataInputStream.readLinesX () : String {
 }
 
 fun DataOutputStream.writeLineX (v: String) {
-    this.write(v.toByteArray())
+    this.writeBytes(v)
     this.writeByte('\n'.toInt())
 }
