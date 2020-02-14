@@ -65,7 +65,6 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val json  = node.toJson()
 
             assert(json.length <= Int.MAX_VALUE)
-            println("send $json")
             writer.writeBytes(json)
             writer.writeLineX("\n")
             System.err.println("chain get: $hash")

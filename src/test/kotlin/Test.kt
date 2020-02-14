@@ -20,7 +20,6 @@ data class MeuDado(val v: String)
 /*
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 LOC
- *  - binary data in json (payload: text|bin) (ou text / file ja vai encoded)
  *  - chain locks
  *  - testes antigos
  *  - crypto (chain e host)
@@ -225,8 +224,9 @@ class Tests {
 
         main(arrayOf("chain","get","--host=localhost:8330","/xxx/0", "0_360B889B0EC78AB3A47F165E12348D4209653905191CEB5ED4C9C737DFCF0430"))
         main(arrayOf("chain","get","/xxx/0", "0_360B889B0EC78AB3A47F165E12348D4209653905191CEB5ED4C9C737DFCF0430"))
-        main(arrayOf("host","stop"))
 
+        main(arrayOf("chain","put","/xxx/0","file","base64","/bin/cat"))
+        main(arrayOf("host","stop"))
         // TODO: check genesis 2x, "aaa", "host"
         // $ cat /tmp/freechains/tests/M1/chains/xxx/0/*
     }

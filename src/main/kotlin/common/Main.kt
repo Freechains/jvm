@@ -123,10 +123,11 @@ fun main (args: Array<String>) {
                         else -> error("TODO -")
                     }
                     val payload = when {
-                        opts["utf8"]   as Boolean -> bytes.toString(Charsets.UTF_8)
-                        opts["base64"] as Boolean -> Base64.getEncoder().encode(bytes).toString()
+                        (opts["inline"] as Boolean || opts["utf8"] as Boolean) -> bytes.toString(Charsets.UTF_8)
+                        opts["base64"] as Boolean -> Base64.getEncoder().encode(bytes).toString(Charsets.UTF_8)
                         else -> error("bug found")
                     }
+                    //println(payload)
                     writer.writeBytes(payload)
 
                     writer.writeLineX("\n")

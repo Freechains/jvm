@@ -36,6 +36,14 @@ diff /tmp/freechains/freechains-tests-get-1.out tests/freechains-tests-get-1.out
 diff /tmp/freechains/freechains-tests-heads.out tests/freechains-tests-get-1.out
 set +e
 
+h=`freechains --host=localhost:8400 chain put /0 file base64 /bin/cat`
+freechains --host=localhost:8400 chain get /0 "$h" > /tmp/freechains/cat.node
+jq ".payload" /tmp/freechains/cat.node | tr -d '"' | base64 --decode > /tmp/freechains/cat
+set -e
+diff /tmp/freechains/cat /bin/cat
+set +e
+
+
 ###############################################################################
 echo "#### 2"
 
@@ -50,7 +58,7 @@ freechains --host=localhost:8400 chain send /0 localhost:8401
 set -e
 diff /tmp/freechains/8400/chains/0/ /tmp/freechains/8401/chains/0/
 ret=`ls /tmp/freechains/8400/chains/0/ | wc`
-if [ "$ret" != "      4       4     288" ]; then
+if [ "$ret" != "      5       5     360" ]; then
   echo "$ret"
   exit 1
 fi
@@ -75,7 +83,7 @@ do
   set -e
   diff /tmp/freechains/8401/chains/0/ /tmp/freechains/8402/chains/0/
   ret=`ls /tmp/freechains/8401/chains/0/ | wc`
-  if [ "$ret" != "      4       4     288" ]; then
+  if [ "$ret" != "      5       5     360" ]; then
     echo "$ret"
     exit 1
   fi
@@ -101,7 +109,7 @@ set -e
 diff /tmp/freechains/8400/chains/0/ /tmp/freechains/8401/chains/0/
 diff /tmp/freechains/8401/chains/0/ /tmp/freechains/8402/chains/0/
 ret=`ls /tmp/freechains/8401/chains/0/ | wc`
-if [ "$ret" != "     54      54    3932" ]; then
+if [ "$ret" != "     55      55    4005" ]; then
   echo "$ret"
   exit 1
 fi
