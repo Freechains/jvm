@@ -80,7 +80,7 @@ fun main (args: Array<String>) {
                 opts["create"] as Boolean -> {
                     writer.writeLineX("FC chain create")
                     writer.writeLineX(opts["<chain/work>"] as String)
-                    println(reader.readUTF())
+                    println(reader.readLineX())
                 }
                 opts["genesis"] as Boolean -> {
                     writer.writeLineX("FC chain genesis")
@@ -103,13 +103,11 @@ fun main (args: Array<String>) {
                     writer.writeLineX("FC chain get")
                     writer.writeLineX(opts["<chain/work>"] as String)
                     writer.writeLineX(opts["<height_hash>"] as Hash)
-                    when (reader.readLineX()) {
-                        "0" -> {
-                            System.err.println("chain get: not found"); -1
-                        }
-                        "1" -> {
-                            println(reader.readUTF())
-                        }
+                    val json = reader.readLinesX()
+                    if (json == "") {
+                        System.err.println("chain get: not found"); -1
+                    } else {
+                        println(json)
                     }
                 }
                 opts["put"] as Boolean -> {
@@ -120,7 +118,8 @@ fun main (args: Array<String>) {
                         opts["file"] as Boolean -> File(opts["<path_or_text>"] as String).readBytes().toString(Charsets.UTF_8)
                         else -> error("TODO -")
                     }
-                    writer.writeUTF(payload)
+                    writer.writeBytes(payload)
+                    writer.writeLineX("\n")
                     val hash = reader.readLineX()
                     println(hash)
                 }

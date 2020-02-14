@@ -19,8 +19,9 @@ data class MeuDado(val v: String)
 
 /*
  *  TODO:
- *  - 948 -> 852 -> 841 -> 928 LOC
- *  - NN + json
+ *  - 948 -> 852 -> 841 -> 931 LOC
+ *  - NNN + json
+ *  - binary data in json (payload: text|bin) (ou text / file ja vai encoded)
  *  - chain locks
  *  - testes antigos
  *  - crypto (chain e host)
@@ -116,7 +117,7 @@ class Tests {
     }
     @Test
     fun d3_proto () {
-        a_reset()
+        //a_reset()
 
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
@@ -206,7 +207,7 @@ class Tests {
 
     @Test
     fun m1_args () {
-        //a_reset()
+        a_reset()
         main(arrayOf("host","create","/tmp/freechains/tests/M1/"))
         thread {
             main(arrayOf("host","start","/tmp/freechains/tests/M1/"))

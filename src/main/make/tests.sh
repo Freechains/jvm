@@ -2,6 +2,15 @@
 
 #while : ; do
 
+freechains host stop --host=localhost:8400 &
+freechains host stop --host=localhost:8401 &
+freechains host stop --host=localhost:8402 &
+for i in $(seq 8411 8450)
+do
+  freechains host stop --host=localhost:$i &
+done
+sleep 5
+
 rm -Rf /tmp/freechains/
 
 ###############################################################################
@@ -133,14 +142,6 @@ do
   freechains --host=localhost:$i chain send /0 localhost:$(($i+20)) &
 done
 sleep 10
-
-freechains host stop --host=localhost:8400
-freechains host stop --host=localhost:8401
-freechains host stop --host=localhost:8402
-for i in $(seq 8411 8450)
-do
-  freechains host stop --host=localhost:$i
-done
 
 set -e
 for i in $(seq 8421 8450)

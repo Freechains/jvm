@@ -37,7 +37,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
         "FC chain create" -> {
             val path = reader.readLineX()
             val chain = local.createChain(path)
-            writer.writeUTF(chain.hash)
+            writer.writeLineX(chain.hash)
             System.err.println("chain create: $path")
         }
         "FC chain genesis" -> {
@@ -45,7 +45,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val chain = local.loadChain(path)
             val hash  = chain.toGenHash()
             writer.writeLineX(hash)
-            System.err.println("chain get: $hash")
+            System.err.println("chain genesis: $hash")
         }
         "FC chain heads" -> {
             val path  = reader.readLineX().pathCheck()
@@ -54,7 +54,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
                 writer.writeLineX(head)
             }
             writer.writeLineX("")
-            System.err.println("chain get: ${chain.heads}")
+            System.err.println("chain heads: ${chain.heads}")
         }
         "FC chain get" -> {
             val path = reader.readLineX().pathCheck()
@@ -65,13 +65,14 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val json  = node.toJson()
 
             assert(json.length <= Int.MAX_VALUE)
-            writer.writeLineX("1")
-            writer.writeUTF(json)
+            println("send $json")
+            writer.writeBytes(json)
+            writer.writeLineX("\n")
             System.err.println("chain get: $hash")
         }
         "FC chain put" -> {
             val path = reader.readLineX().pathCheck()
-            val pay = reader.readUTF()
+            val pay = reader.readLinesX()
 
             val chain = local.loadChain(path)
             val node = if (local.timestamp) chain.publish(pay) else chain.publish(pay,0)
@@ -142,7 +143,8 @@ fun Socket.chain_send (chain: Chain) : Int {
         val node = chain.loadNodeFromHash(hash)
         val new = Node(node.time,node.nonce,node.payload,node.backs, emptyArray())
         new.hash = node.hash!!
-        writer.writeUTF(new.toJson())
+        writer.writeBytes(new.toJson())
+        writer.writeLineX("\n")
     }
 
     reader.readLineX()
@@ -161,7 +163,7 @@ fun Socket.chain_recv (chain: Chain) : Int {
 
     val n = reader.readLineX().toInt()
     for (i in 1..n) {
-        val node = reader.readUTF().jsonToNode()
+        val node = reader.readLinesX().jsonToNode()
         node.recheck()
         chain.reheads(node)
         chain.saveNode(node)
