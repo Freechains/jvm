@@ -14,7 +14,7 @@ Usage:
     freechains host create <dir> [<port>]
     freechains host start <dir>
     freechains [options] host stop
-    freechains [options] chain create <chain/work>
+    freechains [options] chain create <chain/work> [<shared_key>]
     freechains [options] chain genesis <chain/work>
     freechains [options] chain heads <chain/work>
     freechains [options] chain get <chain/work> <height_hash>
@@ -78,9 +78,11 @@ fun main (args: Array<String>) {
             val writer = DataOutputStream(socket.getOutputStream()!!)
             val reader = DataInputStream(socket.getInputStream()!!)
             when {
+                // freechains [options] chain create <chain/work> [<shared_key>]
                 opts["create"] as Boolean -> {
                     writer.writeLineX("FC chain create")
                     writer.writeLineX(opts["<chain/work>"] as String)
+                    writer.writeLineX(opts["<shared_key>"] as String? ?: "")
                     println(reader.readLineX())
                 }
                 opts["genesis"] as Boolean -> {

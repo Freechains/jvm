@@ -11,12 +11,13 @@ typealias Chain_NW = Pair<String,Byte>
 
 @Serializable
 data class Chain (
-    val root : String,
-    val name : String,
-    val work : Byte
+    val root   : String,
+    val name   : String,
+    val work   : Byte,
+    val shared : String
 ) {
-    val hash  : String = this.toHash()
-    val heads : ArrayList<Hash> = arrayListOf(this.toGenHash())
+    val hash   : String = this.toHash()
+    val heads  : ArrayList<Hash> = arrayListOf(this.toGenHash())
 }
 
 // JSON
@@ -41,7 +42,7 @@ fun Chain.publish (encoding: String, payload: String) : Node {
 
 fun Chain.publish (encoding: String, payload: String, time: Long) : Node {
     val node = Node(time, 0, encoding, payload, this.heads.toTypedArray())
-    node.setNonceHashWithWork(this.work)
+    node.setNonceHashWithWorkShared(this.work,this.shared)
     this.saveNode(node)
     this.reheads(node)
     this.save()
@@ -88,7 +89,7 @@ fun String.pathCheck () : String {
 // HASH
 
 fun Chain.toHash () : String {
-    return this.toByteArray().toHash()
+    return this.toByteArray().toHash(this.shared)
 }
 
 private fun Chain.toByteArray () : ByteArray {

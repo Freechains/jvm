@@ -71,7 +71,7 @@ class Tests {
     @Test
     fun b1_chain () {
         val host1 = Host_create("/tmp/freechains/tests/local/")
-        val chain1 = Chain("/tmp/freechains/tests/local/chains/", "/uerj", 0)
+        val chain1 = Chain("/tmp/freechains/tests/local/chains/", "/uerj", 0, "secret")
         //println("Chain /uerj/0: ${chain1.toHash()}")
         chain1.save()
         val chain2 = host1.loadChain(chain1.toPath())
@@ -80,9 +80,9 @@ class Tests {
 
     @Test
     fun b2_node () {
-        val chain = Chain("/tmp/freechains/tests/local/chains/", "/uerj",0)
+        val chain = Chain("/tmp/freechains/tests/local/chains/", "/uerj",0, "")
         val node = Node(0,0,"utf8","111", arrayOf(chain.toGenHash()))
-        node.setNonceHashWithWork(0)
+        node.setNonceHashWithWorkShared(0,"")
         chain.saveNode(node)
         val node2 = chain.loadNodeFromHash(node.hash!!)
         assertThat(node.hashCode()).isEqualTo(node2.hashCode())
@@ -91,7 +91,7 @@ class Tests {
     @Test
     fun c1_publish () {
         val host = Host_load("/tmp/freechains/tests/local/")
-        val chain = host.createChain("/ceu/10")
+        val chain = host.createChain("/ceu/10", "")
         val n1 = chain.publish("utf8","aaa", 0)
         val n2 = chain.publish("utf8","bbb", 1)
         val n3 = chain.publish("utf8","ccc", 2)
@@ -119,14 +119,14 @@ class Tests {
 
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
-        val src_chain = src.createChain("/d3/5")
+        val src_chain = src.createChain("/d3/5", "secret")
         src_chain.publish("utf8","aaa", 0)
         src_chain.publish("utf8","bbb", 0)
         thread { daemon(src) }
 
         // DESTINY
         val dst = Host_create("/tmp/freechains/tests/dst/", 8331)
-        dst.createChain("/d3/5")
+        dst.createChain("/d3/5", "secret")
         thread { daemon(dst) }
         Thread.sleep(100)
 
@@ -143,7 +143,7 @@ class Tests {
 
     @Test
     fun e1_graph () {
-        val chain = Chain("/tmp/freechains/tests/local/chains/", "/graph",0)
+        val chain = Chain("/tmp/freechains/tests/local/chains/", "/graph",0, "secret")
         chain.save()
         val genesis = Node(0,0, "utf8","", emptyArray())
         genesis.hash = chain.toGenHash()
@@ -151,8 +151,8 @@ class Tests {
 
         val a1 = Node(0,0,"utf8","a1", arrayOf(chain.toGenHash()))
         val b1 = Node(0,0,"utf8","b1", arrayOf(chain.toGenHash()))
-        a1.setNonceHashWithWork(0)
-        b1.setNonceHashWithWork(0)
+        a1.setNonceHashWithWorkShared(0,"")
+        b1.setNonceHashWithWorkShared(0,"")
         chain.saveNode(a1)
         chain.saveNode(b1)
         chain.reheads(a1)
@@ -162,7 +162,7 @@ class Tests {
         chain.publish("utf8","ab2", 0)
 
         val b2 = Node(0,0,"utf8","b2", arrayOf(b1.hash!!))
-        b2.setNonceHashWithWork(0)
+        b2.setNonceHashWithWorkShared(0,"")
         chain.saveNode(b2)
         chain.reheads(b2)
 
@@ -180,12 +180,12 @@ class Tests {
         //a_reset()
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
-        val h1_chain = h1.createChain("/xxx/0")
+        val h1_chain = h1.createChain("/xxx/0", "")
         h1_chain.publish("utf8","h1_1", 0)
         h1_chain.publish("utf8","h1_2", 0)
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
-        val h2_chain = h2.createChain("/xxx/0")
+        val h2_chain = h2.createChain("/xxx/0", "")
         h2_chain.publish("utf8","h2_1", 0)
         h2_chain.publish("utf8","h2_2", 0)
 

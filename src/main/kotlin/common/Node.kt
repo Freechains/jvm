@@ -4,6 +4,7 @@ package org.freechains.common
 
 import com.goterl.lazycode.lazysodium.LazySodiumJava
 import com.goterl.lazycode.lazysodium.SodiumJava
+import com.goterl.lazycode.lazysodium.utils.Key
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
@@ -56,14 +57,14 @@ fun Hash.toHash () : String {
 
 // HASH
 
-fun ByteArray.toHash (): String {
-    return lazySodium.cryptoGenericHash(this.toString(Charsets.UTF_8))
+fun ByteArray.toHash (shared: String) : String {
+    return lazySodium.cryptoGenericHash(this.toString(Charsets.UTF_8), Key.fromPlainString(shared))
     //return MessageDigest.getInstance("SHA-256").digest(this).toHexString()
 }
 
-fun Node.setNonceHashWithWork (work: Byte) {
+fun Node.setNonceHashWithWorkShared (work: Byte, shared: String) {
     while (true) {
-        val hash = this.calcHash()
+        val hash = this.toByteArray().toHash(shared)
         //println(hash)
         if (hash2work(hash) >= work) {
             this.hash = this.height.toString() + "_" + hash
@@ -73,12 +74,8 @@ fun Node.setNonceHashWithWork (work: Byte) {
     }
 }
 
-fun Node.recheck () {
-    assert(this.hash!! == this.height.toString() + "_" + this.calcHash())
-}
-
-private fun Node.calcHash (): String {
-    return this.toByteArray().toHash()
+fun Node.recheck (shared: String) {
+    assert(this.hash!! == this.height.toString() + "_" + this.toByteArray().toHash(shared))
 }
 
 private fun hash2work (hash: String): Int {

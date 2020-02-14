@@ -35,8 +35,9 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             System.err.println("host stop: $local")
         }
         "FC chain create" -> {
-            val path = reader.readLineX()
-            val chain = local.createChain(path)
+            val path   = reader.readLineX()
+            val shared = reader.readLineX()
+            val chain = local.createChain(path,shared)
             writer.writeLineX(chain.hash)
             System.err.println("chain create: $path")
         }
@@ -164,7 +165,7 @@ fun Socket.chain_recv (chain: Chain) : Int {
     val n = reader.readLineX().toInt()
     for (i in 1..n) {
         val node = reader.readLinesX().jsonToNode()
-        node.recheck()
+        node.recheck(chain.shared)
         chain.reheads(node)
         chain.saveNode(node)
         chain.save()
