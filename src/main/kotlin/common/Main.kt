@@ -34,7 +34,10 @@ More Information:
 """
 
 fun main (args: Array<String>) {
-    val opts = Docopt(doc).withVersion("freechains v0.2").parse(args.toMutableList())
+    //val args_ = arrayOf("host", "start", "/tmp/freechains/8400")
+    val args_ = args
+
+    val opts = Docopt(doc).withVersion("freechains v0.2").parse(args_.toMutableList())
 
     fun optHost () : Pair<String,Int> {
         return ((opts["--host"] as String?) ?: "localhost:8330").hostSplit()

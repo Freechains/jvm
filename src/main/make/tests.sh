@@ -15,7 +15,7 @@ freechains --host=localhost:8400 chain create /0
 g=`freechains --host=localhost:8400 chain genesis /0`
 h=`freechains --host=localhost:8400 chain put /0 text Hello_World`
 freechains --host=localhost:8400 chain get /0 "$h" > /tmp/freechains/freechains-tests-get-1.out
-freechains --host=localhost:8400 chain get /0 0_6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d > /tmp/freechains/freechains-tests-get-0.out
+freechains --host=localhost:8400 chain get /0 0_03170A2E7597B7B7E3D84C05391D139A62B157E78786D8C082F29DCF4C111314 > /tmp/freechains/freechains-tests-get-0.out
 hs=`freechains --host=localhost:8400 chain heads /0`
 freechains --host=localhost:8400 chain get /0 "$g" > /tmp/freechains/freechains-tests-gen.out
 freechains --host=localhost:8400 chain get /0 "$hs" > /tmp/freechains/freechains-tests-heads.out
@@ -134,6 +134,9 @@ do
 done
 sleep 10
 
+freechains host stop --host=localhost:8400
+freechains host stop --host=localhost:8401
+freechains host stop --host=localhost:8402
 for i in $(seq 8411 8450)
 do
   freechains host stop --host=localhost:$i

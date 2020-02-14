@@ -1,10 +1,17 @@
 package org.freechains.common
 
-import kotlinx.serialization.*
+//import java.security.MessageDigest
+
+import com.goterl.lazycode.lazysodium.LazySodiumJava
+import com.goterl.lazycode.lazysodium.SodiumJava
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
-import java.security.MessageDigest
 import kotlin.math.max
+
+
+private var lazySodium: LazySodiumJava = LazySodiumJava(SodiumJava())
 
 typealias Hash = String
 
@@ -49,7 +56,8 @@ fun Hash.toHash () : String {
 // HASH
 
 fun ByteArray.toHash (): String {
-    return MessageDigest.getInstance("SHA-256").digest(this).toHexString()
+    return lazySodium.cryptoGenericHash(this.toString(Charsets.UTF_8))
+    //return MessageDigest.getInstance("SHA-256").digest(this).toHexString()
 }
 
 fun Node.setNonceHashWithWork (work: Byte) {

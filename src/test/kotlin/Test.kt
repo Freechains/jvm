@@ -13,9 +13,9 @@ import org.freechains.common.*
  *  TODO:
  *  - 948 -> 852 -> 841 LOC
  *  - chain locks
- *  - android
  *  - testes antigos
  *  - crypto (chain e host)
+ *  - RX Kotlin
  *  - freechains chain remove
  *  - freechains host configure (json)
  *    - peer/chain configurations in host
@@ -23,6 +23,7 @@ import org.freechains.common.*
  *  - Xfreechains (lucas)
  *    - chain xtraverse
  *    - chain xlisten
+ *  - Android WiFi Direct
  */
 
 @TestMethodOrder(Alphanumeric::class)
@@ -109,7 +110,7 @@ class Tests {
         Thread.sleep(100)
 
         // TODO: check if dst == src
-        // $ diff -r tests/dst/ tests/src/
+        // $ diff -r /tmp/freechains/tests/dst/ /tmp/freechains/tests/src/
     }
 
     @Test
@@ -171,7 +172,7 @@ class Tests {
         Thread.sleep(100)
 
         // TODO: check if 8332 (h2) < 8331 (h1)
-        // $ diff -r tests/h1 tests/h2/
+        // $ diff -r /tmp/freechains/tests/h1 /tmp/freechains/tests/h2/
     }
 
     @Test
@@ -193,11 +194,11 @@ class Tests {
         main(arrayOf("chain","genesis","/xxx/0"))
         main(arrayOf("chain","heads","/xxx/0"))
 
-        main(arrayOf("chain","get","--host=localhost:8330","/xxx/0", "0_826ffb4505831e6355edc141f49b1ccf5b489b9f03760f0f2fed4eeed419c6fe"))
-        main(arrayOf("chain","get","/xxx/0", "0_826ffb4505831e6355edc141f49b1ccf5b489b9f03760f0f2fed4eeed419c6fe"))
+        main(arrayOf("chain","get","--host=localhost:8330","/xxx/0", "0_360B889B0EC78AB3A47F165E12348D4209653905191CEB5ED4C9C737DFCF0430"))
+        main(arrayOf("chain","get","/xxx/0", "0_360B889B0EC78AB3A47F165E12348D4209653905191CEB5ED4C9C737DFCF0430"))
         main(arrayOf("host","stop"))
 
         // TODO: check genesis 2x, "aaa", "host"
-        // $ cat tests/M1/chains/xxx/0/*
+        // $ cat /tmp/freechains/tests/M1/chains/xxx/0/*
     }
 }
