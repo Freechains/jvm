@@ -35,12 +35,12 @@ fun String.fromJsonToChain () : Chain {
 
 // PUBLISH
 
-fun Chain.publish (payload: String) : Node {
-    return this.publish(payload, Instant.now().toEpochMilli())
+fun Chain.publish (encoding: String, payload: String) : Node {
+    return this.publish(encoding, payload, Instant.now().toEpochMilli())
 }
 
-fun Chain.publish (payload: String, time: Long) : Node {
-    val node = Node(time, 0, payload, this.heads.toTypedArray())
+fun Chain.publish (encoding: String, payload: String, time: Long) : Node {
+    val node = Node(time, 0, encoding, payload, this.heads.toTypedArray())
     node.setNonceHashWithWork(this.work)
     this.saveNode(node)
     this.reheads(node)
@@ -54,7 +54,7 @@ fun Chain.reheads (node: Node) {
         this.heads.remove(back)
         val old = this.loadNodeFromHash(back)
         if (!old.fronts.contains((node.hash!!))) {
-            val new = Node(old.time, old.nonce, old.payload, old.backs, old.fronts + node.hash!!)
+            val new = Node(old.time, old.nonce, old.encoding, old.payload, old.backs, old.fronts + node.hash!!)
             new.hash = old.hash!!
             this.saveNode(new)
         }

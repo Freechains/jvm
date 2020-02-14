@@ -17,14 +17,15 @@ typealias Hash = String
 
 @Serializable
 data class Node (
-    val time    : Long,             // TODO: ULong
-    var nonce   : Long,             // TODO: ULong
-    val payload : String,
-    val backs   : Array<Hash>,
-    val fronts  : Array<Hash> = arrayOf()
+    val time     : Long,             // TODO: ULong
+    var nonce    : Long,             // TODO: ULong
+    val encoding : String,
+    val payload  : String,
+    val backs    : Array<Hash>,
+    val fronts   : Array<Hash> = arrayOf()
 ) {
-    val height  : Int = if (this.backs.isEmpty()) 0 else this.backs.fold(0, { cur,hash -> max(cur,hash.toHeight()) }) + 1
-    var hash    : Hash? = null
+    val height   : Int = if (this.backs.isEmpty()) 0 else this.backs.fold(0, { cur,hash -> max(cur,hash.toHeight()) }) + 1
+    var hash     : Hash? = null
 }
 
 // JSON

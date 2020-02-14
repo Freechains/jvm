@@ -22,7 +22,7 @@ freechains host start /tmp/freechains/8400 &
 sleep 0.5
 freechains --host=localhost:8400 chain create /0
 g=`freechains --host=localhost:8400 chain genesis /0`
-h=`freechains --host=localhost:8400 chain put /0 text Hello_World`
+h=`freechains --host=localhost:8400 chain put /0 inline utf8 Hello_World`
 freechains --host=localhost:8400 chain get /0 "$h" > /tmp/freechains/freechains-tests-get-1.out
 freechains --host=localhost:8400 chain get /0 0_03170A2E7597B7B7E3D84C05391D139A62B157E78786D8C082F29DCF4C111314 > /tmp/freechains/freechains-tests-get-0.out
 hs=`freechains --host=localhost:8400 chain heads /0`
@@ -43,8 +43,8 @@ freechains host create /tmp/freechains/8401 8401
 freechains host start /tmp/freechains/8401 &
 sleep 0.5
 freechains --host=localhost:8401 chain create /0
-freechains --host=localhost:8400 chain put /0 text 111
-freechains --host=localhost:8400 chain put /0 text 222
+freechains --host=localhost:8400 chain put /0 inline utf8 111
+freechains --host=localhost:8400 chain put /0 inline utf8 222
 freechains --host=localhost:8400 chain send /0 localhost:8401
 
 set -e
@@ -89,7 +89,7 @@ echo "#### 4"
 
 for i in $(seq 1 50)
 do
-  freechains --host=localhost:8400 chain put /0 text $i
+  freechains --host=localhost:8400 chain put /0 inline utf8 $i
 done
 freechains --host=localhost:8400 chain send /0 localhost:8401 &
 P1=$!

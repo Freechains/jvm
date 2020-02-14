@@ -5,6 +5,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
 import java.net.Socket
+import java.util.Base64
 
 val doc = """
 freechains
@@ -17,7 +18,7 @@ Usage:
     freechains [options] chain genesis <chain/work>
     freechains [options] chain heads <chain/work>
     freechains [options] chain get <chain/work> <height_hash>
-    freechains [options] chain put <chain/work> (file | text | -) [<path_or_text>]
+    freechains [options] chain put <chain/work> (file | inline | -) (utf8 | base64) [<path_or_text>]
     freechains [options] chain send <chain/work> <host:port>
     freechains [options] chain listen <chain/work>
 
@@ -110,15 +111,24 @@ fun main (args: Array<String>) {
                         println(json)
                     }
                 }
+                // freechains [options] chain put <chain/work> (file | inline | -) (utf8 | base64) [<path_or_text>]
                 opts["put"] as Boolean -> {
                     writer.writeLineX("FC chain put")
                     writer.writeLineX(opts["<chain/work>"] as String)
-                    val payload = when {
-                        opts["text"] as Boolean -> opts["<path_or_text>"] as String
-                        opts["file"] as Boolean -> File(opts["<path_or_text>"] as String).readBytes().toString(Charsets.UTF_8)
+                    writer.writeLineX(if (opts["utf8"] as Boolean) "utf8" else "base64")
+
+                    val bytes = when {
+                        opts["inline"] as Boolean -> (opts["<path_or_text>"] as String).toByteArray()
+                        opts["file"]   as Boolean -> File(opts["<path_or_text>"] as String).readBytes()
                         else -> error("TODO -")
                     }
+                    val payload = when {
+                        opts["utf8"]   as Boolean -> bytes.toString(Charsets.UTF_8)
+                        opts["base64"] as Boolean -> Base64.getEncoder().encode(bytes).toString()
+                        else -> error("bug found")
+                    }
                     writer.writeBytes(payload)
+
                     writer.writeLineX("\n")
                     val hash = reader.readLineX()
                     println(hash)

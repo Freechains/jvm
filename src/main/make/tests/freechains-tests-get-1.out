@@ -1,6 +1,7 @@
 {
     "time": 0,
     "nonce": 0,
+    "encoding": "utf8",
     "payload": "Hello_World",
     "backs": [
         "0_03170A2E7597B7B7E3D84C05391D139A62B157E78786D8C082F29DCF4C111314"

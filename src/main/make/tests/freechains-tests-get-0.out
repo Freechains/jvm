@@ -1,6 +1,7 @@
 {
     "time": 0,
     "nonce": 0,
+    "encoding": "",
     "payload": "",
     "backs": [
     ],

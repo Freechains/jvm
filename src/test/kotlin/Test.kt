@@ -20,7 +20,6 @@ data class MeuDado(val v: String)
 /*
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 LOC
- *  - NNN + json
  *  - binary data in json (payload: text|bin) (ou text / file ja vai encoded)
  *  - chain locks
  *  - testes antigos
@@ -83,7 +82,7 @@ class Tests {
     @Test
     fun b2_node () {
         val chain = Chain("/tmp/freechains/tests/local/chains/", "/uerj",0)
-        val node = Node(0,0,"111", arrayOf(chain.toGenHash()))
+        val node = Node(0,0,"utf8","111", arrayOf(chain.toGenHash()))
         node.setNonceHashWithWork(0)
         chain.saveNode(node)
         val node2 = chain.loadNodeFromHash(node.hash!!)
@@ -94,9 +93,9 @@ class Tests {
     fun c1_publish () {
         val host = Host_load("/tmp/freechains/tests/local/")
         val chain = host.createChain("/ceu/10")
-        val n1 = chain.publish("aaa", 0)
-        val n2 = chain.publish("bbb", 1)
-        val n3 = chain.publish("ccc", 2)
+        val n1 = chain.publish("utf8","aaa", 0)
+        val n2 = chain.publish("utf8","bbb", 1)
+        val n3 = chain.publish("utf8","ccc", 2)
 
         assert(chain.containsNode(chain.toGenHash()))
         //println(n1.toHeightHash())
@@ -122,8 +121,8 @@ class Tests {
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
         val src_chain = src.createChain("/d3/5")
-        src_chain.publish("aaa", 0)
-        src_chain.publish("bbb", 0)
+        src_chain.publish("utf8","aaa", 0)
+        src_chain.publish("utf8","bbb", 0)
         thread { daemon(src) }
 
         // DESTINY
@@ -147,12 +146,12 @@ class Tests {
     fun e1_graph () {
         val chain = Chain("/tmp/freechains/tests/local/chains/", "/graph",0)
         chain.save()
-        val genesis = Node(0,0, "", emptyArray())
+        val genesis = Node(0,0, "utf8","", emptyArray())
         genesis.hash = chain.toGenHash()
         chain.saveNode(genesis)
 
-        val a1 = Node(0,0,"a1", arrayOf(chain.toGenHash()))
-        val b1 = Node(0,0,"b1", arrayOf(chain.toGenHash()))
+        val a1 = Node(0,0,"utf8","a1", arrayOf(chain.toGenHash()))
+        val b1 = Node(0,0,"utf8","b1", arrayOf(chain.toGenHash()))
         a1.setNonceHashWithWork(0)
         b1.setNonceHashWithWork(0)
         chain.saveNode(a1)
@@ -161,14 +160,14 @@ class Tests {
         chain.reheads(b1)
 
         //val ab2 =
-        chain.publish("ab2", 0)
+        chain.publish("utf8","ab2", 0)
 
-        val b2 = Node(0,0,"b2", arrayOf(b1.hash!!))
+        val b2 = Node(0,0,"utf8","b2", arrayOf(b1.hash!!))
         b2.setNonceHashWithWork(0)
         chain.saveNode(b2)
         chain.reheads(b2)
 
-        chain.publish("ab3", 0)
+        chain.publish("utf8","ab3", 0)
         chain.save()
         /*
                /-- (a1) --\
@@ -183,13 +182,13 @@ class Tests {
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
         val h1_chain = h1.createChain("/xxx/0")
-        h1_chain.publish("h1_1", 0)
-        h1_chain.publish("h1_2", 0)
+        h1_chain.publish("utf8","h1_1", 0)
+        h1_chain.publish("utf8","h1_2", 0)
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
         val h2_chain = h2.createChain("/xxx/0")
-        h2_chain.publish("h2_1", 0)
-        h2_chain.publish("h2_2", 0)
+        h2_chain.publish("utf8","h2_1", 0)
+        h2_chain.publish("utf8","h2_2", 0)
 
         Thread.sleep(100)
         thread { daemon(h1) }
@@ -218,8 +217,8 @@ class Tests {
         main(arrayOf("chain","genesis","/xxx/0"))
         main(arrayOf("chain","heads","/xxx/0"))
 
-        main(arrayOf("chain","put","/xxx/0","text","aaa"))
-        main(arrayOf("chain","put","/xxx/0","file","/tmp/freechains/tests/M1/host"))
+        main(arrayOf("chain","put","/xxx/0","inline","utf8","aaa"))
+        main(arrayOf("chain","put","/xxx/0","file","utf8","/tmp/freechains/tests/M1/host"))
 
         main(arrayOf("chain","genesis","/xxx/0"))
         main(arrayOf("chain","heads","/xxx/0"))
