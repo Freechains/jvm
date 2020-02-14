@@ -9,13 +9,23 @@ import kotlin.concurrent.thread
 
 import org.freechains.common.*
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.UnstableDefault
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
+
+@Serializable
+data class MeuDado(val v: String)
+
 /*
  *  TODO:
- *  - 948 -> 852 -> 841 LOC
+ *  - 948 -> 852 -> 841 -> 928 LOC
+ *  - NN + json
  *  - chain locks
  *  - testes antigos
  *  - crypto (chain e host)
  *  - RX Kotlin
+ *  - pipes / filtros
  *  - freechains chain remove
  *  - freechains host configure (json)
  *    - peer/chain configurations in host
@@ -28,6 +38,25 @@ import org.freechains.common.*
 
 @TestMethodOrder(Alphanumeric::class)
 class Tests {
+
+    @Test
+    fun aaa () {
+        val bs : MutableList<Byte> = mutableListOf()
+        for (i in 0..255) {
+            bs.add(i.toByte())
+        }
+        val x = bs.toByteArray().toString(Charsets.ISO_8859_1)
+        //println(x)
+        val s = MeuDado(x)
+        //println(s)
+        @UseExperimental(UnstableDefault::class)
+        val json = Json(JsonConfiguration(prettyPrint=true))
+        val a = json.stringify(MeuDado.serializer(), s)
+        val b = json.parse(MeuDado.serializer(), a)
+        val c = b.v.toByteArray(Charsets.ISO_8859_1)
+        assert(bs.toByteArray().contentToString() == c.contentToString())
+    }
+
     @Test
     fun a_reset () {
         assert( File("/tmp/freechains/tests/").deleteRecursively() )
