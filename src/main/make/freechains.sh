@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-java -jar "$(dirname "$0")"/Freechains.jar "$@"
+java -ea -jar "$(dirname "$0")"/Freechains.jar "$@"

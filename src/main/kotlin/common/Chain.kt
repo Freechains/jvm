@@ -11,13 +11,13 @@ typealias Chain_NW = Pair<String,Byte>
 
 @Serializable
 data class Chain (
-    val root   : String,
-    val name   : String,
-    val work   : Byte,
-    val shared : String
+    val root  : String,
+    val name  : String,
+    val work  : Byte,
+    val keys  : Array<String>   // [shared,public,private]
 ) {
-    val hash   : String = this.toHash()
-    val heads  : ArrayList<Hash> = arrayListOf(this.toGenHash())
+    val hash  : String = this.toHash()
+    val heads : ArrayList<Hash> = arrayListOf(this.toGenHash())
 }
 
 // JSON
@@ -41,8 +41,8 @@ fun Chain.publish (encoding: String, payload: String) : Node {
 }
 
 fun Chain.publish (encoding: String, payload: String, time: Long) : Node {
-    val node = Node(time, 0, encoding, payload, this.heads.toTypedArray())
-    node.setNonceHashWithWorkShared(this.work,this.shared)
+    val node = Node(NodeHashable(time,0,payload,emptyArray()), encoding, this.heads.toTypedArray(), "", null)
+    node.setNonceHashSigWithWorkKeys(this.work,this.keys)
     this.saveNode(node)
     this.reheads(node)
     this.save()
@@ -51,12 +51,14 @@ fun Chain.publish (encoding: String, payload: String, time: Long) : Node {
 
 fun Chain.reheads (node: Node) {
     this.heads.add(node.hash!!)
-    for (back in node.backs) {
+    for (back in node.hashable.backs) {
         this.heads.remove(back)
         val old = this.loadNodeFromHash(back)
         if (!old.fronts.contains((node.hash!!))) {
-            val new = Node(old.time, old.nonce, old.encoding, old.payload, old.backs, old.fronts + node.hash!!)
-            new.hash = old.hash!!
+            val new = Node(
+                NodeHashable(old.hashable.time, old.hashable.nonce, old.hashable.payload, old.hashable.backs),
+                old.encoding,old.fronts + node.hash!!, old.signature, old.hash!!
+            )
             this.saveNode(new)
         }
     }
@@ -89,7 +91,7 @@ fun String.pathCheck () : String {
 // HASH
 
 fun Chain.toHash () : String {
-    return this.toByteArray().toHash(this.shared)
+    return this.toByteArray().toHash(this.keys[0])
 }
 
 private fun Chain.toByteArray () : ByteArray {

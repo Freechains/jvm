@@ -2,6 +2,7 @@ package org.freechains.common
 
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.lang.Exception
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
@@ -15,7 +16,13 @@ fun daemon (host : Host) {
         try {
             val remote = socket.accept()
             System.err.println("remote connect: $host <- ${remote.inetAddress.hostAddress}")
-            thread { handle(socket, remote, host) }
+            thread {
+                try {
+                    handle(socket, remote, host)
+                } catch (e: Throwable) {
+                    remote.close()
+                }
+            }
         } catch (e: SocketException) {
             assert(e.message == "Socket closed")
             break
@@ -35,9 +42,11 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             System.err.println("host stop: $local")
         }
         "FC chain create" -> {
-            val path   = reader.readLineX()
-            val shared = reader.readLineX()
-            val chain = local.createChain(path,shared)
+            val path    = reader.readLineX()
+            val shared  = reader.readLineX()
+            val public  = reader.readLineX()
+            val private = reader.readLineX()
+            val chain = local.createChain(path,arrayOf(shared,public,private))
             writer.writeLineX(chain.hash)
             System.err.println("chain create: $path")
         }
@@ -141,9 +150,8 @@ fun Socket.chain_send (chain: Chain) : Int {
     writer.writeLineX(toSend.size.toString())
     val sorted = toSend.toSortedSet(compareBy({it.length},{it}))
     for (hash in sorted) {
-        val node = chain.loadNodeFromHash(hash)
-        val new = Node(node.time,node.nonce,node.encoding,node.payload,node.backs,emptyArray())
-        new.hash = node.hash!!
+        val old = chain.loadNodeFromHash(hash)
+        val new = Node(NodeHashable(old.hashable.time,old.hashable.nonce,old.hashable.payload,emptyArray()),old.encoding,old.hashable.backs,old.signature,old.hash!!)
         writer.writeBytes(new.toJson())
         writer.writeLineX("\n")
     }
@@ -165,7 +173,7 @@ fun Socket.chain_recv (chain: Chain) : Int {
     val n = reader.readLineX().toInt()
     for (i in 1..n) {
         val node = reader.readLinesX().jsonToNode()
-        node.recheck(chain.shared)
+        node.recheck(chain.keys)
         chain.reheads(node)
         chain.saveNode(node)
         chain.save()

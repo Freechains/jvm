@@ -2,8 +2,10 @@ package org.freechains.common
 
 //import java.security.MessageDigest
 
+import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.LazySodiumJava
 import com.goterl.lazycode.lazysodium.SodiumJava
+import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
@@ -11,22 +13,31 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlin.math.max
 
-
 private var lazySodium: LazySodiumJava = LazySodiumJava(SodiumJava())
 
 typealias Hash = String
 
 @Serializable
+data class NodeHashable (
+    val time      : Long,           // TODO: ULong
+    var nonce     : Long,           // TODO: ULong
+    val payload   : String,
+    val backs     : Array<Hash>     // back links (previous nodes)
+)
+
+@Serializable
 data class Node (
-    val time     : Long,             // TODO: ULong
-    var nonce    : Long,             // TODO: ULong
-    val encoding : String,
-    val payload  : String,
-    val backs    : Array<Hash>,
-    val fronts   : Array<Hash> = arrayOf()
+    val hashable  : NodeHashable,   // things to hash
+    val encoding  : String,         // payload encoding
+    val fronts    : Array<Hash>,    // front links (next nodes)
+    var signature : String,         // hash signature
+    var hash      : Hash?           // hash of hashable
 ) {
-    val height   : Int = if (this.backs.isEmpty()) 0 else this.backs.fold(0, { cur,hash -> max(cur,hash.toHeight()) }) + 1
-    var hash     : Hash? = null
+    val height    : Int =
+        if (this.hashable.backs.isEmpty())
+            0
+        else
+            this.hashable.backs.fold(0, { cur,hash -> max(cur,hash.toHeight()) }) + 1
 }
 
 // JSON
@@ -62,20 +73,35 @@ fun ByteArray.toHash (shared: String) : String {
     //return MessageDigest.getInstance("SHA-256").digest(this).toHexString()
 }
 
-fun Node.setNonceHashWithWorkShared (work: Byte, shared: String) {
+fun Node.setNonceHashSigWithWorkKeys (work: Byte, keys: Array<String>) {
     while (true) {
-        val hash = this.toByteArray().toHash(shared)
+        val hash = this.toByteArray().toHash(keys[0])
         //println(hash)
         if (hash2work(hash) >= work) {
             this.hash = this.height.toString() + "_" + hash
-            return
+            break
         }
-        this.nonce++
+        this.hashable.nonce++
+    }
+
+    if (keys[1] != "") {
+        val sig = ByteArray(Sign.BYTES)
+        val msg = lazySodium.bytes(this.hash!!)
+        val pvt = Key.fromHexString(keys[2]).asBytes
+        lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), pvt)
+        this.signature = LazySodium.toHex(sig)
     }
 }
 
-fun Node.recheck (shared: String) {
-    assert(this.hash!! == this.height.toString() + "_" + this.toByteArray().toHash(shared))
+fun Node.recheck (keys: Array<String>) {
+    assert(this.hash!! == this.height.toString() + "_" + this.toByteArray().toHash(keys[0])) { "invalid hash" }
+
+    if (this.signature != "") {
+        val sig = LazySodium.toBin(this.signature)
+        val msg = lazySodium.bytes(this.hash!!)
+        val key = Key.fromHexString(keys[1]).asBytes
+        assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
+    }
 }
 
 private fun hash2work (hash: String): Int {
@@ -94,17 +120,17 @@ private fun hash2work (hash: String): Int {
 }
 
 private fun Node.toByteArray (): ByteArray {
-    val bytes = ByteArray(8 + 8 + 4 + this.payload.length + this.backs.size*64 + 64)
+    val bytes = ByteArray(8 + 8 + 4 + this.hashable.payload.length + this.hashable.backs.size*64 + 64)
     var off = 0
-    bytes.setLongAt(off, this.time)
+    bytes.setLongAt(off, this.hashable.time)
     off += 8
-    bytes.setLongAt(off, this.nonce)
+    bytes.setLongAt(off, this.hashable.nonce)
     off += 8
-    for (v in this.payload) {
+    for (v in this.hashable.payload) {
         bytes.set(off, v.toByte())
         off += 1
     }
-    for (hash in this.backs) {
+    for (hash in this.hashable.backs) {
         for (v in hash.toHash()) {
             bytes.set(off, v.toByte())
             off += 1
