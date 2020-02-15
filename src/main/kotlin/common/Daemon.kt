@@ -87,8 +87,8 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val chain = local.loadChain(path)
             val node = if (local.timestamp) chain.publish(enc,pay) else chain.publish(enc,pay,0)
 
-            writer.writeLineX(node.hash!!)
-            System.err.println("chain put: ${node.hash!!}")
+            writer.writeLineX(node.hash)
+            System.err.println("chain put: ${node.hash}")
         }
         "FC chain send" -> {
             val path = reader.readLineX().pathCheck()
@@ -151,7 +151,8 @@ fun Socket.chain_send (chain: Chain) : Int {
     val sorted = toSend.toSortedSet(compareBy({it.length},{it}))
     for (hash in sorted) {
         val old = chain.loadNodeFromHash(hash)
-        val new = Node(NodeHashable(old.hashable.time,old.hashable.nonce,old.hashable.encoding,old.hashable.payload,emptyArray()),old.hashable.backs,old.signature,old.hash!!)
+        // remove fronts
+        val new = Node(old.hashable,emptyArray(),old.signature,old.hash)
         writer.writeBytes(new.toJson())
         writer.writeLineX("\n")
     }

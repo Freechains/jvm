@@ -35,8 +35,8 @@ g1=`freechains --host=localhost:8401 chain genesis /0`
 g2=`freechains --host=localhost:8402 chain genesis /0`
 
 # compare them
-diff <(echo "$g0") <(echo "$g1") || exit 0
-diff <(echo "$g0") <(echo "$g2") || exit 0
+diff <(echo "$g0") <(echo "$g1") || exit 1
+diff <(echo "$g0") <(echo "$g2") || exit 1
 
 # put to 8400, send to 8401 (fail) 8402 (succees)
 freechains --host=localhost:8400 chain put /0 inline utf8 Hello_World
@@ -44,8 +44,8 @@ freechains --host=localhost:8400 chain send /0 localhost:8401  # FAIL
 freechains --host=localhost:8400 chain send /0 localhost:8402  # SUCCESS
 
 # compare them
-! diff -q $FC/8400/chains/0 $FC/8401/chains/0/ || exit 0
-diff $FC/8400/chains/0 $FC/8402/chains/0/      || exit 0
+! diff -q $FC/8400/chains/0 $FC/8401/chains/0/ || exit 1
+diff $FC/8400/chains/0 $FC/8402/chains/0/      || exit 1
 
 # stop nodes
 freechains host stop --host=localhost:8400 &

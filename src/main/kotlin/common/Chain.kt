@@ -41,8 +41,10 @@ fun Chain.publish (encoding: String, payload: String) : Node {
 }
 
 fun Chain.publish (encoding: String, payload: String, time: Long) : Node {
-    val node = Node(NodeHashable(time,0,encoding,payload,emptyArray()), this.heads.toTypedArray(), "", null)
-    node.setNonceHashSigWithWorkKeys(this.work,this.keys)
+    val node = Node_new (
+        NodeHashable(time,0,encoding,payload,this.heads.toTypedArray()),
+        emptyArray(),this.work,this.keys
+    )
     this.saveNode(node)
     this.reheads(node)
     this.save()
@@ -50,15 +52,12 @@ fun Chain.publish (encoding: String, payload: String, time: Long) : Node {
 }
 
 fun Chain.reheads (node: Node) {
-    this.heads.add(node.hash!!)
+    this.heads.add(node.hash)
     for (back in node.hashable.backs) {
         this.heads.remove(back)
         val old = this.loadNodeFromHash(back)
-        if (!old.fronts.contains((node.hash!!))) {
-            val new = Node(
-                NodeHashable(old.hashable.time, old.hashable.nonce, old.hashable.encoding, old.hashable.payload, old.hashable.backs),
-                old.fronts + node.hash!!, old.signature, old.hash!!
-            )
+        if (!old.fronts.contains((node.hash))) {
+            val new = Node(old.hashable, old.fronts+node.hash, old.signature, old.hash)
             this.saveNode(new)
         }
     }
@@ -119,7 +118,7 @@ fun Chain.save () {
 // NDOE
 
 fun Chain.saveNode (node: Node) {
-    File(this.root + this.toPath() + "/" + node.hash!! + ".node").writeText(node.toJson()+"\n")
+    File(this.root + this.toPath() + "/" + node.hash + ".node").writeText(node.toJson()+"\n")
 }
 
 fun Chain.loadNodeFromHash (hash: Hash): Node {

@@ -20,7 +20,7 @@ typealias Hash = String
 @Serializable
 data class NodeHashable (
     val time      : Long,           // TODO: ULong
-    var nonce     : Long,           // TODO: ULong
+    val nonce     : Long,           // TODO: ULong
     val encoding  : String,         // payload encoding
     val payload   : String,
     val backs     : Array<Hash>     // back links (previous nodes)
@@ -30,14 +30,17 @@ data class NodeHashable (
 data class Node (
     val hashable  : NodeHashable,   // things to hash
     val fronts    : Array<Hash>,    // front links (next nodes)
-    var signature : String,         // hash signature
-    var hash      : Hash?           // hash of hashable
+    val signature : String,         // hash signature
+    val hash      : Hash            // hash of hashable
 ) {
-    val height    : Int =
-        if (this.hashable.backs.isEmpty())
-            0
-        else
-            this.hashable.backs.fold(0, { cur,hash -> max(cur,hash.toHeight()) }) + 1
+    val height    : Int = this.hashable.backs.backsToHeight()
+}
+
+fun Array<Hash>.backsToHeight () : Int {
+    return when {
+        this.isEmpty() -> 0
+        else -> this.fold(0, { cur, hash -> max(cur, hash.toHeight()) }) + 1
+    }
 }
 
 // JSON
@@ -73,32 +76,39 @@ fun ByteArray.toHash (shared: String) : String {
     //return MessageDigest.getInstance("SHA-256").digest(this).toHexString()
 }
 
-fun Node.setNonceHashSigWithWorkKeys (work: Byte, keys: Array<String>) {
+fun Node_new (hashable: NodeHashable, fronts: Array<Hash>, work: Byte, keys: Array<String>) : Node {
+    val hash: Hash?
+    var h = hashable
+    val height = h.backs.backsToHeight()
     while (true) {
-        val hash = this.toByteArray().toHash(keys[0])
-        //println(hash)
-        if (hash2work(hash) >= work) {
-            this.hash = this.height.toString() + "_" + hash
+        val tmp = h.toByteArray().toHash(keys[0])
+        //println(tmp)
+        if (hash2work(tmp) >= work) {
+            hash = height.toString() + "_" + tmp
             break
         }
-        this.hashable.nonce++
+        h = NodeHashable(h.time,h.nonce+1,h.encoding,h.payload,h.backs)     // TODO: iterate over time as well
     }
 
+    var signature = ""
     if (keys[1] != "") {
         val sig = ByteArray(Sign.BYTES)
-        val msg = lazySodium.bytes(this.hash!!)
+        val msg = lazySodium.bytes(hash!!)
         val pvt = Key.fromHexString(keys[2]).asBytes
         lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), pvt)
-        this.signature = LazySodium.toHex(sig)
+        signature = LazySodium.toHex(sig)
     }
+
+    return Node(h,fronts,signature,hash!!)
 }
 
 fun Node.recheck (keys: Array<String>) {
-    assert(this.hash!! == this.height.toString() + "_" + this.toByteArray().toHash(keys[0])) { "invalid hash" }
+    assert(this.hash == this.height.toString() + "_" + this.hashable.toByteArray().toHash(keys[0]))
+        { "invalid hash" }
 
     if (this.signature != "") {
         val sig = LazySodium.toBin(this.signature)
-        val msg = lazySodium.bytes(this.hash!!)
+        val msg = lazySodium.bytes(this.hash)
         val key = Key.fromHexString(keys[1]).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
     }
@@ -119,24 +129,24 @@ private fun hash2work (hash: String): Int {
     error("bug found!")
 }
 
-private fun Node.toByteArray (): ByteArray {
+private fun NodeHashable.toByteArray (): ByteArray {
     val bytes = ByteArray(
-        8 + 8 + this.hashable.encoding.length + this.hashable.payload.length + this.hashable.backs.size*64
+        8 + 8 + this.encoding.length + this.payload.length + this.backs.size*64
     )
     var off = 0
-    bytes.setLongAt(off, this.hashable.time)
+    bytes.setLongAt(off, this.time)
     off += 8
-    bytes.setLongAt(off, this.hashable.nonce)
+    bytes.setLongAt(off, this.nonce)
     off += 8
-    for (v in this.hashable.encoding) {
+    for (v in this.encoding) {
         bytes.set(off, v.toByte())
         off += 1
     }
-    for (v in this.hashable.payload) {
+    for (v in this.payload) {
         bytes.set(off, v.toByte())
         off += 1
     }
-    for (hash in this.hashable.backs) {
+    for (hash in this.backs) {
         for (v in hash.toHash()) {
             bytes.set(off, v.toByte())
             off += 1

@@ -23,8 +23,12 @@ data class MeuDado(val v: String)
 
 /*
  *  TODO:
- *  - 948 -> 852 -> 841 -> 931 LOC
- *  - descobrir println(null), freechains crypto p/ criar as chaves e criptografar payloads, simplificar node, || exit 0
+ *  - 948 -> 852 -> 841 -> 931 -> 1041 LOC
+ *  - 10554 KB
+ *  - all use cases (chain cfg e usos da industria)
+ *  - mover testes
+ *  - descobrir println(null), freechains crypto p/ criar as chaves e criptografar payloads
+ *  - android again
  *  - chain locks
  *  - testes antigos
  *  - crypto (asym e host)
@@ -63,7 +67,7 @@ class Tests {
 
     @Test
     fun aaaa () {
-        val lazySodium: LazySodiumJava = LazySodiumJava(SodiumJava())
+        val lazySodium = LazySodiumJava(SodiumJava())
         val kp : KeyPair = lazySodium.cryptoSignKeypair()
         val pk : Key = kp.getPublicKey()
         val sk : Key = kp.getSecretKey()
@@ -98,10 +102,12 @@ class Tests {
     @Test
     fun b2_node () {
         val chain = Chain("/tmp/freechains/tests/local/chains/", "/uerj",0, arrayOf("","",""))
-        val node = Node(NodeHashable(0,0,"utf8","111", arrayOf(chain.toGenHash())), emptyArray(), "",null)
-        node.setNonceHashSigWithWorkKeys(0,arrayOf("","",""))
+        val node = Node_new (
+            NodeHashable(0,0,"utf8","111", arrayOf(chain.toGenHash())),
+            emptyArray(), 0, arrayOf("","","")
+        )
         chain.saveNode(node)
-        val node2 = chain.loadNodeFromHash(node.hash!!)
+        val node2 = chain.loadNodeFromHash(node.hash)
         assertThat(node.hashCode()).isEqualTo(node2.hashCode())
     }
 
@@ -115,9 +121,9 @@ class Tests {
 
         assert(chain.containsNode(chain.toGenHash()))
         //println(n1.toHeightHash())
-        assert(chain.containsNode(n1.hash!!))
-        assert(chain.containsNode(n2.hash!!))
-        assert(chain.containsNode(n3.hash!!))
+        assert(chain.containsNode(n1.hash))
+        assert(chain.containsNode(n2.hash))
+        assert(chain.containsNode(n3.hash))
         assert(!chain.containsNode("2_........"))
     }
 
@@ -168,10 +174,14 @@ class Tests {
         )
         chain.saveNode(genesis)
 
-        val a1 = Node(NodeHashable(0,0,"utf8", "a1", arrayOf(chain.toGenHash())),emptyArray(),"",null)
-        val b1 = Node(NodeHashable(0,0,"utf8", "b1", arrayOf(chain.toGenHash())),emptyArray(),"",null)
-        a1.setNonceHashSigWithWorkKeys(0,arrayOf("","",""))
-        b1.setNonceHashSigWithWorkKeys(0,arrayOf("","",""))
+        val a1 = Node_new (
+            NodeHashable(0,0,"utf8", "a1", arrayOf(chain.toGenHash())),
+            emptyArray(),0, arrayOf("","","")
+        )
+        val b1 = Node_new (
+            NodeHashable(0,0,"utf8", "b1", arrayOf(chain.toGenHash())),
+            emptyArray(),0, arrayOf("","","")
+        )
         chain.saveNode(a1)
         chain.saveNode(b1)
         chain.reheads(a1)
@@ -180,8 +190,10 @@ class Tests {
         //val ab2 =
         chain.publish("utf8","ab2", 0)
 
-        val b2 = Node(NodeHashable(0,0,"utf8","b2", arrayOf(b1.hash!!)), emptyArray(),"",null)
-        b2.setNonceHashSigWithWorkKeys(0,arrayOf("","",""))
+        val b2 = Node_new (
+            NodeHashable(0,0,"utf8","b2", arrayOf(b1.hash)),
+            emptyArray(), 0, arrayOf("","","")
+        )
         chain.saveNode(b2)
         chain.reheads(b2)
 

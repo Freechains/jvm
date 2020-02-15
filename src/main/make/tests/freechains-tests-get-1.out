@@ -1,13 +1,16 @@
 {
-    "time": 0,
-    "nonce": 0,
-    "encoding": "utf8",
-    "payload": "Hello_World",
-    "backs": [
-        "0_03170A2E7597B7B7E3D84C05391D139A62B157E78786D8C082F29DCF4C111314"
-    ],
+    "hashable": {
+        "time": 0,
+        "nonce": 0,
+        "encoding": "utf8",
+        "payload": "Hello_World",
+        "backs": [
+            "0_03170A2E7597B7B7E3D84C05391D139A62B157E78786D8C082F29DCF4C111314"
+        ]
+    },
     "fronts": [
     ],
-    "height": 1,
-    "hash": "1_48F037FC75C8260D50841620523943A8E68B52BC0401CDBA30728FD6A1AD6E2D"
+    "signature": "",
+    "hash": "1_36AEEA57AF9FB4E0FCD6F66DA0594F646C700D65123B1CBFD6202C40008C30C8",
+    "height": 1
 }

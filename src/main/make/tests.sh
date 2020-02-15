@@ -29,20 +29,15 @@ hs=`freechains --host=localhost:8400 chain heads /0`
 freechains --host=localhost:8400 chain get /0 "$g" > /tmp/freechains/freechains-tests-gen.out
 freechains --host=localhost:8400 chain get /0 "$hs" > /tmp/freechains/freechains-tests-heads.out
 
-set -e
-diff /tmp/freechains/freechains-tests-gen.out   tests/freechains-tests-get-0.out
-diff /tmp/freechains/freechains-tests-get-0.out tests/freechains-tests-get-0.out
-diff /tmp/freechains/freechains-tests-get-1.out tests/freechains-tests-get-1.out
-diff /tmp/freechains/freechains-tests-heads.out tests/freechains-tests-get-1.out
-set +e
+diff /tmp/freechains/freechains-tests-gen.out   tests/freechains-tests-get-0.out || exit 1
+diff /tmp/freechains/freechains-tests-get-0.out tests/freechains-tests-get-0.out || exit 1
+diff /tmp/freechains/freechains-tests-get-1.out tests/freechains-tests-get-1.out || exit 1
+diff /tmp/freechains/freechains-tests-heads.out tests/freechains-tests-get-1.out || exit 1
 
 h=`freechains --host=localhost:8400 chain put /0 file base64 /bin/cat`
 freechains --host=localhost:8400 chain get /0 "$h" > /tmp/freechains/cat.node
-jq ".payload" /tmp/freechains/cat.node | tr -d '"' | base64 --decode > /tmp/freechains/cat
-set -e
-diff /tmp/freechains/cat /bin/cat
-set +e
-
+jq ".hashable.payload" /tmp/freechains/cat.node | tr -d '"' | base64 --decode > /tmp/freechains/cat
+diff /tmp/freechains/cat /bin/cat || exit 1
 
 ###############################################################################
 echo "#### 2"
@@ -55,14 +50,12 @@ freechains --host=localhost:8400 chain put /0 inline utf8 111
 freechains --host=localhost:8400 chain put /0 inline utf8 222
 freechains --host=localhost:8400 chain send /0 localhost:8401
 
-set -e
-diff /tmp/freechains/8400/chains/0/ /tmp/freechains/8401/chains/0/
+diff /tmp/freechains/8400/chains/0/ /tmp/freechains/8401/chains/0/ || exit 1
 ret=`ls /tmp/freechains/8400/chains/0/ | wc`
 if [ "$ret" != "      5       5     360" ]; then
   echo "$ret"
   exit 1
 fi
-set +e
 
 ###############################################################################
 echo "#### 3"
@@ -80,14 +73,12 @@ do
   P2=$!
   wait $P1 $P2
 
-  set -e
-  diff /tmp/freechains/8401/chains/0/ /tmp/freechains/8402/chains/0/
+  diff /tmp/freechains/8401/chains/0/ /tmp/freechains/8402/chains/0/ || exit 1
   ret=`ls /tmp/freechains/8401/chains/0/ | wc`
   if [ "$ret" != "      5       5     360" ]; then
     echo "$ret"
     exit 1
   fi
-  set +e
   break
 done
 
@@ -105,15 +96,13 @@ freechains --host=localhost:8400 chain send /0 localhost:8402 &
 P2=$!
 wait $P1 $P2
 
-set -e
-diff /tmp/freechains/8400/chains/0/ /tmp/freechains/8401/chains/0/
-diff /tmp/freechains/8401/chains/0/ /tmp/freechains/8402/chains/0/
+diff /tmp/freechains/8400/chains/0/ /tmp/freechains/8401/chains/0/ || exit 1
+diff /tmp/freechains/8401/chains/0/ /tmp/freechains/8402/chains/0/ || exit 1
 ret=`ls /tmp/freechains/8401/chains/0/ | wc`
 if [ "$ret" != "     55      55    4005" ]; then
   echo "$ret"
   exit 1
 fi
-set +e
 
 ###############################################################################
 echo "#### 5"
@@ -132,12 +121,10 @@ do
 done
 sleep 10
 
-set -e
 for i in $(seq 8411 8420)
 do
-  diff /tmp/freechains/8400/chains/0/ /tmp/freechains/$i/chains/0/
+  diff /tmp/freechains/8400/chains/0/ /tmp/freechains/$i/chains/0/ || exit 1
 done
-set +e
 
 for i in $(seq 8411 8420)
 do
@@ -151,12 +138,10 @@ do
 done
 sleep 10
 
-set -e
 for i in $(seq 8421 8450)
 do
-  diff /tmp/freechains/8400/chains/0/ /tmp/freechains/$i/chains/0/
+  diff /tmp/freechains/8400/chains/0/ /tmp/freechains/$i/chains/0/ || exit 1
 done
-set +e
 
 ###############################################################################
 
