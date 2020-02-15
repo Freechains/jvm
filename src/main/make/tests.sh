@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 
-#while : ; do
+while : ; do
+  ./tests-shared.sh || exit 1
+  ./tests-pubpvt.sh || exit 1
 
 freechains host stop --host=localhost:8400 &
 freechains host stop --host=localhost:8401 &
@@ -145,7 +147,7 @@ done
 
 ###############################################################################
 
-#done
+done
 
 echo
 echo "=== ALL TESTS PASSED ==="
