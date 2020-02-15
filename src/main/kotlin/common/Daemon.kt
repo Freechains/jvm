@@ -1,5 +1,7 @@
 package org.freechains.common
 
+import com.goterl.lazycode.lazysodium.LazySodium
+import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.lang.Exception
@@ -108,6 +110,32 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val n = remote.chain_recv(chain)
             System.err.println("chain recv: $path: $n")
             //writer.writeLineX(ret)
+        }
+        "FC crypto create" -> {
+            fun pwHash (pwd: ByteArray) : ByteArray {
+                val out  = ByteArray(32)                       // TODO: why?
+                val salt = ByteArray(PwHash.ARGON2ID_SALTBYTES)     // all zeros
+                assert(lazySodium.cryptoPwHash(
+                    out,out.size, pwd,pwd.size, salt,
+                    PwHash.OPSLIMIT_INTERACTIVE, PwHash.MEMLIMIT_INTERACTIVE, PwHash.Alg.getDefault()
+                ))
+                return out
+            }
+
+            val type  = reader.readLineX()
+            val plain = reader.readLineX().toByteArray()
+            val pwh   = pwHash(plain)
+
+            when (type) {
+                "shared" -> {
+                    writer.writeLineX(LazySodium.toHex(pwh))
+                }
+                "pubpvt" -> {
+                    val keys = lazySodium.cryptoBoxSeedKeypair(pwh)
+                    writer.writeLineX(keys.getSecretKey().getAsHexString())
+                    writer.writeLineX(keys.getPublicKey().getAsHexString())
+                }
+            }
         }
         else -> { error("$ln: invalid header type") }
     }

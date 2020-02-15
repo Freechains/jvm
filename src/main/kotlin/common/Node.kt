@@ -13,8 +13,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlin.math.max
 
-private var lazySodium: LazySodiumJava = LazySodiumJava(SodiumJava())
-
 typealias Hash = String
 
 @Serializable

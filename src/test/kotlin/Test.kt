@@ -26,7 +26,6 @@ data class MeuDado(val v: String)
  *  - 948 -> 852 -> 841 -> 931 -> 1041 LOC
  *  - 10554 KB
  *  - all use cases (chain cfg e usos da industria)
- *  - mover testes
  *  - descobrir println(null), freechains crypto p/ criar as chaves e criptografar payloads
  *  - android again
  *  - chain locks
@@ -48,7 +47,19 @@ data class MeuDado(val v: String)
 class Tests {
 
     @Test
-    fun aaa () {
+    fun a_reset () {
+        assert( File("/tmp/freechains/tests/").deleteRecursively() )
+    }
+
+    @Test
+    fun a1_hash () {
+        val x = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+        val y = byteArrayOf(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31)
+        assert(x == y.toHexString())
+    }
+
+    @Test
+    fun a2_json () {
         val bs : MutableList<Byte> = mutableListOf()
         for (i in 0..255) {
             bs.add(i.toByte())
@@ -63,30 +74,6 @@ class Tests {
         val b = json.parse(MeuDado.serializer(), a)
         val c = b.v.toByteArray(Charsets.ISO_8859_1)
         assert(bs.toByteArray().contentToString() == c.contentToString())
-    }
-
-    @Test
-    fun aaaa () {
-        val lazySodium = LazySodiumJava(SodiumJava())
-        val kp : KeyPair = lazySodium.cryptoSignKeypair()
-        val pk : Key = kp.getPublicKey()
-        val sk : Key = kp.getSecretKey()
-        assert(lazySodium.cryptoSignKeypair(pk.getAsBytes(), sk.getAsBytes()))
-        println(pk.getAsHexString())
-        println(sk.getAsHexString())
-    }
-
-
-    @Test
-    fun a_reset () {
-        assert( File("/tmp/freechains/tests/").deleteRecursively() )
-    }
-
-    @Test
-    fun a1_hash () {
-        val x = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-        val y = byteArrayOf(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31)
-        assert(x == y.toHexString())
     }
 
     @Test
@@ -236,7 +223,7 @@ class Tests {
 
     @Test
     fun m1_args () {
-        a_reset()
+        //a_reset()
         main(arrayOf("host","create","/tmp/freechains/tests/M1/"))
         thread {
             main(arrayOf("host","start","/tmp/freechains/tests/M1/"))
@@ -260,5 +247,24 @@ class Tests {
         main(arrayOf("host","stop"))
         // TODO: check genesis 2x, "aaa", "host"
         // $ cat /tmp/freechains/tests/M1/chains/xxx/0/*
+    }
+
+    @Test
+    fun m2_crypto () {
+        //a_reset()
+        main(arrayOf("host","create","/tmp/freechains/tests/M2/"))
+        thread {
+            main(arrayOf("host","start","/tmp/freechains/tests/M2/"))
+        }
+        Thread.sleep(100)
+        val lazySodium = LazySodiumJava(SodiumJava())
+        val kp : KeyPair = lazySodium.cryptoSignKeypair()
+        val pk : Key = kp.getPublicKey()
+        val sk : Key = kp.getSecretKey()
+        assert(lazySodium.cryptoSignKeypair(pk.getAsBytes(), sk.getAsBytes()))
+        //println(pk.getAsHexString())
+        //println(sk.getAsHexString())
+        main(arrayOf("crypto","create","shared","senha secreta"))
+        main(arrayOf("crypto","create","pubpvt","senha secreta"))
     }
 }

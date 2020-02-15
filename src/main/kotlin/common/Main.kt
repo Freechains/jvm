@@ -21,11 +21,12 @@ Usage:
     freechains [options] chain put <chain/work> (file | inline | -) (utf8 | base64) [<path_or_text>]
     freechains [options] chain send <chain/work> <host:port>
     freechains [options] chain listen <chain/work>
+    freechains [options] crypto create (shared | pubpvt) <passphrase>
 
 Options:
-    --host=<addr:port>          address and port to connect [default: localhost:8330]
-    --help                      display this help
-    --version                   display version information
+    --help                      [none] display this help
+    --version                   [none] display version information
+    --host=<addr:port>          [all]  address and port to connect [default: localhost:8330]
 
 More Information:
 
@@ -82,8 +83,8 @@ fun main (args: Array<String>) {
                 opts["create"] as Boolean -> {
                     writer.writeLineX("FC chain create")
                     writer.writeLineX(opts["<chain/work>"] as String)
-                    writer.writeLineX(opts["<shared_key>"]  as String? ?: "")
-                    writer.writeLineX(opts["<public_key>"]  as String? ?: "")
+                    writer.writeLineX(opts["<shared_key>"] as String? ?: "")
+                    writer.writeLineX(opts["<public_key>"] as String? ?: "")
                     writer.writeLineX(opts["<private_key>"] as String? ?: "")
                     println(reader.readLineX())
                 }
@@ -123,7 +124,7 @@ fun main (args: Array<String>) {
 
                     val bytes = when {
                         opts["inline"] as Boolean -> (opts["<path_or_text>"] as String).toByteArray()
-                        opts["file"]   as Boolean -> File(opts["<path_or_text>"] as String).readBytes()
+                        opts["file"] as Boolean -> File(opts["<path_or_text>"] as String).readBytes()
                         else -> error("TODO -")
                     }
                     val payload = when {
@@ -147,6 +148,25 @@ fun main (args: Array<String>) {
                 }
             }
             socket.close()
+        }
+        opts["crypto"] as Boolean -> {
+            val (host, port) = optHost()
+            val socket = Socket(host, port)
+            val writer = DataOutputStream(socket.getOutputStream()!!)
+            val reader = DataInputStream(socket.getInputStream()!!)
+            when {
+                // freechains [options] crypto create (shared | pubpvt) <passphrase>
+                opts["create"] as Boolean -> {
+                    val isShared = opts["shared"] as Boolean
+                    writer.writeLineX("FC crypto create")
+                    writer.writeLineX(if (isShared) "shared" else "pubpvt")
+                    writer.writeLineX(opts["<passphrase>"] as String)
+                    println(reader.readLineX())         // shared or private key
+                    if (!isShared) {
+                        println(reader.readLineX())     // public key
+                    }
+                }
+            }
         }
         else -> System.err.println("invalid command")
     }
