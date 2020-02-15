@@ -151,7 +151,7 @@ fun Socket.chain_send (chain: Chain) : Int {
     val sorted = toSend.toSortedSet(compareBy({it.length},{it}))
     for (hash in sorted) {
         val old = chain.loadNodeFromHash(hash)
-        val new = Node(NodeHashable(old.hashable.time,old.hashable.nonce,old.hashable.payload,emptyArray()),old.encoding,old.hashable.backs,old.signature,old.hash!!)
+        val new = Node(NodeHashable(old.hashable.time,old.hashable.nonce,old.hashable.encoding,old.hashable.payload,emptyArray()),old.hashable.backs,old.signature,old.hash!!)
         writer.writeBytes(new.toJson())
         writer.writeLineX("\n")
     }

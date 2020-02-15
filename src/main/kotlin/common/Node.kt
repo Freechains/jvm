@@ -21,6 +21,7 @@ typealias Hash = String
 data class NodeHashable (
     val time      : Long,           // TODO: ULong
     var nonce     : Long,           // TODO: ULong
+    val encoding  : String,         // payload encoding
     val payload   : String,
     val backs     : Array<Hash>     // back links (previous nodes)
 )
@@ -28,7 +29,6 @@ data class NodeHashable (
 @Serializable
 data class Node (
     val hashable  : NodeHashable,   // things to hash
-    val encoding  : String,         // payload encoding
     val fronts    : Array<Hash>,    // front links (next nodes)
     var signature : String,         // hash signature
     var hash      : Hash?           // hash of hashable
@@ -120,12 +120,18 @@ private fun hash2work (hash: String): Int {
 }
 
 private fun Node.toByteArray (): ByteArray {
-    val bytes = ByteArray(8 + 8 + 4 + this.hashable.payload.length + this.hashable.backs.size*64 + 64)
+    val bytes = ByteArray(
+        8 + 8 + this.hashable.encoding.length + this.hashable.payload.length + this.hashable.backs.size*64
+    )
     var off = 0
     bytes.setLongAt(off, this.hashable.time)
     off += 8
     bytes.setLongAt(off, this.hashable.nonce)
     off += 8
+    for (v in this.hashable.encoding) {
+        bytes.set(off, v.toByte())
+        off += 1
+    }
     for (v in this.hashable.payload) {
         bytes.set(off, v.toByte())
         off += 1

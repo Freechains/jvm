@@ -98,7 +98,7 @@ class Tests {
     @Test
     fun b2_node () {
         val chain = Chain("/tmp/freechains/tests/local/chains/", "/uerj",0, arrayOf("","",""))
-        val node = Node(NodeHashable(0,0,"111", arrayOf(chain.toGenHash())),"utf8", emptyArray(), "",null)
+        val node = Node(NodeHashable(0,0,"utf8","111", arrayOf(chain.toGenHash())), emptyArray(), "",null)
         node.setNonceHashSigWithWorkKeys(0,arrayOf("","",""))
         chain.saveNode(node)
         val node2 = chain.loadNodeFromHash(node.hash!!)
@@ -163,13 +163,13 @@ class Tests {
         val chain = Chain("/tmp/freechains/tests/local/chains/", "/graph",0, arrayOf("secret","",""))
         chain.save()
         val genesis = Node(
-            NodeHashable(0,0,"", emptyArray()),
-            "utf8", emptyArray(),"", chain.toGenHash()
+            NodeHashable(0,0,"utf8", "", emptyArray()),
+            emptyArray(),"", chain.toGenHash()
         )
         chain.saveNode(genesis)
 
-        val a1 = Node(NodeHashable(0,0,"a1", arrayOf(chain.toGenHash())),"utf8", emptyArray(),"",null)
-        val b1 = Node(NodeHashable(0,0,"b1", arrayOf(chain.toGenHash())),"utf8", emptyArray(),"",null)
+        val a1 = Node(NodeHashable(0,0,"utf8", "a1", arrayOf(chain.toGenHash())),emptyArray(),"",null)
+        val b1 = Node(NodeHashable(0,0,"utf8", "b1", arrayOf(chain.toGenHash())),emptyArray(),"",null)
         a1.setNonceHashSigWithWorkKeys(0,arrayOf("","",""))
         b1.setNonceHashSigWithWorkKeys(0,arrayOf("","",""))
         chain.saveNode(a1)
@@ -180,7 +180,7 @@ class Tests {
         //val ab2 =
         chain.publish("utf8","ab2", 0)
 
-        val b2 = Node(NodeHashable(0,0,"b2", arrayOf(b1.hash!!)),"utf8", emptyArray(),"",null)
+        val b2 = Node(NodeHashable(0,0,"utf8","b2", arrayOf(b1.hash!!)), emptyArray(),"",null)
         b2.setNonceHashSigWithWorkKeys(0,arrayOf("","",""))
         chain.saveNode(b2)
         chain.reheads(b2)

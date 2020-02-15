@@ -41,7 +41,7 @@ fun Chain.publish (encoding: String, payload: String) : Node {
 }
 
 fun Chain.publish (encoding: String, payload: String, time: Long) : Node {
-    val node = Node(NodeHashable(time,0,payload,emptyArray()), encoding, this.heads.toTypedArray(), "", null)
+    val node = Node(NodeHashable(time,0,encoding,payload,emptyArray()), this.heads.toTypedArray(), "", null)
     node.setNonceHashSigWithWorkKeys(this.work,this.keys)
     this.saveNode(node)
     this.reheads(node)
@@ -56,8 +56,8 @@ fun Chain.reheads (node: Node) {
         val old = this.loadNodeFromHash(back)
         if (!old.fronts.contains((node.hash!!))) {
             val new = Node(
-                NodeHashable(old.hashable.time, old.hashable.nonce, old.hashable.payload, old.hashable.backs),
-                old.encoding,old.fronts + node.hash!!, old.signature, old.hash!!
+                NodeHashable(old.hashable.time, old.hashable.nonce, old.hashable.encoding, old.hashable.payload, old.hashable.backs),
+                old.fronts + node.hash!!, old.signature, old.hash!!
             )
             this.saveNode(new)
         }
