@@ -23,11 +23,14 @@ data class MeuDado(val v: String)
 
 /*
  *  TODO:
- *  - 948 -> 852 -> 841 -> 931 -> 1041 LOC
- *  - 10554 KB
- *  - all use cases (chain cfg e usos da industria)
+ *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1104 LOC
+ *  - 10554 -> 10557 KB
+ *  - remover work
+ *  - sistema de reputacao
  *  - descobrir println(null), freechains crypto p/ criar as chaves e criptografar payloads
+ *    - modificar testes
  *  - android again
+ *  - all use cases (chain cfg e usos da industria)
  *  - chain locks
  *  - testes antigos
  *  - crypto (asym e host)

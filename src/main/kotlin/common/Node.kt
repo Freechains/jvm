@@ -3,8 +3,6 @@ package org.freechains.common
 //import java.security.MessageDigest
 
 import com.goterl.lazycode.lazysodium.LazySodium
-import com.goterl.lazycode.lazysodium.LazySodiumJava
-import com.goterl.lazycode.lazysodium.SodiumJava
 import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import kotlinx.serialization.Serializable
