@@ -23,8 +23,6 @@ data class MeuDado(val v: String)
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 LOC
  *  - 10556 -> 10557 -> 10553 KB
- *  - diminuir qtd de testes (jvm problem)
- *  - testar checkNode
  *  - chain locks
  *  - all use cases (chain cfg e usos da industria)
  *  - freechains crypto criptografar payloads
@@ -98,6 +96,16 @@ class Tests {
         val n1 = chain.publish("utf8","aaa", 0)
         val n2 = chain.publish("utf8","bbb", 1)
         val n3 = chain.publish("utf8","ccc", 2)
+
+        chain.assertNode(n3)
+        var ok = false
+        try {
+            val n = n3.copy(hashable = n3.hashable.copy(payload = "xxx"))
+            chain.assertNode(n)
+        } catch (e: Throwable) {
+            ok = true
+        }
+        assert(ok)
 
         assert(chain.containsNode(chain.toGenHash()))
         //println(n1.toHeightHash())
@@ -235,7 +243,7 @@ class Tests {
 
     @Test
     fun m2_crypto () {
-        a_reset()
+        //a_reset()
         main(arrayOf("host","create","/tmp/freechains/tests/M2/"))
         thread {
             main(arrayOf("host","start","/tmp/freechains/tests/M2/"))
@@ -246,7 +254,7 @@ class Tests {
         val pk : Key = kp.getPublicKey()
         val sk : Key = kp.getSecretKey()
         assert(lazySodium.cryptoSignKeypair(pk.getAsBytes(), sk.getAsBytes()))
-        println("TSTTST: ${pk.asHexString} // ${sk.asHexString}")
+        //println("TSTTST: ${pk.asHexString} // ${sk.asHexString}")
         main(arrayOf("crypto","create","shared","senha secreta"))
         main(arrayOf("crypto","create","pubpvt","senha secreta"))
 
@@ -254,8 +262,40 @@ class Tests {
         val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
         val key = Key.fromHexString("B07CFFF4BE58567FD558A90CD3875A79E0876F78BB7A94B78210116A526D47A5")
         val encrypted = lazySodium.cryptoSecretBoxEasy(msg, nonce, key)
-        println("nonce=${lazySodium.toHexStr(nonce)} // msg=$encrypted")
+        //println("nonce=${lazySodium.toHexStr(nonce)} // msg=$encrypted")
         val decrypted = lazySodium.cryptoSecretBoxOpenEasy(encrypted, nonce, key)
         assert(msg == decrypted)
+    }
+
+    @Test
+    fun m2_crypto_publish () {
+        //a_reset()
+        val host = Host_load("/tmp/freechains/tests/M2/")
+
+        val c1 = host.createChain("/sym", arrayOf("secret","",""))
+        val n1 = c1.publish("utf8","aaa", 0)
+        c1.assertNode(n1)
+        var ok1 = false
+        try {
+            val c = c1.copy(keys=arrayOf("wrong","",""))
+            c.assertNode(n1)
+        } catch (e: Throwable) {
+            ok1 = true
+        }
+        assert(ok1)
+
+        val c2 = host.createChain("/asy", arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        val n2 = c2.publish("utf8","aaa", 0)
+        c2.assertNode(n2)
+        val cx = c2.copy(keys= arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322",""))
+        cx.assertNode(n2)
+        var ok2 = false
+        try {
+            val cz = c2.copy(keys= arrayOf("","4CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322",""))
+            cz.assertNode(n2)
+        } catch (e: Throwable) {
+            ok2 = true
+        }
+        assert(ok2)
     }
 }

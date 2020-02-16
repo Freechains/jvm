@@ -101,7 +101,7 @@ fi
 ###############################################################################
 echo "#### 5"
 
-for i in $(seq 8411 8450)
+for i in $(seq 8411 8440)
 do
   freechains host create $FC/$i $i
   freechains host start $FC/$i &
@@ -132,7 +132,7 @@ do
 done
 sleep 10
 
-for i in $(seq 8421 8450)
+for i in $(seq 8421 8440)
 do
   diff $FC/8400/chains/nodes/ $FC/$i/chains/nodes/ || exit 1
 done

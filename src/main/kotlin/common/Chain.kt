@@ -62,7 +62,7 @@ fun Chain.reheads (node: Node) {
         this.heads.remove(back)
         val old = this.loadNodeFromHash(back)
         if (!old.fronts.contains((node.hash))) {
-            val new = Node(old.hashable, old.fronts+node.hash, old.signature, old.hash)
+            val new = old.copy(fronts=old.fronts+node.hash)
             this.saveNode(new)
         }
     }
@@ -113,11 +113,11 @@ fun Chain.newNode (h: NodeHashable) : Node {
     }
 
     val new = Node(h, emptyArray(), signature, hash)
-    this.checkNode(new)  // TODO: remove (paranoid test)
+    this.assertNode(new)  // TODO: remove (paranoid test)
     return new
 }
 
-fun Chain.checkNode (node: Node) {
+fun Chain.assertNode (node: Node) {
     val h = node.hashable
     assert(node.hash == this.hashableToHash(h))
     if (node.signature != "") {

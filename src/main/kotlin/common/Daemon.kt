@@ -204,7 +204,7 @@ fun Socket.chain_recv (chain: Chain) : Int {
     val n = reader.readLineX().toInt()
     for (i in 1..n) {
         val node = reader.readLinesX().jsonToNode()
-        chain.checkNode(node)
+        chain.assertNode(node)
         chain.reheads(node)
         chain.saveNode(node)
         chain.save()
