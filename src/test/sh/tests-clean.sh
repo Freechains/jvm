@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
 
+echo
+echo "=== CLEANING... ==="
+echo
+
 freechains host stop --host=localhost:8400 &
 freechains host stop --host=localhost:8401 &
 freechains host stop --host=localhost:8402 &

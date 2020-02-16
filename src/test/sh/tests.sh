@@ -2,9 +2,9 @@
 
 FC=/tmp/freechains
 
-#while : ; do
-  #./tests-shared.sh || exit 1
-  #./tests-pubpvt.sh || exit 1
+while : ; do
+  ./tests-shared.sh || exit 1
+  ./tests-pubpvt.sh || exit 1
   ./tests-clean.sh
 
 ###############################################################################
@@ -139,7 +139,7 @@ done
 
 ###############################################################################
 
-#done
+done
 
 echo
 echo "=== ALL TESTS PASSED ==="

@@ -50,7 +50,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val private = reader.readLineX()
             val chain = local.createChain(path,arrayOf(shared,public,private))
             writer.writeLineX(chain.hash)
-            System.err.println("chain create: $path")
+            System.err.println("chain create: $path (${chain.hash})")
         }
         "FC chain genesis" -> {
             val path  = reader.readLineX().nameCheck()
@@ -131,9 +131,10 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
                     writer.writeLineX(LazySodium.toHex(pwh))
                 }
                 "pubpvt" -> {
-                    val keys = lazySodium.cryptoBoxSeedKeypair(pwh)
-                    writer.writeLineX(keys.getSecretKey().getAsHexString())
+                    val keys = lazySodium.cryptoSignSeedKeypair(pwh)
+                    //println("PUBPVT: ${keys.publicKey.asHexString} // ${keys.secretKey.asHexString}")
                     writer.writeLineX(keys.getPublicKey().getAsHexString())
+                    writer.writeLineX(keys.getSecretKey().getAsHexString())
                 }
             }
         }

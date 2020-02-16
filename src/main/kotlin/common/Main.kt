@@ -49,7 +49,7 @@ fun main (args: Array<String>) {
         return ((opts["--host"] as String?) ?: "localhost:8330").hostSplit()
     }
 
-    Thread.setDefaultUncaughtExceptionHandler { _: Thread?, e: Throwable? -> System.err.println(e!!.message) }
+    Thread.setDefaultUncaughtExceptionHandler { _: Thread?, e: Throwable? -> System.err.println(e!!.message ?: e.toString()) }
 
     when {
         opts["host"] as Boolean ->

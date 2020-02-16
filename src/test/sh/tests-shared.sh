@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+echo
+echo "=== TESTS-SHARED ==="
+echo
+
 FC=/tmp/freechains
 ./tests-clean.sh
 
@@ -7,19 +11,22 @@ FC=/tmp/freechains
 freechains host create $FC/8400 8400
 freechains host start $FC/8400 &
 sleep 0.5
-freechains --host=localhost:8400 chain create / shared correct
+k=`freechains --host=localhost:8400 crypto create shared correct`
+freechains --host=localhost:8400 chain create / shared $k
 
 # 8401 (wrong password)
 freechains host create $FC/8401 8401
 freechains host start $FC/8401 &
 sleep 0.5
-freechains --host=localhost:8401 chain create / shared wrong
+k=`freechains --host=localhost:8401 crypto create shared wrong`
+freechains --host=localhost:8401 chain create / shared $k
 
 # 8402 (correct password)
 freechains host create $FC/8402 8402
 freechains host start $FC/8402 &
 sleep 0.5
-freechains --host=localhost:8402 chain create / shared correct
+k=`freechains --host=localhost:8402 crypto create shared correct`
+freechains --host=localhost:8402 chain create / shared $k
 
 # get genesis block of each host
 g0=`freechains --host=localhost:8400 chain genesis /`

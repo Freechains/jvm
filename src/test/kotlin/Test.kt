@@ -24,14 +24,14 @@ data class MeuDado(val v: String)
 /*
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 LOC
- *  - 10556 -> 10557 KB
- *  - remover work
- *  - sistema de reputacao
- *  - descobrir println(null), freechains crypto p/ criar as chaves e criptografar payloads
+ *  - 10556 -> 10557 -> 10553 KB
+ *  - freechains crypto p/ criar as chaves e criptografar payloads
  *    - modificar testes
+ *  - sistema de reputacao
  *  - android again
  *  - all use cases (chain cfg e usos da industria)
  *  - chain locks
+ *  - chains with same name and different keys should have different genesis?
  *  - testes antigos
  *  - crypto (asym e host)
  *  - RX Kotlin
@@ -235,7 +235,7 @@ class Tests {
 
     @Test
     fun m2_crypto () {
-        //a_reset()
+        a_reset()
         main(arrayOf("host","create","/tmp/freechains/tests/M2/"))
         thread {
             main(arrayOf("host","start","/tmp/freechains/tests/M2/"))
@@ -246,8 +246,7 @@ class Tests {
         val pk : Key = kp.getPublicKey()
         val sk : Key = kp.getSecretKey()
         assert(lazySodium.cryptoSignKeypair(pk.getAsBytes(), sk.getAsBytes()))
-        //println(pk.getAsHexString())
-        //println(sk.getAsHexString())
+        println("TSTTST: ${pk.asHexString} // ${sk.asHexString}")
         main(arrayOf("crypto","create","shared","senha secreta"))
         main(arrayOf("crypto","create","pubpvt","senha secreta"))
     }

@@ -75,7 +75,7 @@ fun Chain.toGenHash () : Hash {
 // HASH
 
 fun Chain.calcHash (v: String) : String {
-    return lazySodium.cryptoGenericHash(v, Key.fromPlainString(this.keys[0]))
+    return lazySodium.cryptoGenericHash(v, Key.fromHexString(this.keys[0]))
 }
 
 fun Chain.toHash () : String {
@@ -106,7 +106,9 @@ fun Chain.newNode (h: NodeHashable) : Node {
         signature = LazySodium.toHex(sig)
     }
 
-    return Node(h, emptyArray(), signature, hash)
+    val new = Node(h, emptyArray(), signature, hash)
+    new.recheck(this.keys)
+    return new
 }
 
 fun Chain.saveNode (node: Node) {
