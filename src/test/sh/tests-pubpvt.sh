@@ -35,7 +35,7 @@ g1=`freechains --host=localhost:8401 chain genesis /`
 g2=`freechains --host=localhost:8402 chain genesis /`
 
 # compare them
-diff <(echo "$g0") <(echo "$g1") || exit 1
+! diff <(echo "$g0") <(echo "$g1") || exit 1
 diff <(echo "$g0") <(echo "$g2") || exit 1
 
 # put to 8400, send to 8401 (fail) 8402 (succees)

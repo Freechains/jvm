@@ -21,14 +21,13 @@ data class MeuDado(val v: String)
 
 /*
  *  TODO:
- *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 LOC
- *  - 10556 -> 10557 -> 10553 KB
+ *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 LOC
+ *  - 10556 -> 10557 -> 10553 -> 10553 KB
  *  - chain locks
  *  - all use cases (chain cfg e usos da industria)
  *  - freechains crypto criptografar payloads
  *    - melhor seria opcao --encrypt no put, gravando flag no bloco (o get faria decrypt automaticamente)
  *  - sistema de reputacao
- *  - chains with same name and different keys should have different genesis?
  *  - testes antigos
  *  - RX Kotlin
  *  - pipes / filtros
