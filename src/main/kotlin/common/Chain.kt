@@ -1,14 +1,16 @@
 package org.freechains.common
 
-import com.goterl.lazycode.lazysodium.LazySodium
-import com.goterl.lazycode.lazysodium.interfaces.Sign
-import com.goterl.lazycode.lazysodium.utils.Key
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import java.io.File
 import java.time.Instant
+
+import com.goterl.lazycode.lazysodium.LazySodium
+import com.goterl.lazycode.lazysodium.interfaces.Sign
+import com.goterl.lazycode.lazysodium.utils.Key
+import org.freechains.platform.lazySodium
 
 @Serializable
 data class Chain (

@@ -25,8 +25,8 @@ data class MeuDado(val v: String)
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 LOC
  *  - 10556 -> 10557 -> 10553 KB
- *  - freechains crypto p/ criar as chaves e criptografar payloads
- *    - modificar testes
+ *  - freechains crypto criptografar payloads
+ *    - melhor seria opcao --encrypt no put, gravando flag no bloco (o get faria decrypt automaticamente)
  *  - sistema de reputacao
  *  - android again
  *  - all use cases (chain cfg e usos da industria)

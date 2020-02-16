@@ -1,7 +1,5 @@
 package org.freechains.common
 
-import com.goterl.lazycode.lazysodium.LazySodiumJava
-import com.goterl.lazycode.lazysodium.SodiumJava
 import org.docopt.Docopt
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -36,8 +34,6 @@ More Information:
 
     Please report bugs at <http://github.com/Freechains/kotlin>.
 """
-
-val lazySodium: LazySodiumJava = LazySodiumJava(SodiumJava())
 
 fun main (args: Array<String>) {
     //val args_ = arrayOf("host", "start", "/tmp/freechains/8400")

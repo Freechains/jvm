@@ -1,14 +1,15 @@
 package org.freechains.common
 
-import com.goterl.lazycode.lazysodium.LazySodium
-import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.lang.Exception
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
 import kotlin.concurrent.thread
+
+import com.goterl.lazycode.lazysodium.LazySodium
+import com.goterl.lazycode.lazysodium.interfaces.PwHash
+import org.freechains.platform.lazySodium
 
 fun daemon (host : Host) {
     val socket = ServerSocket(host.port)
