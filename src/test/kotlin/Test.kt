@@ -23,8 +23,8 @@ data class MeuDado(val v: String)
 
 /*
  *  TODO:
- *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1104 LOC
- *  - 10554 -> 10557 KB
+ *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 LOC
+ *  - 10556 -> 10557 KB
  *  - remover work
  *  - sistema de reputacao
  *  - descobrir println(null), freechains crypto p/ criar as chaves e criptografar payloads
