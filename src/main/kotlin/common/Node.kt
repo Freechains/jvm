@@ -37,8 +37,6 @@ fun Array<Hash>.backsToHeight () : Int {
     }
 }
 
-// JSON
-
 fun NodeHashable.toJson (): String {
     @UseExperimental(UnstableDefault::class)
     val json = Json(JsonConfiguration(prettyPrint=true))
@@ -57,20 +55,7 @@ fun String.jsonToNode (): Node {
     return json.parse(Node.serializer(), this)
 }
 
-// HH
-
 private fun Hash.toHeight () : Int {
     val (height,_) = this.split("_")
     return height.toInt()
-}
-
-// HASH
-
-fun Node.recheck (keys: Array<String>) {
-    if (this.signature != "") {
-        val sig = LazySodium.toBin(this.signature)
-        val msg = lazySodium.bytes(this.hash)
-        val key = Key.fromHexString(keys[1]).asBytes
-        assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
-    }
 }

@@ -1,22 +1,20 @@
 import com.goterl.lazycode.lazysodium.LazySodiumJava
 import com.goterl.lazycode.lazysodium.SodiumJava
+import com.goterl.lazycode.lazysodium.interfaces.SecretBox
 import com.goterl.lazycode.lazysodium.utils.Key
 import com.goterl.lazycode.lazysodium.utils.KeyPair
-import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.MethodOrderer.Alphanumeric
-import org.junit.jupiter.api.TestMethodOrder
-import org.junit.jupiter.api.Test
-
-import java.io.File
-
-import kotlin.concurrent.thread
-
-import org.freechains.common.*
-
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
+import org.assertj.core.api.Assertions.assertThat
+import org.freechains.common.*
+import org.junit.jupiter.api.MethodOrderer.Alphanumeric
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestMethodOrder
+import java.io.File
+import kotlin.concurrent.thread
+
 
 @Serializable
 data class MeuDado(val v: String)
@@ -25,25 +23,27 @@ data class MeuDado(val v: String)
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 LOC
  *  - 10556 -> 10557 -> 10553 KB
+ *  - diminuir qtd de testes (jvm problem)
+ *  - testar checkNode
+ *  - chain locks
+ *  - all use cases (chain cfg e usos da industria)
  *  - freechains crypto criptografar payloads
  *    - melhor seria opcao --encrypt no put, gravando flag no bloco (o get faria decrypt automaticamente)
  *  - sistema de reputacao
- *  - android again
- *  - all use cases (chain cfg e usos da industria)
- *  - chain locks
  *  - chains with same name and different keys should have different genesis?
  *  - testes antigos
- *  - crypto (asym e host)
  *  - RX Kotlin
  *  - pipes / filtros
  *  - freechains chain remove
  *  - freechains host configure (json)
  *    - peer/chain configurations in host
  *    - freechains host restart
- *  - Xfreechains (lucas)
+ *  - Future:
+ *  - Xfreechains
  *    - chain xtraverse
  *    - chain xlisten
  *  - Android WiFi Direct
+ *  - crypto host-to-host
  */
 
 @TestMethodOrder(Alphanumeric::class)
@@ -249,5 +249,13 @@ class Tests {
         println("TSTTST: ${pk.asHexString} // ${sk.asHexString}")
         main(arrayOf("crypto","create","shared","senha secreta"))
         main(arrayOf("crypto","create","pubpvt","senha secreta"))
+
+        val msg = "mensagem secreta"
+        val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
+        val key = Key.fromHexString("B07CFFF4BE58567FD558A90CD3875A79E0876F78BB7A94B78210116A526D47A5")
+        val encrypted = lazySodium.cryptoSecretBoxEasy(msg, nonce, key)
+        println("nonce=${lazySodium.toHexStr(nonce)} // msg=$encrypted")
+        val decrypted = lazySodium.cryptoSecretBoxOpenEasy(encrypted, nonce, key)
+        assert(msg == decrypted)
     }
 }

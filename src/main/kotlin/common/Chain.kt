@@ -49,7 +49,7 @@ fun Chain.publish (encoding: String, payload: String) : Node {
 }
 
 fun Chain.publish (encoding: String, payload: String, time: Long) : Node {
-    val node = this.newNode (NodeHashable(time,encoding,payload,this.heads.toTypedArray()))
+    val node = this.newNode(NodeHashable(time,encoding,payload,this.heads.toTypedArray()))
     this.saveNode(node)
     this.reheads(node)
     this.save()
@@ -96,8 +96,12 @@ fun Chain.save () {
 
 // NDOE
 
+fun Chain.hashableToHash (h: NodeHashable) : Hash {
+    return h.backs.backsToHeight().toString() + "_" + this.calcHash(h.toJson())
+}
+
 fun Chain.newNode (h: NodeHashable) : Node {
-    val hash = h.backs.backsToHeight().toString() + "_" + this.calcHash(h.toJson())
+    val hash = this.hashableToHash(h)
 
     var signature = ""
     if (keys[1] != "") {
@@ -109,8 +113,19 @@ fun Chain.newNode (h: NodeHashable) : Node {
     }
 
     val new = Node(h, emptyArray(), signature, hash)
-    new.recheck(this.keys)
+    this.checkNode(new)  // TODO: remove (paranoid test)
     return new
+}
+
+fun Chain.checkNode (node: Node) {
+    val h = node.hashable
+    assert(node.hash == this.hashableToHash(h))
+    if (node.signature != "") {
+        val sig = LazySodium.toBin(node.signature)
+        val msg = lazySodium.bytes(node.hash)
+        val key = Key.fromHexString(this.keys[1]).asBytes
+        assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
+    }
 }
 
 fun Chain.saveNode (node: Node) {
