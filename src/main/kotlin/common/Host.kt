@@ -30,22 +30,21 @@ fun String.fromJsonToHost () : Host {
 
 // CHAIN
 
-fun Host.createChain (path: String, keys: Array<String>) : Chain {
-    val (name,work) = path.pathToChainNW()
-    val chain = Chain(this.root+"/chains/", name, work, keys)
-    val file = File(chain.root + chain.toPath() + ".chain")
+fun Host.createChain (name: String, keys: Array<String>) : Chain {
+    val chain = Chain(this.root+"/chains/", name, keys)
+    val file = File(chain.root + chain.name + "/" + "chain")
     assert(!file.exists()) { "chain already exists: $chain"}
     chain.save()
     val genesis = Node (
-        NodeHashable(0,0, "", "", emptyArray()),
+        NodeHashable(0,"", "", emptyArray()),
         emptyArray(),"",chain.toGenHash()
     )
     chain.saveNode(genesis)
     return file.readText().fromJsonToChain()
 }
 
-fun Host.loadChain (path: String) : Chain {
-    val file = File(this.root + "/chains/" + path + ".chain")
+fun Host.loadChain (name: String) : Chain {
+    val file = File(this.root + "/chains/" + name + "/" + "chain")
     return file.readText().fromJsonToChain()
 }
 

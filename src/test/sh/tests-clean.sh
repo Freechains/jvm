@@ -13,5 +13,5 @@ rm -Rf /tmp/freechains/
 mkdir /tmp/freechains/
 
 echo
-echo "=== ALL TESTS PASSED ==="
+echo "=== CLEAN OK ==="
 echo

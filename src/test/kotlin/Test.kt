@@ -23,7 +23,7 @@ data class MeuDado(val v: String)
 
 /*
  *  TODO:
- *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 LOC
+ *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 LOC
  *  - 10556 -> 10557 KB
  *  - remover work
  *  - sistema de reputacao
@@ -55,13 +55,6 @@ class Tests {
     }
 
     @Test
-    fun a1_hash () {
-        val x = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-        val y = byteArrayOf(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31)
-        assert(x == y.toHexString())
-    }
-
-    @Test
     fun a2_json () {
         val bs : MutableList<Byte> = mutableListOf()
         for (i in 0..255) {
@@ -82,20 +75,17 @@ class Tests {
     @Test
     fun b1_chain () {
         val host1 = Host_create("/tmp/freechains/tests/local/")
-        val chain1 = Chain("/tmp/freechains/tests/local/chains/", "/uerj", 0, arrayOf("secret","",""))
-        //println("Chain /uerj/0: ${chain1.toHash()}")
+        val chain1 = Chain("/tmp/freechains/tests/local/chains/", "/uerj", arrayOf("secret","",""))
+        //println("Chain /uerj: ${chain1.toHash()}")
         chain1.save()
-        val chain2 = host1.loadChain(chain1.toPath())
+        val chain2 = host1.loadChain(chain1.name)
         assertThat(chain1.hashCode()).isEqualTo(chain2.hashCode())
     }
 
     @Test
     fun b2_node () {
-        val chain = Chain("/tmp/freechains/tests/local/chains/", "/uerj",0, arrayOf("","",""))
-        val node = Node_new (
-            NodeHashable(0,0,"utf8","111", arrayOf(chain.toGenHash())),
-            emptyArray(), 0, arrayOf("","","")
-        )
+        val chain = Chain("/tmp/freechains/tests/local/chains/", "/uerj",arrayOf("","",""))
+        val node = chain.newNode(NodeHashable(0,"utf8","111", arrayOf(chain.toGenHash())))
         chain.saveNode(node)
         val node2 = chain.loadNodeFromHash(node.hash)
         assertThat(node.hashCode()).isEqualTo(node2.hashCode())
@@ -104,7 +94,7 @@ class Tests {
     @Test
     fun c1_publish () {
         val host = Host_load("/tmp/freechains/tests/local/")
-        val chain = host.createChain("/ceu/10", arrayOf("","",""))
+        val chain = host.createChain("/ceu", arrayOf("","",""))
         val n1 = chain.publish("utf8","aaa", 0)
         val n2 = chain.publish("utf8","bbb", 1)
         val n3 = chain.publish("utf8","ccc", 2)
@@ -132,18 +122,18 @@ class Tests {
 
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
-        val src_chain = src.createChain("/d3/5", arrayOf("secret","",""))
+        val src_chain = src.createChain("/d3", arrayOf("secret","",""))
         src_chain.publish("utf8","aaa", 0)
         src_chain.publish("utf8","bbb", 0)
         thread { daemon(src) }
 
         // DESTINY
         val dst = Host_create("/tmp/freechains/tests/dst/", 8331)
-        dst.createChain("/d3/5", arrayOf("secret","",""))
+        dst.createChain("/d3", arrayOf("secret","",""))
         thread { daemon(dst) }
         Thread.sleep(100)
 
-        main(arrayOf("chain","send","/d3/5","localhost:8331"))
+        main(arrayOf("chain","send","/d3","localhost:8331"))
         Thread.sleep(100)
 
         main(arrayOf("--host=localhost:8331","host","stop"))
@@ -156,22 +146,16 @@ class Tests {
 
     @Test
     fun e1_graph () {
-        val chain = Chain("/tmp/freechains/tests/local/chains/", "/graph",0, arrayOf("secret","",""))
+        val chain = Chain("/tmp/freechains/tests/local/chains/", "/graph", arrayOf("secret","",""))
         chain.save()
         val genesis = Node(
-            NodeHashable(0,0,"utf8", "", emptyArray()),
+            NodeHashable(0,"utf8", "", emptyArray()),
             emptyArray(),"", chain.toGenHash()
         )
         chain.saveNode(genesis)
 
-        val a1 = Node_new (
-            NodeHashable(0,0,"utf8", "a1", arrayOf(chain.toGenHash())),
-            emptyArray(),0, arrayOf("","","")
-        )
-        val b1 = Node_new (
-            NodeHashable(0,0,"utf8", "b1", arrayOf(chain.toGenHash())),
-            emptyArray(),0, arrayOf("","","")
-        )
+        val a1 = chain.newNode(NodeHashable(0,"utf8", "a1", arrayOf(chain.toGenHash())))
+        val b1 = chain.newNode(NodeHashable(0,"utf8", "b1", arrayOf(chain.toGenHash())))
         chain.saveNode(a1)
         chain.saveNode(b1)
         chain.reheads(a1)
@@ -180,10 +164,7 @@ class Tests {
         //val ab2 =
         chain.publish("utf8","ab2", 0)
 
-        val b2 = Node_new (
-            NodeHashable(0,0,"utf8","b2", arrayOf(b1.hash)),
-            emptyArray(), 0, arrayOf("","","")
-        )
+        val b2 = chain.newNode(NodeHashable(0,"utf8","b2", arrayOf(b1.hash)))
         chain.saveNode(b2)
         chain.reheads(b2)
 
@@ -201,12 +182,12 @@ class Tests {
         //a_reset()
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
-        val h1_chain = h1.createChain("/xxx/0", arrayOf("","",""))
+        val h1_chain = h1.createChain("/xxx", arrayOf("","",""))
         h1_chain.publish("utf8","h1_1", 0)
         h1_chain.publish("utf8","h1_2", 0)
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
-        val h2_chain = h2.createChain("/xxx/0", arrayOf("","",""))
+        val h2_chain = h2.createChain("/xxx", arrayOf("","",""))
         h2_chain.publish("utf8","h2_1", 0)
         h2_chain.publish("utf8","h2_2", 0)
 
@@ -214,7 +195,7 @@ class Tests {
         thread { daemon(h1) }
         thread { daemon(h2) }
         Thread.sleep(100)
-        main(arrayOf("--host=localhost:8331","chain","send","/xxx/0","localhost"))
+        main(arrayOf("--host=localhost:8331","chain","send","/xxx","localhost"))
         Thread.sleep(100)
         main(arrayOf("--host=localhost:8331","host","stop"))
         main(arrayOf("host","stop"))
@@ -232,24 +213,24 @@ class Tests {
             main(arrayOf("host","start","/tmp/freechains/tests/M1/"))
         }
         Thread.sleep(100)
-        main(arrayOf("chain","create","/xxx/0"))
+        main(arrayOf("chain","create","/xxx"))
 
-        main(arrayOf("chain","genesis","/xxx/0"))
-        main(arrayOf("chain","heads","/xxx/0"))
+        main(arrayOf("chain","genesis","/xxx"))
+        main(arrayOf("chain","heads","/xxx"))
 
-        main(arrayOf("chain","put","/xxx/0","inline","utf8","aaa"))
-        main(arrayOf("chain","put","/xxx/0","file","utf8","/tmp/freechains/tests/M1/host"))
+        main(arrayOf("chain","put","/xxx","inline","utf8","aaa"))
+        main(arrayOf("chain","put","/xxx","file","utf8","/tmp/freechains/tests/M1/host"))
 
-        main(arrayOf("chain","genesis","/xxx/0"))
-        main(arrayOf("chain","heads","/xxx/0"))
+        main(arrayOf("chain","genesis","/xxx"))
+        main(arrayOf("chain","heads","/xxx"))
 
-        main(arrayOf("chain","get","--host=localhost:8330","/xxx/0", "0_360B889B0EC78AB3A47F165E12348D4209653905191CEB5ED4C9C737DFCF0430"))
-        main(arrayOf("chain","get","/xxx/0", "0_360B889B0EC78AB3A47F165E12348D4209653905191CEB5ED4C9C737DFCF0430"))
+        main(arrayOf("chain","get","--host=localhost:8330","/xxx", "0_765CB5D42FDDFFA8446D755F0BD6F868F3FC65EBDD6BDCE91CB743AE2EA878EE"))
+        main(arrayOf("chain","get","/xxx", "0_765CB5D42FDDFFA8446D755F0BD6F868F3FC65EBDD6BDCE91CB743AE2EA878EE"))
 
-        main(arrayOf("chain","put","/xxx/0","file","base64","/bin/cat"))
+        main(arrayOf("chain","put","/xxx","file","base64","/bin/cat"))
         main(arrayOf("host","stop"))
         // TODO: check genesis 2x, "aaa", "host"
-        // $ cat /tmp/freechains/tests/M1/chains/xxx/0/*
+        // $ cat /tmp/freechains/tests/M1/chains/xxx/*
     }
 
     @Test

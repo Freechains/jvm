@@ -1,5 +1,8 @@
 package org.freechains.common
 
+import com.goterl.lazycode.lazysodium.LazySodium
+import com.goterl.lazycode.lazysodium.interfaces.Sign
+import com.goterl.lazycode.lazysodium.utils.Key
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
@@ -7,17 +10,20 @@ import kotlinx.serialization.json.JsonConfiguration
 import java.io.File
 import java.time.Instant
 
-typealias Chain_NW = Pair<String,Byte>
-
 @Serializable
 data class Chain (
     val root  : String,
     val name  : String,
-    val work  : Byte,
     val keys  : Array<String>   // [shared,public,private]
 ) {
     val hash  : String = this.toHash()
     val heads : ArrayList<Hash> = arrayListOf(this.toGenHash())
+}
+
+// TODO: change to contract/constructor assertion
+fun String.nameCheck () : String {
+    assert(this[0]=='/' && (this.length==1 || this.last()!='/')) { "invalid chain path: $this"}
+    return this
 }
 
 // JSON
@@ -41,10 +47,7 @@ fun Chain.publish (encoding: String, payload: String) : Node {
 }
 
 fun Chain.publish (encoding: String, payload: String, time: Long) : Node {
-    val node = Node_new (
-        NodeHashable(time,0,encoding,payload,this.heads.toTypedArray()),
-        emptyArray(),this.work,this.keys
-    )
+    val node = this.newNode (NodeHashable(time,encoding,payload,this.heads.toTypedArray()))
     this.saveNode(node)
     this.reheads(node)
     this.save()
@@ -69,67 +72,56 @@ fun Chain.toGenHash () : Hash {
     return "0_" + this.toHash()
 }
 
-// CONVERSIONS
-
-fun Chain.toPath () : String {
-    return this.name + "/" + this.work
-}
-
-fun String.pathToChainNW () : Chain_NW {
-    val all = this.trimEnd('/').split("/").toMutableList()
-    val work = all.removeAt(all.size-1)
-    val name = all.joinToString("/")
-    return Chain_NW(name,work.toByte())
-}
-
-fun String.pathCheck () : String {
-    assert(this[0] == '/' && this.last() != '/') { "invalid chain path: $this"}
-    return this
-}
-
 // HASH
 
-fun Chain.toHash () : String {
-    return this.toByteArray().toHash(this.keys[0])
+fun Chain.calcHash (v: String) : String {
+    return lazySodium.cryptoGenericHash(v, Key.fromPlainString(this.keys[0]))
 }
 
-private fun Chain.toByteArray () : ByteArray {
-    val bytes = ByteArray(this.name.length + 1)
-    var off = 0
-    for (v in this.name) {
-        bytes.set(off, v.toByte())
-        off += 1
-    }
-    bytes.set(off, this.work)
-    off += 1
-    return bytes
+fun Chain.toHash () : String {
+    return this.calcHash(this.name)
 }
 
 // FILE SYSTEM
 
 fun Chain.save () {
-    val dir = File(this.root + this.toPath())
+    val dir = File(this.root + this.name + "/nodes/")
     if (!dir.exists()) {
         dir.mkdirs()
     }
-    File(this.root + this.toPath() + ".chain").writeText(this.toJson())
+    File(this.root + this.name + "/" + "chain").writeText(this.toJson())
 }
 
 // NDOE
 
+fun Chain.newNode (h: NodeHashable) : Node {
+    val hash = h.backs.backsToHeight().toString() + "_" + this.calcHash(h.toJson())
+
+    var signature = ""
+    if (keys[1] != "") {
+        val sig = ByteArray(Sign.BYTES)
+        val msg = lazySodium.bytes(hash)
+        val pvt = Key.fromHexString(this.keys[2]).asBytes
+        lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), pvt)
+        signature = LazySodium.toHex(sig)
+    }
+
+    return Node(h, emptyArray(), signature, hash)
+}
+
 fun Chain.saveNode (node: Node) {
-    File(this.root + this.toPath() + "/" + node.hash + ".node").writeText(node.toJson()+"\n")
+    File(this.root + this.name + "/nodes/" + node.hash + ".node").writeText(node.toJson()+"\n")
 }
 
 fun Chain.loadNodeFromHash (hash: Hash): Node {
-    return File(this.root + this.toPath() + "/" + hash + ".node").readText().jsonToNode()
+    return File(this.root + this.name + "/nodes/" + hash + ".node").readText().jsonToNode()
 }
 
 fun Chain.containsNode (hash: Hash) : Boolean {
     if (this.hash == hash) {
         return true
     } else {
-        val file = File(this.root + this.toPath() + "/" + hash + ".node")
+        val file = File(this.root + this.name + "/nodes/" + hash + ".node")
         return file.exists()
     }
 }

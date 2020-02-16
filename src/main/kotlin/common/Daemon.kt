@@ -53,14 +53,14 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             System.err.println("chain create: $path")
         }
         "FC chain genesis" -> {
-            val path  = reader.readLineX().pathCheck()
+            val path  = reader.readLineX().nameCheck()
             val chain = local.loadChain(path)
             val hash  = chain.toGenHash()
             writer.writeLineX(hash)
             System.err.println("chain genesis: $hash")
         }
         "FC chain heads" -> {
-            val path  = reader.readLineX().pathCheck()
+            val path  = reader.readLineX().nameCheck()
             val chain = local.loadChain(path)
             for (head in chain.heads) {
                 writer.writeLineX(head)
@@ -69,7 +69,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             System.err.println("chain heads: ${chain.heads}")
         }
         "FC chain get" -> {
-            val path = reader.readLineX().pathCheck()
+            val path = reader.readLineX().nameCheck()
             val hash = reader.readLineX()
 
             val chain = local.loadChain(path)
@@ -82,7 +82,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             System.err.println("chain get: $hash")
         }
         "FC chain put" -> {
-            val path = reader.readLineX().pathCheck()
+            val path = reader.readLineX().nameCheck()
             val enc = reader.readLineX()
             val pay = reader.readLinesX()
 
@@ -93,7 +93,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             System.err.println("chain put: ${node.hash}")
         }
         "FC chain send" -> {
-            val path = reader.readLineX().pathCheck()
+            val path = reader.readLineX().nameCheck()
             val host_ = reader.readLineX()
 
             val chain = local.loadChain(path)
@@ -105,7 +105,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             writer.writeLineX(n.toString())
         }
         "FC chain recv" -> {
-            val path = reader.readLineX().pathCheck()
+            val path = reader.readLineX().nameCheck()
             val chain = local.loadChain(path)
             val n = remote.chain_recv(chain)
             System.err.println("chain recv: $path: $n")
@@ -147,7 +147,7 @@ fun Socket.chain_send (chain: Chain) : Int {
     val writer = DataOutputStream(this.getOutputStream()!!)
 
     writer.writeLineX("FC chain recv")
-    writer.writeLineX(chain.toPath())
+    writer.writeLineX(chain.name)
 
     val toSend = mutableSetOf<Hash>()
     fun traverse (hash: Hash) {
