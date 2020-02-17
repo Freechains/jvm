@@ -23,6 +23,7 @@ data class MeuDado(val v: String)
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 LOC
  *  - 10556 -> 10557 -> 10553 -> 10553 KB
+ *  - mudar de node para block
  *  - chain locks
  *  - all use cases (chain cfg e usos da industria)
  *  - freechains crypto criptografar payloads
@@ -80,12 +81,12 @@ class Tests {
     }
 
     @Test
-    fun b2_node () {
+    fun b2_block () {
         val chain = Chain("/tmp/freechains/tests/local/chains/", "/uerj",arrayOf("","",""))
-        val node = chain.newNode(NodeHashable(0,"utf8","111", arrayOf(chain.toGenHash())))
-        chain.saveNode(node)
-        val node2 = chain.loadNodeFromHash(node.hash)
-        assertThat(node.hashCode()).isEqualTo(node2.hashCode())
+        val blk = chain.newBlock(BlockHashable(0,"utf8","111", arrayOf(chain.toGenHash())))
+        chain.saveBlock(blk)
+        val blk2 = chain.loadBlockFromHash(blk.hash)
+        assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
     }
 
     @Test
@@ -96,22 +97,22 @@ class Tests {
         val n2 = chain.publish("utf8","bbb", 1)
         val n3 = chain.publish("utf8","ccc", 2)
 
-        chain.assertNode(n3)
+        chain.assertBlock(n3)
         var ok = false
         try {
             val n = n3.copy(hashable = n3.hashable.copy(payload = "xxx"))
-            chain.assertNode(n)
+            chain.assertBlock(n)
         } catch (e: Throwable) {
             ok = true
         }
         assert(ok)
 
-        assert(chain.containsNode(chain.toGenHash()))
+        assert(chain.containsBlock(chain.toGenHash()))
         //println(n1.toHeightHash())
-        assert(chain.containsNode(n1.hash))
-        assert(chain.containsNode(n2.hash))
-        assert(chain.containsNode(n3.hash))
-        assert(!chain.containsNode("2_........"))
+        assert(chain.containsBlock(n1.hash))
+        assert(chain.containsBlock(n2.hash))
+        assert(chain.containsBlock(n3.hash))
+        assert(!chain.containsBlock("2_........"))
     }
 
     @Test
@@ -155,24 +156,24 @@ class Tests {
     fun e1_graph () {
         val chain = Chain("/tmp/freechains/tests/local/chains/", "/graph", arrayOf("secret","",""))
         chain.save()
-        val genesis = Node(
-            NodeHashable(0,"utf8", "", emptyArray()),
+        val genesis = Block(
+            BlockHashable(0,"utf8", "", emptyArray()),
             emptyArray(),"", chain.toGenHash()
         )
-        chain.saveNode(genesis)
+        chain.saveBlock(genesis)
 
-        val a1 = chain.newNode(NodeHashable(0,"utf8", "a1", arrayOf(chain.toGenHash())))
-        val b1 = chain.newNode(NodeHashable(0,"utf8", "b1", arrayOf(chain.toGenHash())))
-        chain.saveNode(a1)
-        chain.saveNode(b1)
+        val a1 = chain.newBlock(BlockHashable(0,"utf8", "a1", arrayOf(chain.toGenHash())))
+        val b1 = chain.newBlock(BlockHashable(0,"utf8", "b1", arrayOf(chain.toGenHash())))
+        chain.saveBlock(a1)
+        chain.saveBlock(b1)
         chain.reheads(a1)
         chain.reheads(b1)
 
         //val ab2 =
         chain.publish("utf8","ab2", 0)
 
-        val b2 = chain.newNode(NodeHashable(0,"utf8","b2", arrayOf(b1.hash)))
-        chain.saveNode(b2)
+        val b2 = chain.newBlock(BlockHashable(0,"utf8","b2", arrayOf(b1.hash)))
+        chain.saveBlock(b2)
         chain.reheads(b2)
 
         chain.publish("utf8","ab3", 0)
@@ -273,11 +274,11 @@ class Tests {
 
         val c1 = host.createChain("/sym", arrayOf("secret","",""))
         val n1 = c1.publish("utf8","aaa", 0)
-        c1.assertNode(n1)
+        c1.assertBlock(n1)
         var ok1 = false
         try {
             val c = c1.copy(keys=arrayOf("wrong","",""))
-            c.assertNode(n1)
+            c.assertBlock(n1)
         } catch (e: Throwable) {
             ok1 = true
         }
@@ -285,13 +286,13 @@ class Tests {
 
         val c2 = host.createChain("/asy", arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
         val n2 = c2.publish("utf8","aaa", 0)
-        c2.assertNode(n2)
+        c2.assertBlock(n2)
         val cx = c2.copy(keys= arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322",""))
-        cx.assertNode(n2)
+        cx.assertBlock(n2)
         var ok2 = false
         try {
             val cz = c2.copy(keys= arrayOf("","4CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322",""))
-            cz.assertNode(n2)
+            cz.assertBlock(n2)
         } catch (e: Throwable) {
             ok2 = true
         }

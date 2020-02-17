@@ -44,26 +44,26 @@ fun String.fromJsonToChain () : Chain {
 
 // PUBLISH
 
-fun Chain.publish (encoding: String, payload: String) : Node {
+fun Chain.publish (encoding: String, payload: String) : Block {
     return this.publish(encoding, payload, Instant.now().toEpochMilli())
 }
 
-fun Chain.publish (encoding: String, payload: String, time: Long) : Node {
-    val node = this.newNode(NodeHashable(time,encoding,payload,this.heads.toTypedArray()))
-    this.saveNode(node)
-    this.reheads(node)
+fun Chain.publish (encoding: String, payload: String, time: Long) : Block {
+    val blk = this.newBlock(BlockHashable(time,encoding,payload,this.heads.toTypedArray()))
+    this.saveBlock(blk)
+    this.reheads(blk)
     this.save()
-    return node
+    return blk
 }
 
-fun Chain.reheads (node: Node) {
-    this.heads.add(node.hash)
-    for (back in node.hashable.backs) {
+fun Chain.reheads (blk: Block) {
+    this.heads.add(blk.hash)
+    for (back in blk.hashable.backs) {
         this.heads.remove(back)
-        val old = this.loadNodeFromHash(back)
-        if (!old.fronts.contains((node.hash))) {
-            val new = old.copy(fronts=old.fronts+node.hash)
-            this.saveNode(new)
+        val old = this.loadBlockFromHash(back)
+        if (!old.fronts.contains((blk.hash))) {
+            val new = old.copy(fronts=old.fronts+blk.hash)
+            this.saveBlock(new)
         }
     }
 }
@@ -87,7 +87,7 @@ fun Chain.toHash () : String {
 // FILE SYSTEM
 
 fun Chain.save () {
-    val dir = File(this.root + this.name + "/nodes/")
+    val dir = File(this.root + this.name + "/blocks/")
     if (!dir.exists()) {
         dir.mkdirs()
     }
@@ -96,11 +96,11 @@ fun Chain.save () {
 
 // NDOE
 
-fun Chain.hashableToHash (h: NodeHashable) : Hash {
+fun Chain.hashableToHash (h: BlockHashable) : Hash {
     return h.backs.backsToHeight().toString() + "_" + this.calcHash(h.toJson())
 }
 
-fun Chain.newNode (h: NodeHashable) : Node {
+fun Chain.newBlock (h: BlockHashable) : Block {
     val hash = this.hashableToHash(h)
 
     var signature = ""
@@ -112,35 +112,35 @@ fun Chain.newNode (h: NodeHashable) : Node {
         signature = LazySodium.toHex(sig)
     }
 
-    val new = Node(h, emptyArray(), signature, hash)
-    this.assertNode(new)  // TODO: remove (paranoid test)
+    val new = Block(h, emptyArray(), signature, hash)
+    this.assertBlock(new)  // TODO: remove (paranoid test)
     return new
 }
 
-fun Chain.assertNode (node: Node) {
-    val h = node.hashable
-    assert(node.hash == this.hashableToHash(h))
-    if (node.signature != "") {
-        val sig = LazySodium.toBin(node.signature)
-        val msg = lazySodium.bytes(node.hash)
+fun Chain.assertBlock (blk: Block) {
+    val h = blk.hashable
+    assert(blk.hash == this.hashableToHash(h))
+    if (blk.signature != "") {
+        val sig = LazySodium.toBin(blk.signature)
+        val msg = lazySodium.bytes(blk.hash)
         val key = Key.fromHexString(this.keys[1]).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
     }
 }
 
-fun Chain.saveNode (node: Node) {
-    File(this.root + this.name + "/nodes/" + node.hash + ".node").writeText(node.toJson()+"\n")
+fun Chain.saveBlock (blk: Block) {
+    File(this.root + this.name + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
 
-fun Chain.loadNodeFromHash (hash: Hash): Node {
-    return File(this.root + this.name + "/nodes/" + hash + ".node").readText().jsonToNode()
+fun Chain.loadBlockFromHash (hash: Hash): Block {
+    return File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
 }
 
-fun Chain.containsNode (hash: Hash) : Boolean {
+fun Chain.containsBlock (hash: Hash) : Boolean {
     if (this.hash == hash) {
         return true
     } else {
-        val file = File(this.root + this.name + "/nodes/" + hash + ".node")
+        val file = File(this.root + this.name + "/blocks/" + hash + ".blk")
         return file.exists()
     }
 }

@@ -74,8 +74,8 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val hash = reader.readLineX()
 
             val chain = local.loadChain(path)
-            val node  = chain.loadNodeFromHash(hash)
-            val json  = node.toJson()
+            val blk   = chain.loadBlockFromHash(hash)
+            val json  = blk.toJson()
 
             assert(json.length <= Int.MAX_VALUE)
             writer.writeBytes(json)
@@ -88,10 +88,10 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val pay = reader.readLinesX()
 
             val chain = local.loadChain(path)
-            val node = if (local.timestamp) chain.publish(enc,pay) else chain.publish(enc,pay,0)
+            val blk = if (local.timestamp) chain.publish(enc,pay) else chain.publish(enc,pay,0)
 
-            writer.writeLineX(node.hash)
-            System.err.println("chain put: ${node.hash}")
+            writer.writeLineX(blk.hash)
+            System.err.println("chain put: ${blk.hash}")
         }
         "FC chain send" -> {
             val path = reader.readLineX().nameCheck()
@@ -157,8 +157,8 @@ fun Socket.chain_send (chain: Chain) : Int {
             return
         } else {
             toSend.add(hash)
-            val node = chain.loadNodeFromHash(hash)
-            for (front in node.fronts) {
+            val blk = chain.loadBlockFromHash(hash)
+            for (front in blk.fronts) {
                 traverse(front)
             }
         }
@@ -169,9 +169,9 @@ fun Socket.chain_send (chain: Chain) : Int {
         if (head == "") {
             break
         }
-        if (chain.containsNode(head)) {
-            val node = chain.loadNodeFromHash(head)
-            for (front in node.fronts) {
+        if (chain.containsBlock(head)) {
+            val blk = chain.loadBlockFromHash(head)
+            for (front in blk.fronts) {
                 traverse(front)
             }
         }
@@ -180,9 +180,9 @@ fun Socket.chain_send (chain: Chain) : Int {
     writer.writeLineX(toSend.size.toString())
     val sorted = toSend.toSortedSet(compareBy({it.length},{it}))
     for (hash in sorted) {
-        val old = chain.loadNodeFromHash(hash)
+        val old = chain.loadBlockFromHash(hash)
         // remove fronts
-        val new = Node(old.hashable,emptyArray(),old.signature,old.hash)
+        val new = Block(old.hashable,emptyArray(),old.signature,old.hash)
         writer.writeBytes(new.toJson())
         writer.writeLineX("\n")
     }
@@ -203,10 +203,10 @@ fun Socket.chain_recv (chain: Chain) : Int {
 
     val n = reader.readLineX().toInt()
     for (i in 1..n) {
-        val node = reader.readLinesX().jsonToNode()
-        chain.assertNode(node)
-        chain.reheads(node)
-        chain.saveNode(node)
+        val blk = reader.readLinesX().jsonToBlock()
+        chain.assertBlock(blk)
+        chain.reheads(blk)
+        chain.saveBlock(blk)
         chain.save()
     }
     writer.writeLineX("")

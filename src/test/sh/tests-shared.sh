@@ -43,10 +43,10 @@ freechains --host=localhost:8400 chain send / localhost:8401  # FAIL
 freechains --host=localhost:8400 chain send / localhost:8402  # SUCCESS
 
 # compare them
-! diff -q $FC/8400/chains/nodes/ $FC/8401/chains/nodes/ || exit 1
-diff $FC/8400/chains/nodes/ $FC/8402/chains/nodes/      || exit 1
+! diff -q $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+diff $FC/8400/chains/blocks/ $FC/8402/chains/blocks/      || exit 1
 
-# stop nodes
+# stop hosts
 freechains host stop --host=localhost:8400 &
 freechains host stop --host=localhost:8401 &
 freechains host stop --host=localhost:8402 &

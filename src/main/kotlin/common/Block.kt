@@ -13,17 +13,17 @@ import org.freechains.platform.lazySodium
 typealias Hash = String
 
 @Serializable
-data class NodeHashable (
+data class BlockHashable (
     val time      : Long,           // TODO: ULong
     val encoding  : String,         // payload encoding
     val payload   : String,
-    val backs     : Array<Hash>     // back links (previous nodes)
+    val backs     : Array<Hash>     // back links (previous blocks)
 )
 
 @Serializable
-data class Node (
-    val hashable  : NodeHashable,   // things to hash
-    val fronts    : Array<Hash>,    // front links (next nodes)
+data class Block (
+    val hashable  : BlockHashable,   // things to hash
+    val fronts    : Array<Hash>,    // front links (next blocks)
     val signature : String,         // hash signature
     val hash      : Hash            // hash of hashable
 ) {
@@ -37,22 +37,22 @@ fun Array<Hash>.backsToHeight () : Int {
     }
 }
 
-fun NodeHashable.toJson (): String {
+fun BlockHashable.toJson (): String {
     @UseExperimental(UnstableDefault::class)
     val json = Json(JsonConfiguration(prettyPrint=true))
-    return json.stringify(NodeHashable.serializer(), this)
+    return json.stringify(BlockHashable.serializer(), this)
 }
 
-fun Node.toJson (): String {
+fun Block.toJson (): String {
     @UseExperimental(UnstableDefault::class)
     val json = Json(JsonConfiguration(prettyPrint=true))
-    return json.stringify(Node.serializer(), this)
+    return json.stringify(Block.serializer(), this)
 }
 
-fun String.jsonToNode (): Node {
+fun String.jsonToBlock (): Block {
     @UseExperimental(UnstableDefault::class)
     val json = Json(JsonConfiguration(prettyPrint=true))
-    return json.parse(Node.serializer(), this)
+    return json.parse(Block.serializer(), this)
 }
 
 private fun Hash.toHeight () : Int {

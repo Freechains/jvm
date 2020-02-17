@@ -29,8 +29,8 @@ diff $FC/freechains-tests-get-1.out out/freechains-tests-get-1.out || exit 1
 diff $FC/freechains-tests-heads.out out/freechains-tests-get-1.out || exit 1
 
 h=`freechains --host=localhost:8400 chain put / file base64 /bin/cat`
-freechains --host=localhost:8400 chain get / "$h" > $FC/cat.node
-jq ".hashable.payload" $FC/cat.node | tr -d '"' | base64 --decode > $FC/cat
+freechains --host=localhost:8400 chain get / "$h" > $FC/cat.blk
+jq ".hashable.payload" $FC/cat.blk | tr -d '"' | base64 --decode > $FC/cat
 diff $FC/cat /bin/cat || exit 1
 
 ###############################################################################
@@ -44,9 +44,9 @@ freechains --host=localhost:8400 chain put / inline utf8 111
 freechains --host=localhost:8400 chain put / inline utf8 222
 freechains --host=localhost:8400 chain send / localhost:8401
 
-diff $FC/8400/chains/nodes/ $FC/8401/chains/nodes/ || exit 1
-ret=`ls $FC/8400/chains/nodes/ | wc`
-if [ "$ret" != "      5       5     360" ]; then
+diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+ret=`ls $FC/8400/chains/blocks/ | wc`
+if [ "$ret" != "      5       5     355" ]; then
   echo "$ret"
   exit 1
 fi
@@ -67,9 +67,9 @@ do
   P2=$!
   wait $P1 $P2
 
-  diff $FC/8401/chains/nodes/ $FC/8402/chains/nodes/ || exit 1
-  ret=`ls $FC/8401/chains/nodes/ | wc`
-  if [ "$ret" != "      5       5     360" ]; then
+  diff $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
+  ret=`ls $FC/8401/chains/blocks/ | wc`
+  if [ "$ret" != "      5       5     355" ]; then
     echo "$ret"
     exit 1
   fi
@@ -90,10 +90,10 @@ freechains --host=localhost:8400 chain send / localhost:8402 &
 P2=$!
 wait $P1 $P2
 
-diff $FC/8400/chains/nodes/ $FC/8401/chains/nodes/ || exit 1
-diff $FC/8401/chains/nodes/ $FC/8402/chains/nodes/ || exit 1
-ret=`ls $FC/8401/chains/nodes/ | wc`
-if [ "$ret" != "     55      55    4005" ]; then
+diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+diff $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
+ret=`ls $FC/8401/chains/blocks/ | wc`
+if [ "$ret" != "     55      55    3950" ]; then
   echo "$ret"
   exit 1
 fi
@@ -117,7 +117,7 @@ sleep 10
 
 for i in $(seq 8411 8420)
 do
-  diff $FC/8400/chains/nodes/ $FC/$i/chains/nodes/ || exit 1
+  diff $FC/8400/chains/blocks/ $FC/$i/chains/blocks/ || exit 1
 done
 
 for i in $(seq 8411 8420)
@@ -134,7 +134,7 @@ sleep 10
 
 for i in $(seq 8421 8440)
 do
-  diff $FC/8400/chains/nodes/ $FC/$i/chains/nodes/ || exit 1
+  diff $FC/8400/chains/blocks/ $FC/$i/chains/blocks/ || exit 1
 done
 
 ###############################################################################

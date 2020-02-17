@@ -35,11 +35,11 @@ fun Host.createChain (name: String, keys: Array<String>) : Chain {
     val file = File(chain.root + chain.name + "/" + "chain")
     assert(!file.exists()) { "chain already exists: $chain"}
     chain.save()
-    val genesis = Node (
-        NodeHashable(0,"", "", emptyArray()),
+    val genesis = Block (
+        BlockHashable(0,"", "", emptyArray()),
         emptyArray(),"",chain.toGenHash()
     )
-    chain.saveNode(genesis)
+    chain.saveBlock(genesis)
     return file.readText().fromJsonToChain()
 }
 
