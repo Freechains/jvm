@@ -81,7 +81,7 @@ fun Chain.calcHash (v: String) : String {
 }
 
 fun Chain.toHash () : String {
-    return this.calcHash(this.name+this.keys[0]+this.keys[1])   // exclude private key
+    return this.calcHash(this.name+this.keys[1]) // no shared/private allows untrusted nodes
 }
 
 // FILE SYSTEM
