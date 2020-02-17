@@ -36,7 +36,7 @@ fun Host.createChain (name: String, keys: Array<String>) : Chain {
     assert(!file.exists()) { "chain already exists: $chain"}
     chain.save()
     val genesis = Block (
-        BlockHashable(0,"", "", emptyArray()),
+        BlockHashable(0,"", false,"", emptyArray()),
         emptyArray(),"",chain.toGenHash()
     )
     chain.saveBlock(genesis)

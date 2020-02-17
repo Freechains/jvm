@@ -27,6 +27,7 @@ Options:
     --help                      [none] display this help
     --version                   [none] display version information
     --host=<addr:port>          [all]  address and port to connect [default: localhost:8330]
+    --encrypt                   [put] encrypts payload with shared or private key
 
 More Information:
 
@@ -36,7 +37,7 @@ More Information:
 """
 
 fun main (args: Array<String>) {
-    //val args_ = arrayOf("host", "start", "/tmp/freechains/8400")
+    //val args_ = arrayOf("host", "start", "xxx")
     val args_ = args
 
     val opts = Docopt(doc).withVersion("freechains v0.2").parse(args_.toMutableList())
@@ -68,7 +69,7 @@ fun main (args: Array<String>) {
                     val writer = DataOutputStream(socket.getOutputStream()!!)
                     val reader = DataInputStream(socket.getInputStream()!!)
                     writer.writeLineX("FC host stop")
-                    assert(reader.readLineX() == "1")
+                    assert(reader.readLineX() == "true")
                     System.err.println("host stop: $host:$port")
                     socket.close()
                 }
@@ -120,7 +121,8 @@ fun main (args: Array<String>) {
                 opts["put"] as Boolean -> {
                     writer.writeLineX("FC chain put")
                     writer.writeLineX(opts["<chain/work>"] as String)
-                    writer.writeLineX(if (opts["utf8"] as Boolean) "utf8" else "base64")
+                    writer.writeLineX(if (opts["utf8"]    as Boolean) "utf8" else "base64")
+                    writer.writeLineX((opts["--encrypt"] as Boolean).toString())
 
                     val bytes = when {
                         opts["inline"] as Boolean -> (opts["<path_or_text>"] as String).toByteArray()

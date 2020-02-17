@@ -8,6 +8,7 @@ import java.io.File
 import java.time.Instant
 
 import com.goterl.lazycode.lazysodium.LazySodium
+import com.goterl.lazycode.lazysodium.interfaces.SecretBox
 import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
@@ -44,12 +45,22 @@ fun String.fromJsonToChain () : Chain {
 
 // PUBLISH
 
-fun Chain.publish (encoding: String, payload: String) : Block {
-    return this.publish(encoding, payload, Instant.now().toEpochMilli())
+fun Chain.publish (encoding: String, encrypt: Boolean, payload: String) : Block {
+    return this.publish(encoding, encrypt, payload, Instant.now().toEpochMilli())
 }
 
-fun Chain.publish (encoding: String, payload: String, time: Long) : Block {
-    val blk = this.newBlock(BlockHashable(time,encoding,payload,this.heads.toTypedArray()))
+fun Chain.publish (encoding: String, encrypt: Boolean, payload: String, time: Long) : Block {
+    val payload2 =
+        if (encrypt) {
+            assert(this.keys[0] != "")
+            val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
+            val key = Key.fromHexString(this.keys[0])
+            LazySodium.toHex(nonce) + lazySodium.cryptoSecretBoxEasy(payload,nonce,key)
+        } else {
+            payload
+        }
+
+    val blk = this.newBlock(BlockHashable(time,encoding,encrypt,payload2,this.heads.toTypedArray()))
     this.saveBlock(blk)
     this.reheads(blk)
     this.save()
@@ -76,12 +87,17 @@ fun Chain.toGenHash () : Hash {
 
 // HASH
 
-fun Chain.calcHash (v: String) : String {
-    return lazySodium.cryptoGenericHash(v, Key.fromHexString(this.keys[0]))
+val zeros = ByteArray(32)
+private fun String.calcHash () : String {
+    return lazySodium.cryptoGenericHash(this, Key.fromBytes(zeros))
 }
 
 fun Chain.toHash () : String {
-    return this.calcHash(this.name+this.keys[1]) // no shared/private allows untrusted nodes
+    return (this.name+this.keys[1]).calcHash() // no shared/private allows untrusted nodes
+}
+
+fun BlockHashable.toHash () : Hash {
+    return this.backs.backsToHeight().toString() + "_" + this.toJson().calcHash()
 }
 
 // FILE SYSTEM
@@ -96,12 +112,8 @@ fun Chain.save () {
 
 // NDOE
 
-fun Chain.hashableToHash (h: BlockHashable) : Hash {
-    return h.backs.backsToHeight().toString() + "_" + this.calcHash(h.toJson())
-}
-
 fun Chain.newBlock (h: BlockHashable) : Block {
-    val hash = this.hashableToHash(h)
+    val hash = h.toHash()
 
     var signature = ""
     if (keys[1] != "") {
@@ -119,7 +131,7 @@ fun Chain.newBlock (h: BlockHashable) : Block {
 
 fun Chain.assertBlock (blk: Block) {
     val h = blk.hashable
-    assert(blk.hash == this.hashableToHash(h))
+    assert(blk.hash == h.toHash())
     if (blk.signature != "") {
         val sig = LazySodium.toBin(blk.signature)
         val msg = lazySodium.bytes(blk.hash)
@@ -132,15 +144,26 @@ fun Chain.saveBlock (blk: Block) {
     File(this.root + this.name + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
 
-fun Chain.loadBlockFromHash (hash: Hash): Block {
-    return File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
+fun Chain.loadBlockFromHash (hash: Hash, decrypt: Boolean = false) : Block {
+    val blk = File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
+    val h = blk.hashable
+    return if (decrypt && h.encrypted && this.keys[0]!="") {
+        val pay = lazySodium.cryptoSecretBoxOpenEasy(
+            h.payload.substring(48),
+            LazySodium.toBin(h.payload.substring(0,48)),
+            Key.fromHexString(this.keys[0])
+        )
+        blk.copy(hashable = h.copy(encrypted=false,payload=pay))
+    } else {
+        blk
+    }
 }
 
 fun Chain.containsBlock (hash: Hash) : Boolean {
-    if (this.hash == hash) {
-        return true
+    return if (this.hash == hash) {
+        true
     } else {
         val file = File(this.root + this.name + "/blocks/" + hash + ".blk")
-        return file.exists()
+        file.exists()
     }
 }

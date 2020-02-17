@@ -16,6 +16,7 @@ typealias Hash = String
 data class BlockHashable (
     val time      : Long,           // TODO: ULong
     val encoding  : String,         // payload encoding
+    val encrypted : Boolean,        // payload is encrypted (method depends on chain)
     val payload   : String,
     val backs     : Array<Hash>     // back links (previous blocks)
 )

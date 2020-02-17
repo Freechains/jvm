@@ -4,10 +4,7 @@ echo
 echo "=== CLEANING... ==="
 echo
 
-freechains host stop --host=localhost:8400 &
-freechains host stop --host=localhost:8401 &
-freechains host stop --host=localhost:8402 &
-for i in $(seq 8411 8450)
+for i in $(seq 8400 8450)
 do
   freechains host stop --host=localhost:$i &
 done

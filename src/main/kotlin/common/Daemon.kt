@@ -9,6 +9,7 @@ import kotlin.concurrent.thread
 
 import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.interfaces.PwHash
+import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 
 fun daemon (host : Host) {
@@ -40,7 +41,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
     val ln = reader.readLineX()
     when (ln) {
         "FC host stop" -> {
-            writer.writeLineX("1")
+            writer.writeLineX("true")
             server.close()
             System.err.println("host stop: $local")
         }
@@ -74,7 +75,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val hash = reader.readLineX()
 
             val chain = local.loadChain(path)
-            val blk   = chain.loadBlockFromHash(hash)
+            val blk   = chain.loadBlockFromHash(hash,true)
             val json  = blk.toJson()
 
             assert(json.length <= Int.MAX_VALUE)
@@ -84,11 +85,12 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
         }
         "FC chain put" -> {
             val path = reader.readLineX().nameCheck()
-            val enc = reader.readLineX()
+            val cod = reader.readLineX()
+            val cry = reader.readLineX().toBoolean()
             val pay = reader.readLinesX()
 
             val chain = local.loadChain(path)
-            val blk = if (local.timestamp) chain.publish(enc,pay) else chain.publish(enc,pay,0)
+            val blk = if (local.timestamp) chain.publish(cod,cry,pay) else chain.publish(cod,cry,pay,0)
 
             writer.writeLineX(blk.hash)
             System.err.println("chain put: ${blk.hash}")
@@ -129,7 +131,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
 
             when (type) {
                 "shared" -> {
-                    writer.writeLineX(LazySodium.toHex(pwh))
+                    writer.writeLineX(Key.fromBytes(pwh).asHexString)
                 }
                 "pubpvt" -> {
                     val keys = lazySodium.cryptoSignSeedKeypair(pwh)
@@ -182,8 +184,9 @@ fun Socket.chain_send (chain: Chain) : Int {
     for (hash in sorted) {
         val old = chain.loadBlockFromHash(hash)
         // remove fronts
-        val new = Block(old.hashable,emptyArray(),old.signature,old.hash)
+        val new = old.copy(fronts=emptyArray())
         writer.writeBytes(new.toJson())
+        //println("[send] ${new.hash} // ${new.toJson()}")
         writer.writeLineX("\n")
     }
 
