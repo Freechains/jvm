@@ -100,7 +100,7 @@ fi
 ###############################################################################
 echo "#### 5"
 
-for i in $(seq 8411 8440)
+for i in $(seq 8411 8430)
 do
   freechains host create $FC/$i $i
   freechains host start $FC/$i &
@@ -124,14 +124,14 @@ do
   freechains --host=localhost:$i chain send / localhost:$(($i+10)) &
 done
 sleep 10
-for i in $(seq 8421 8430)
+for i in $(seq 8421 8425)
 do
+  freechains --host=localhost:$i chain send / localhost:$(($i+5)) &
   freechains --host=localhost:$i chain send / localhost:$(($i+10)) &
-  freechains --host=localhost:$i chain send / localhost:$(($i+20)) &
 done
 sleep 10
 
-for i in $(seq 8421 8440)
+for i in $(seq 8421 8430)
 do
   diff $FC/8400/chains/blocks/ $FC/$i/chains/blocks/ || exit 1
 done
