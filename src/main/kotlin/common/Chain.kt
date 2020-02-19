@@ -9,10 +9,10 @@ import java.time.Instant
 
 import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.interfaces.Box
+import com.goterl.lazycode.lazysodium.interfaces.GenericHash
 import com.goterl.lazycode.lazysodium.interfaces.SecretBox
 import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
-import com.goterl.lazycode.lazysodium.utils.KeyPair
 import org.freechains.platform.lazySodium
 
 @Serializable
@@ -99,7 +99,7 @@ fun Chain.toGenHash () : Hash {
 
 // HASH
 
-val zeros = ByteArray(32)
+val zeros = ByteArray(GenericHash.BYTES)
 private fun String.calcHash () : String {
     return lazySodium.cryptoGenericHash(this, Key.fromBytes(zeros))
 }
@@ -161,12 +161,13 @@ fun Chain.loadBlockFromHash (hash: Hash, decrypt: Boolean = false) : Block {
     val h = blk.hashable
     return if (decrypt && h.encrypted && (this.keys[0]!="" || this.keys[2]!="")) {
         if (this.keys[0] != "") {
+            val idx = SecretBox.NONCEBYTES * 2
             val pay = lazySodium.cryptoSecretBoxOpenEasy(
-                h.payload.substring(48),
-                LazySodium.toBin(h.payload.substring(0, 48)),
+                h.payload.substring(idx),
+                LazySodium.toBin(h.payload.substring(0, idx)),
                 Key.fromHexString(this.keys[0])
             )
-            blk.copy(hashable = h.copy(encrypted = false, payload = pay))
+            blk.copy(hashable = h.copy(encrypted=false, payload=pay))
         } else {
             val enc = LazySodium.toBin(h.payload)
             val dec = ByteArray(enc.size - Box.SEALBYTES)

@@ -26,12 +26,10 @@ data class MeuDado(val v: String)
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 LOC
  *  - 10556 -> 10557 -> 10553 -> 10553 KB
- *  - help message
- *  - achar constantes de crypto
  *  - chain locks
  *  - all use cases (chain cfg e usos da industria)
  *  - freechains crypto criptografar payloads
- *    - definir constantes
+ *    - testes em tests-pubpvt.sh
  *  - nao verificar shared/public se !readonly
  *  - sistema de reputacao
  *  - testes antigos
