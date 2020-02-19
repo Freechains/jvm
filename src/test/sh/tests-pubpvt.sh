@@ -47,6 +47,16 @@ freechains --host=localhost:8400 chain send / localhost:8402  # SUCCESS
 ! diff -q $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 diff $FC/8400/chains/blocks/ $FC/8402/chains/blocks/      || exit 1
 
+# put to 8400, send to 8401 (fail) 8402 (succees, but crypted)
+h=`freechains --host=localhost:8400 chain put / inline utf8 Hello_World --encrypt`
+freechains --host=localhost:8400 chain send / localhost:8401  # FAIL
+freechains --host=localhost:8400 chain send / localhost:8402  # SUCCESS
+
+freechains --host=localhost:8400 chain get / $h > $FC/dec.blk
+diff <(jq ".hashable.payload" $FC/dec.blk) <(echo '"Hello_World"') || exit 1
+freechains --host=localhost:8402 chain get / $h > $FC/enc.blk
+diff <(jq ".hashable.encrypted" $FC/enc.blk) <(echo 'true') || exit 1
+
 # stop hosts
 freechains host stop --host=localhost:8400 &
 freechains host stop --host=localhost:8401 &

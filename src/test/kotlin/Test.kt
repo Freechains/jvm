@@ -24,13 +24,12 @@ data class MeuDado(val v: String)
 
 /*
  *  TODO:
- *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 LOC
- *  - 10556 -> 10557 -> 10553 -> 10553 KB
+ *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 -> 809 LOC
+ *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 KB
+ *  - fazer teste que o algoritmo falha // corrigir algoritmo
  *  - chain locks
  *  - all use cases (chain cfg e usos da industria)
- *  - freechains crypto criptografar payloads
- *    - testes em tests-pubpvt.sh
- *  - nao verificar shared/public se !readonly
+ *  - nao verificar shared/public se !readonly (verificar caso contrario)
  *  - sistema de reputacao
  *  - testes antigos
  *  - RX Kotlin
