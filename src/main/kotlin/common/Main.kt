@@ -37,18 +37,26 @@ More Information:
 """
 
 fun main (args: Array<String>) {
-    //val args_ = arrayOf("host", "start", "xxx")
-    val args_ = args
+    val ret = main_(args)
+    if (ret != null) {
+        println(ret)
+    }
+}
 
-    val opts = Docopt(doc).withVersion("freechains v0.2").parse(args_.toMutableList())
+fun main_ (args: Array<String>) : String? {
+    val opts = Docopt(doc).withVersion("freechains v0.2").parse(args.toMutableList())
 
-    fun optHost () : Pair<String,Int> {
+    Thread.setDefaultUncaughtExceptionHandler { _: Thread?, e: Throwable? ->
+        System.err.println(
+            e!!.message ?: e.toString()
+        )
+    }
+
+    fun optHost(): Pair<String, Int> {
         return ((opts["--host"] as String?) ?: "localhost:8330").hostSplit()
     }
 
-    Thread.setDefaultUncaughtExceptionHandler { _: Thread?, e: Throwable? -> System.err.println(e!!.message ?: e.toString()) }
-
-    when {
+    return when {
         opts["host"] as Boolean ->
             when {
                 opts["create"] as Boolean -> {
@@ -56,12 +64,14 @@ fun main (args: Array<String>) {
                     val port = (opts["<port>"] as String?)?.toInt() ?: 8330
                     val host = Host_create(dir, port)
                     System.err.println("host create: $host")
+                    null
                 }
                 opts["start"] as Boolean -> {
                     val dir = opts["<dir>"] as String
                     val host = Host_load(dir)
                     System.err.println("host start: $host")
                     daemon(host)
+                    null
                 }
                 opts["stop"] as Boolean -> {
                     val (host, port) = optHost()
@@ -72,14 +82,16 @@ fun main (args: Array<String>) {
                     assert(reader.readLineX() == "true")
                     System.err.println("host stop: $host:$port")
                     socket.close()
+                    null
                 }
+                else -> error("invalid command")
             }
         opts["chain"] as Boolean -> {
             val (host, port) = optHost()
             val socket = Socket(host, port)
             val writer = DataOutputStream(socket.getOutputStream()!!)
             val reader = DataInputStream(socket.getInputStream()!!)
-            when {
+            val ret = when {
                 // freechains [options] chain create <chain/work> [shared <shared_key> | pubpvt <public_key> [<private_key>]]
                 opts["create"] as Boolean -> {
                     writer.writeLineX("FC chain create")
@@ -87,24 +99,26 @@ fun main (args: Array<String>) {
                     writer.writeLineX(opts["<shared_key>"] as String? ?: "")
                     writer.writeLineX(opts["<public_key>"] as String? ?: "")
                     writer.writeLineX(opts["<private_key>"] as String? ?: "")
-                    println(reader.readLineX())
+                    reader.readLineX()
                 }
                 opts["genesis"] as Boolean -> {
                     writer.writeLineX("FC chain genesis")
                     writer.writeLineX(opts["<chain/work>"] as String)
-                    println(reader.readLineX())
+                    reader.readLineX()
                 }
                 opts["heads"] as Boolean -> {
                     writer.writeLineX("FC chain heads")
                     writer.writeLineX(opts["<chain/work>"] as String)
+                    var ret = ""
                     while (true) {
                         val hash = reader.readLineX()
                         if (hash == "") {
                             break
                         } else {
-                            println(hash)
+                            ret += hash + "\n"
                         }
                     }
+                    if (ret == "") null else ret
                 }
                 opts["get"] as Boolean -> {
                     writer.writeLineX("FC chain get")
@@ -112,9 +126,10 @@ fun main (args: Array<String>) {
                     writer.writeLineX(opts["<height_hash>"] as Hash)
                     val json = reader.readLinesX()
                     if (json == "") {
-                        System.err.println("chain get: not found"); -1
+                        System.err.println("chain get: not found")
+                        null
                     } else {
-                        println(json)
+                        json
                     }
                 }
                 // freechains [options] chain put <chain/work> (file | inline | -) (utf8 | base64) [<path_or_text>]
@@ -139,7 +154,7 @@ fun main (args: Array<String>) {
 
                     writer.writeLineX("\n")
                     val hash = reader.readLineX()
-                    println(hash)
+                    hash
                 }
                 opts["send"] as Boolean -> {
                     writer.writeLineX("FC chain send")
@@ -147,9 +162,12 @@ fun main (args: Array<String>) {
                     writer.writeLineX(opts["<host:port>"] as String)
                     val ret = reader.readLineX()
                     System.err.println("chain send: $ret")
+                    null
                 }
+                else -> error("invalid command")
             }
             socket.close()
+            ret
         }
         opts["crypto"] as Boolean -> {
             val (host, port) = optHost()
@@ -164,12 +182,15 @@ fun main (args: Array<String>) {
                     writer.writeLineX(if (isShared) "shared" else "pubpvt")
                     writer.writeLineX(opts["<passphrase>"] as String)
                     println(reader.readLineX())         // shared or private key
-                    if (!isShared) {
-                        println(reader.readLineX())     // public key
+                    if (isShared) {
+                        null
+                    } else {
+                        reader.readLineX()     // public key
                     }
                 }
+                else -> error("invalid command")
             }
         }
-        else -> System.err.println("invalid command")
+        else -> { System.err.println("invalid command") ; null }
     }
 }

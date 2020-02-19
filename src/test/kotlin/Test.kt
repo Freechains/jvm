@@ -1,5 +1,7 @@
+import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.LazySodiumJava
 import com.goterl.lazycode.lazysodium.SodiumJava
+import com.goterl.lazycode.lazysodium.interfaces.Box
 import com.goterl.lazycode.lazysodium.interfaces.SecretBox
 import com.goterl.lazycode.lazysodium.utils.Key
 import com.goterl.lazycode.lazysodium.utils.KeyPair
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.MethodOrderer.Alphanumeric
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestMethodOrder
 import java.io.File
+import java.util.*
 import kotlin.concurrent.thread
 
 
@@ -23,11 +26,14 @@ data class MeuDado(val v: String)
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 LOC
  *  - 10556 -> 10557 -> 10553 -> 10553 KB
+ *  - help message
+ *  - achar constantes de crypto
  *  - chain locks
  *  - all use cases (chain cfg e usos da industria)
  *  - freechains crypto criptografar payloads
+ *    - definir constantes
+ *    - caso de pvt1+pub2
  *    - --encrypt no put, falta pubpvt
- *    - TESTES!
  *  - nao verificar shared/public se !readonly
  *  - sistema de reputacao
  *  - testes antigos
@@ -245,19 +251,19 @@ class Tests {
     @Test
     fun m2_crypto () {
         //a_reset()
-        main(arrayOf("host","create","/tmp/freechains/tests/M2/"))
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
         thread {
-            main(arrayOf("host","start","/tmp/freechains/tests/M2/"))
+            main(arrayOf("host", "start", "/tmp/freechains/tests/M2/"))
         }
         Thread.sleep(100)
         val lazySodium = LazySodiumJava(SodiumJava())
-        val kp : KeyPair = lazySodium.cryptoSignKeypair()
-        val pk : Key = kp.getPublicKey()
-        val sk : Key = kp.getSecretKey()
+        val kp: KeyPair = lazySodium.cryptoSignKeypair()
+        val pk: Key = kp.getPublicKey()
+        val sk: Key = kp.getSecretKey()
         assert(lazySodium.cryptoSignKeypair(pk.getAsBytes(), sk.getAsBytes()))
         //println("TSTTST: ${pk.asHexString} // ${sk.asHexString}")
-        main(arrayOf("crypto","create","shared","senha secreta"))
-        main(arrayOf("crypto","create","pubpvt","senha secreta"))
+        main(arrayOf("crypto", "create", "shared", "senha secreta"))
+        main(arrayOf("crypto", "create", "pubpvt", "senha secreta"))
 
         val msg = "mensagem secreta"
         val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
@@ -266,6 +272,65 @@ class Tests {
         //println("nonce=${lazySodium.toHexStr(nonce)} // msg=$encrypted")
         val decrypted = lazySodium.cryptoSecretBoxOpenEasy(encrypted, nonce, key)
         assert(msg == decrypted)
+    }
+
+    @Test
+    fun m2_crypto_pubpvt () {
+        val ls = LazySodiumJava(SodiumJava())
+
+        // This is bob's keypair.
+        // This is bob's keypair.
+        val bobKp = ls.cryptoBoxKeypair()
+
+        // Alice wishes to send an encrypted message to Bob.
+        // Even she can't decrypt it.
+        // Alice wishes to send an encrypted message to Bob.
+// Even she can't decrypt it.
+        val message = "A super secret message".toByteArray()
+        val cipherText =
+            ByteArray(message.size + Box.SEALBYTES)
+        ls.cryptoBoxSeal(cipherText, message, message.size.toLong(), bobKp.publicKey.asBytes)
+
+        // Bob can decrypt the message
+        // Bob can decrypt the message
+        val decrypted = ByteArray(message.size)
+        val res = ls.cryptoBoxSealOpen(
+            decrypted,
+            cipherText,
+            cipherText.size.toLong(),
+            bobKp.publicKey.asBytes,
+            bobKp.secretKey.asBytes
+        )
+
+        if (!res) {
+            println("Error trying to decrypt. Maybe the message was intended for another recipient?")
+        }
+
+        println(String(decrypted)) // Should print out "A super secret message"
+
+
+        val lazySodium = LazySodiumJava(SodiumJava())
+        //val kp = ls.cryptoBoxKeypair()
+
+        val pubed = Key.fromHexString("4EC5AF592D177459D2338D07FFF9A9B64822EF5BE9E9715E8C63965DD2AF6ECB").asBytes
+        val pvted = Key.fromHexString("70CFFBAAD1E1B640A77E7784D25C3E535F1E5237264D1B5C38CB2C53A495B3FE4EC5AF592D177459D2338D07FFF9A9B64822EF5BE9E9715E8C63965DD2AF6ECB").asBytes
+        val pubcu = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
+        val pvtcu = ByteArray(Box.CURVE25519XSALSA20POLY1305_SECRETKEYBYTES)
+
+        assert(lazySodium.convertPublicKeyEd25519ToCurve25519(pubcu,pubed))
+        assert(lazySodium.convertSecretKeyEd25519ToCurve25519(pvtcu,pvted))
+
+        val dec1 = "mensagem secreta".toByteArray()
+        val enc1 = ByteArray(Box.SEALBYTES + dec1.size)
+        lazySodium.cryptoBoxSeal(enc1, dec1, dec1.size.toLong(), pubcu)
+        println(LazySodium.toHex(enc1))
+
+        val enc2 = LazySodium.toBin(LazySodium.toHex(enc1))
+        println(LazySodium.toHex(enc2))
+        assert(Arrays.equals(enc1,enc2))
+        val dec2 = ByteArray(enc2.size - Box.SEALBYTES)
+        lazySodium.cryptoBoxSealOpen(dec2, enc2, enc2.size.toLong(), pubcu, pvtcu)
+        assert(dec2.toString(Charsets.UTF_8) == "mensagem secreta")
     }
 
     @Test
@@ -312,8 +377,8 @@ class Tests {
     }
 
     @Test
-    fun m5_crypto_encrypt () {
-        a_reset()
+    fun m5_crypto_encrypt_sym () {
+        //a_reset()
         main(arrayOf("host","create","/tmp/freechains/tests/M50/"))
         main(arrayOf("host","create","/tmp/freechains/tests/M51/","8331"))
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M50/")) }
@@ -324,5 +389,27 @@ class Tests {
 
         main(arrayOf("chain","put","/xxx","inline","utf8","aaa","--encrypt"))
         main(arrayOf("chain","send","/xxx","localhost:8331"))
+    }
+
+    @Test
+    fun m6_crypto_encrypt_sym () {
+        a_reset()
+        main(arrayOf("host","create","/tmp/freechains/tests/M60/"))
+        main(arrayOf("host","create","/tmp/freechains/tests/M61/","8331"))
+        thread { main(arrayOf("host","start","/tmp/freechains/tests/M60/")) }
+        thread { main(arrayOf("host","start","/tmp/freechains/tests/M61/")) }
+        Thread.sleep(100)
+        main(arrayOf("chain","create","/xxx","pubpvt","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        main(arrayOf("--host=localhost:8331","chain","create","/xxx","pubpvt","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        val hash = main_(arrayOf("chain","put","/xxx","inline","utf8","aaa","--encrypt"))
+
+        val json = main_(arrayOf("chain","get","/xxx",hash!!))
+        val blk = json!!.jsonToBlock()
+        assert(blk.hashable.payload == "aaa")
+
+        main(arrayOf("chain","send","/xxx","localhost:8331"))
+        val json2 = main_(arrayOf("--host=localhost:8331","chain","get","/xxx",hash))
+        val blk2 = json2!!.jsonToBlock()
+        assert(blk2.hashable.encrypted)
     }
 }
