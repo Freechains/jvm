@@ -159,7 +159,7 @@ fun Chain.saveBlock (blk: Block) {
 fun Chain.loadBlockFromHash (hash: Hash, decrypt: Boolean = false) : Block {
     val blk = File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
     val h = blk.hashable
-    return if (decrypt && h.encrypted && (this.keys[0]!="" || this.keys[2]!="")) {
+    if (decrypt && h.encrypted && (this.keys[0]!="" || this.keys[2]!="")) {
         if (this.keys[0] != "") {
             val idx = SecretBox.NONCEBYTES * 2
             val pay = lazySodium.cryptoSecretBoxOpenEasy(
@@ -167,7 +167,7 @@ fun Chain.loadBlockFromHash (hash: Hash, decrypt: Boolean = false) : Block {
                 LazySodium.toBin(h.payload.substring(0, idx)),
                 Key.fromHexString(this.keys[0])
             )
-            blk.copy(hashable = h.copy(encrypted=false, payload=pay))
+            return blk.copy(hashable = h.copy(encrypted=false, payload=pay))
         } else {
             val enc = LazySodium.toBin(h.payload)
             val dec = ByteArray(enc.size - Box.SEALBYTES)
@@ -180,18 +180,17 @@ fun Chain.loadBlockFromHash (hash: Hash, decrypt: Boolean = false) : Block {
             assert(lazySodium.convertSecretKeyEd25519ToCurve25519(pvt_,pvt))
 
             assert(lazySodium.cryptoBoxSealOpen(dec, enc, enc.size.toLong(), pub_, pvt_))
-            blk.copy(hashable = h.copy(encrypted=false, payload=dec.toString(Charsets.UTF_8)))
+            return blk.copy(hashable = h.copy(encrypted=false, payload=dec.toString(Charsets.UTF_8)))
         }
     } else {
-        blk
+        return blk
     }
 }
 
 fun Chain.containsBlock (hash: Hash) : Boolean {
-    return if (this.hash == hash) {
-        true
+    if (this.hash == hash) {
+        return true
     } else {
-        val file = File(this.root + this.name + "/blocks/" + hash + ".blk")
-        file.exists()
+        return File(this.root + this.name + "/blocks/" + hash + ".blk").exists()
     }
 }

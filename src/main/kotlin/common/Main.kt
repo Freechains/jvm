@@ -56,7 +56,7 @@ fun main_ (args: Array<String>) : String? {
         return ((opts["--host"] as String?) ?: "localhost:8330").hostSplit()
     }
 
-    return when {
+    when {
         opts["host"] as Boolean ->
             when {
                 opts["create"] as Boolean -> {
@@ -64,14 +64,14 @@ fun main_ (args: Array<String>) : String? {
                     val port = (opts["<port>"] as String?)?.toInt() ?: 8330
                     val host = Host_create(dir, port)
                     System.err.println("host create: $host")
-                    null
+                    return null
                 }
                 opts["start"] as Boolean -> {
                     val dir = opts["<dir>"] as String
                     val host = Host_load(dir)
                     System.err.println("host start: $host")
                     daemon(host)
-                    null
+                    return null
                 }
                 opts["stop"] as Boolean -> {
                     val (host, port) = optHost()
@@ -82,16 +82,15 @@ fun main_ (args: Array<String>) : String? {
                     assert(reader.readLineX() == "true")
                     System.err.println("host stop: $host:$port")
                     socket.close()
-                    null
+                    return null
                 }
-                else -> error("invalid command")
             }
         opts["chain"] as Boolean -> {
             val (host, port) = optHost()
             val socket = Socket(host, port)
             val writer = DataOutputStream(socket.getOutputStream()!!)
             val reader = DataInputStream(socket.getInputStream()!!)
-            val ret = when {
+            when {
                 // freechains [options] chain create <chain> [shared <shared_key> | pubpvt <public_key> [<private_key>]]
                 opts["create"] as Boolean -> {
                     writer.writeLineX("FC chain create")
@@ -99,12 +98,12 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX(opts["<shared_key>"] as String? ?: "")
                     writer.writeLineX(opts["<public_key>"] as String? ?: "")
                     writer.writeLineX(opts["<private_key>"] as String? ?: "")
-                    reader.readLineX()
+                    return reader.readLineX()
                 }
                 opts["genesis"] as Boolean -> {
                     writer.writeLineX("FC chain genesis")
                     writer.writeLineX(opts["<chain>"] as String)
-                    reader.readLineX()
+                    return reader.readLineX()
                 }
                 opts["heads"] as Boolean -> {
                     writer.writeLineX("FC chain heads")
@@ -118,7 +117,7 @@ fun main_ (args: Array<String>) : String? {
                             ret += hash + "\n"
                         }
                     }
-                    if (ret == "") null else ret
+                    return if (ret == "") null else ret
                 }
                 opts["get"] as Boolean -> {
                     writer.writeLineX("FC chain get")
@@ -127,9 +126,9 @@ fun main_ (args: Array<String>) : String? {
                     val json = reader.readLinesX()
                     if (json == "") {
                         System.err.println("chain get: not found")
-                        null
+                        return null
                     } else {
-                        json
+                        return json
                     }
                 }
                 // freechains [options] chain put <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
@@ -154,7 +153,7 @@ fun main_ (args: Array<String>) : String? {
 
                     writer.writeLineX("\n")
                     val hash = reader.readLineX()
-                    hash
+                    return hash
                 }
                 opts["send"] as Boolean -> {
                     writer.writeLineX("FC chain send")
@@ -162,12 +161,10 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX(opts["<host:port>"] as String)
                     val ret = reader.readLineX()
                     System.err.println("chain send: $ret")
-                    null
+                    return null
                 }
-                else -> error("invalid command")
             }
             socket.close()
-            ret
         }
         opts["crypto"] as Boolean -> {
             val (host, port) = optHost()
@@ -183,14 +180,13 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX(opts["<passphrase>"] as String)
                     println(reader.readLineX())         // shared or private key
                     if (isShared) {
-                        null
+                        return null
                     } else {
-                        reader.readLineX()     // public key
+                        return reader.readLineX()     // public key
                     }
                 }
-                else -> error("invalid command")
             }
         }
-        else -> { System.err.println("invalid command") ; null }
     }
+    return null
 }
