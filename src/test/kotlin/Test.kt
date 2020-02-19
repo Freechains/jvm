@@ -32,8 +32,6 @@ data class MeuDado(val v: String)
  *  - all use cases (chain cfg e usos da industria)
  *  - freechains crypto criptografar payloads
  *    - definir constantes
- *    - caso de pvt1+pub2
- *    - --encrypt no put, falta pubpvt
  *  - nao verificar shared/public se !readonly
  *  - sistema de reputacao
  *  - testes antigos

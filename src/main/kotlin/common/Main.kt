@@ -14,13 +14,13 @@ Usage:
     freechains host create <dir> [<port>]
     freechains host start <dir>
     freechains [options] host stop
-    freechains [options] chain create <chain/work> [shared <shared_key> | pubpvt <public_key> [<private_key>]]
-    freechains [options] chain genesis <chain/work>
-    freechains [options] chain heads <chain/work>
-    freechains [options] chain get <chain/work> <height_hash>
-    freechains [options] chain put <chain/work> (file | inline | -) (utf8 | base64) [<path_or_text>]
-    freechains [options] chain send <chain/work> <host:port>
-    freechains [options] chain listen <chain/work>
+    freechains [options] chain create <chain> [shared <shared_key> | pubpvt <public_key> [<private_key>]]
+    freechains [options] chain genesis <chain>
+    freechains [options] chain heads <chain>
+    freechains [options] chain get <chain> <height_hash>
+    freechains [options] chain put <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
+    freechains [options] chain send <chain> <host:port>
+    freechains [options] chain listen <chain>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
 
 Options:
@@ -92,10 +92,10 @@ fun main_ (args: Array<String>) : String? {
             val writer = DataOutputStream(socket.getOutputStream()!!)
             val reader = DataInputStream(socket.getInputStream()!!)
             val ret = when {
-                // freechains [options] chain create <chain/work> [shared <shared_key> | pubpvt <public_key> [<private_key>]]
+                // freechains [options] chain create <chain> [shared <shared_key> | pubpvt <public_key> [<private_key>]]
                 opts["create"] as Boolean -> {
                     writer.writeLineX("FC chain create")
-                    writer.writeLineX(opts["<chain/work>"] as String)
+                    writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<shared_key>"] as String? ?: "")
                     writer.writeLineX(opts["<public_key>"] as String? ?: "")
                     writer.writeLineX(opts["<private_key>"] as String? ?: "")
@@ -103,12 +103,12 @@ fun main_ (args: Array<String>) : String? {
                 }
                 opts["genesis"] as Boolean -> {
                     writer.writeLineX("FC chain genesis")
-                    writer.writeLineX(opts["<chain/work>"] as String)
+                    writer.writeLineX(opts["<chain>"] as String)
                     reader.readLineX()
                 }
                 opts["heads"] as Boolean -> {
                     writer.writeLineX("FC chain heads")
-                    writer.writeLineX(opts["<chain/work>"] as String)
+                    writer.writeLineX(opts["<chain>"] as String)
                     var ret = ""
                     while (true) {
                         val hash = reader.readLineX()
@@ -122,7 +122,7 @@ fun main_ (args: Array<String>) : String? {
                 }
                 opts["get"] as Boolean -> {
                     writer.writeLineX("FC chain get")
-                    writer.writeLineX(opts["<chain/work>"] as String)
+                    writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<height_hash>"] as Hash)
                     val json = reader.readLinesX()
                     if (json == "") {
@@ -132,10 +132,10 @@ fun main_ (args: Array<String>) : String? {
                         json
                     }
                 }
-                // freechains [options] chain put <chain/work> (file | inline | -) (utf8 | base64) [<path_or_text>]
+                // freechains [options] chain put <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
                 opts["put"] as Boolean -> {
                     writer.writeLineX("FC chain put")
-                    writer.writeLineX(opts["<chain/work>"] as String)
+                    writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(if (opts["utf8"]    as Boolean) "utf8" else "base64")
                     writer.writeLineX((opts["--encrypt"] as Boolean).toString())
 
@@ -158,7 +158,7 @@ fun main_ (args: Array<String>) : String? {
                 }
                 opts["send"] as Boolean -> {
                     writer.writeLineX("FC chain send")
-                    writer.writeLineX(opts["<chain/work>"] as String)
+                    writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<host:port>"] as String)
                     val ret = reader.readLineX()
                     System.err.println("chain send: $ret")
