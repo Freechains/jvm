@@ -7,10 +7,14 @@ import java.net.Socket
 import java.net.SocketException
 import kotlin.concurrent.thread
 
-import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import java.util.*
+import kotlin.collections.HashSet
+
+val h24 = 1000 * 60 * 60 * 24
+
 
 fun daemon (host : Host) {
     val socket = ServerSocket(host.port)
@@ -150,68 +154,135 @@ fun Socket.chain_send (chain: Chain) : Int {
     val reader = DataInputStream(this.getInputStream()!!)
     val writer = DataOutputStream(this.getOutputStream()!!)
 
+    // - receives most recent timestamp
+    // - DFS in heads
+    //   - asks if contains hash
+    //   - aborts path if reaches timestamp+24h
+    //   - pushes into toSend
+    // - sends toSend
+
     writer.writeLineX("FC chain recv")
     writer.writeLineX(chain.name)
 
-    val toSend = mutableSetOf<Hash>()
-    fun traverse (hash: Hash) {
-        if (toSend.contains(hash)) {
-            return
-        } else {
-            toSend.add(hash)
+    val maxTime = reader.readLineX().toLong()
+    val visited = HashSet<Hash>()
+    val toSend  = ArrayDeque<Hash>()
+    var N       = 0
+    //println("[send] $maxTime")
+
+    // for each local head
+    val n1 = chain.heads.size
+    writer.writeLineX(n1.toString())
+    for (head in chain.heads) {
+        val pending = ArrayDeque<Hash>()
+        pending.push(head)
+
+        // for each head path of blocks
+        while (pending.isNotEmpty()) {
+            val hash = pending.pop()
+            visited.add(hash)
+            //println("[send] $hash")
+            writer.writeLineX(hash)                  // asks if contains hash
+            val has = reader.readLineX().toBoolean() // receives yes or no
+            if (has) {
+                //println("[send] has: $hash")
+                continue                             // already has: finishes subpath
+            }
             val blk = chain.loadBlockFromHash(hash)
-            for (front in blk.fronts) {
-                traverse(front)
+            if (maxTime-h24 > blk.hashable.time) {
+                //println("[send] max: $hash")
+                toSend.clear()                       // no, but too old: aborts this head path entirely
+                break
+            }
+
+            // sends this one and visits children
+            toSend.push(hash)
+            //println("[send] backs: ${blk.hashable.backs.size}")
+            for (back in blk.hashable.backs) {
+                if (! visited.contains(back)) {
+                    //println("[send] back: $back")
+                    pending.push(back)
+                }
             }
         }
-    }
 
-    while (true) {
-        val head = reader.readLineX()
-        if (head == "") {
-            break
+        //println("[send]")
+        writer.writeLineX("")                     // will start sending nodes
+        //println("[send] ${toSend.size.toString()}")
+        writer.writeLineX(toSend.size.toString())    // how many
+        val n2 = toSend.size
+        while (toSend.isNotEmpty()) {
+            val hash = toSend.pop()
+            val old = chain.loadBlockFromHash(hash)
+            val new = old.copy(fronts=emptyArray())  // remove fronts
+            //println("[send] ${new.hash}")
+            writer.writeBytes(new.toJson())
+            writer.writeLineX("\n")
         }
-        if (chain.containsBlock(head)) {
-            val blk = chain.loadBlockFromHash(head)
-            for (front in blk.fronts) {
-                traverse(front)
-            }
-        }
+        val n2_ = reader.readLineX().toInt()          // how many blocks again
+        assert(n2 == n2_)
+        N += n2
     }
+    val n1_ = reader.readLineX().toInt()             // how many heads again
+    assert(n1 == n1_)
 
-    writer.writeLineX(toSend.size.toString())
-    val sorted = toSend.toSortedSet(compareBy({it.length},{it}))
-    for (hash in sorted) {
-        val old = chain.loadBlockFromHash(hash)
-        // remove fronts
-        val new = old.copy(fronts=emptyArray())
-        writer.writeBytes(new.toJson())
-        //println("[send] ${new.hash} // ${new.toJson()}")
-        writer.writeLineX("\n")
-    }
-
-    reader.readLineX()
-    return toSend.size
+    return N
 }
 
 fun Socket.chain_recv (chain: Chain) : Int {
     val reader = DataInputStream(this.getInputStream()!!)
     val writer = DataOutputStream(this.getOutputStream()!!)
 
-    // transmit heads
-    for (head in chain.heads) {
-        writer.writeLineX(head)
+    fun getMaxTime () : Long {
+        var max: Long = 0
+        for (head in chain.heads) {
+            val blk = chain.loadBlockFromHash(head)
+            if (blk.hashable.time > max) {
+                max = blk.hashable.time
+            }
+        }
+        return max
     }
-    writer.writeLineX("")
 
-    val n = reader.readLineX().toInt()
-    for (i in 1..n) {
-        val blk = reader.readLinesX().jsonToBlock()
-        chain.assertBlock(blk)
-        chain.reheads(blk)
-        chain.saveBlock(blk)
-        chain.save()
+    // - sends most recent timestamp
+    // - answers if contains each node
+    // - receives all
+
+    val maxTime = getMaxTime()
+    writer.writeLineX(maxTime.toString())
+    //println("[recv] $maxTime")
+    var N = 0
+
+    // for each remote head
+    val n1 = reader.readLineX().toInt()
+    for (i in 1..n1) {
+        // for each head path of blocks
+        while (true) {
+            val hash = reader.readLineX()           // receives hash in the path
+            //println("[recv] $hash")
+            if (hash == "") {
+                break                               // nothing else to answer
+            } else {
+                val has = chain.containsBlock(hash)
+                writer.writeLineX(has.toString())   // have or not block
+            }
+        }
+
+        // receive blocks
+        val n2 = reader.readLineX().toInt()
+        //println("[recv] $n2")
+        N += n2
+        for (j in 1..n2) {
+            val blk = reader.readLinesX().jsonToBlock()
+            //println("[recv] ${blk.hash}")
+            assert(maxTime-h24 <= blk.hashable.time)
+            chain.assertBlock(blk)
+            chain.reheads(blk)
+            chain.saveBlock(blk)
+            chain.save()
+        }
+        writer.writeLineX(n2.toString())
     }
-    writer.writeLineX("")
-    return n
+    writer.writeLineX(n1.toString())
+    return N
 }

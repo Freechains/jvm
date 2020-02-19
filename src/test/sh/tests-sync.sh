@@ -29,3 +29,7 @@ freechains --host=localhost:8401 chain send / localhost:8400
 diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 
 ###############################################################################
+
+echo
+echo "=== ALL TESTS PASSED ==="
+echo
