@@ -27,7 +27,8 @@ Options:
     --help                      [none] display this help
     --version                   [none] display version information
     --host=<addr:port>          [all]  address and port to connect [default: localhost:8330]
-    --encrypt                   [put] encrypts payload with shared or private key
+    --time=<ms>                 [put]  explicit block timestamp [default: now]
+    --encrypt                   [put]  encrypts payload with shared or private key
 
 More Information:
 
@@ -135,7 +136,8 @@ fun main_ (args: Array<String>) : String? {
                 opts["put"] as Boolean -> {
                     writer.writeLineX("FC chain put")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(if (opts["utf8"]    as Boolean) "utf8" else "base64")
+                    writer.writeLineX(if (opts["utf8"] as Boolean) "utf8" else "base64")
+                    writer.writeLineX(opts["--time"] as String)
                     writer.writeLineX((opts["--encrypt"] as Boolean).toString())
 
                     val bytes = when {

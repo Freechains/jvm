@@ -89,12 +89,13 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
         }
         "FC chain put" -> {
             val path = reader.readLineX().nameCheck()
-            val cod = reader.readLineX()
-            val cry = reader.readLineX().toBoolean()
-            val pay = reader.readLinesX()
+            val cod  = reader.readLineX()
+            val time = reader.readLineX()
+            val cry  = reader.readLineX().toBoolean()
+            val pay  = reader.readLinesX()
 
             val chain = local.loadChain(path)
-            val blk = if (local.timestamp) chain.publish(cod,cry,pay) else chain.publish(cod,cry,pay,0)
+            val blk = if (time == "now") chain.publish(cod,cry,pay) else chain.publish(cod,cry,pay,time.toLong())
 
             writer.writeLineX(blk.hash)
             System.err.println("chain put: ${blk.hash}")

@@ -10,8 +10,7 @@ import java.io.File
 @Serializable
 data class Host (
     val root : String,
-    val port : Int,
-    val timestamp : Boolean = true
+    val port : Int
 )
 
 // JSON

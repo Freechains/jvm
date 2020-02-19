@@ -11,12 +11,11 @@ FC=/tmp/freechains
 echo "#### 1"
 
 freechains host create $FC/8400 8400
-jq ".timestamp=false" $FC/8400/host > /tmp/host.tmp && mv /tmp/host.tmp $FC/8400/host
 freechains host start $FC/8400 &
 sleep 0.5
 freechains --host=localhost:8400 chain create /
 g=`freechains --host=localhost:8400 chain genesis /`
-h=`freechains --host=localhost:8400 chain put / inline utf8 Hello_World`
+h=`freechains --host=localhost:8400 --time=0 chain put / inline utf8 Hello_World`
 freechains --host=localhost:8400 chain get / "$h" > $FC/freechains-tests-get-1.out
 freechains --host=localhost:8400 chain get / 0_A45339EBC7CAC12BE09ACEA98410490DC2B2989DC114F2CC8DD5C274E1BC0595 > $FC/freechains-tests-get-0.out
 hs=`freechains --host=localhost:8400 chain heads /`

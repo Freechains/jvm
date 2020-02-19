@@ -26,7 +26,7 @@ data class MeuDado(val v: String)
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 -> 809 LOC
  *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 KB
- *  - fazer teste que o algoritmo falha // corrigir algoritmo
+ *  - refuse publish in the future
  *  - chain locks
  *  - all use cases (chain cfg e usos da industria)
  *  - nao verificar shared/public se !readonly (verificar caso contrario)
@@ -95,9 +95,9 @@ class Tests {
     fun c1_publish () {
         val host = Host_load("/tmp/freechains/tests/local/")
         val chain = host.createChain("/ceu", arrayOf("","",""))
-        val n1 = chain.publish("utf8",false, "aaa", 0)
-        val n2 = chain.publish("utf8",false, "bbb", 1)
-        val n3 = chain.publish("utf8",false, "ccc", 2)
+        val n1 = chain.publish("utf8",false, "aaa")
+        val n2 = chain.publish("utf8",false, "bbb")
+        val n3 = chain.publish("utf8",false, "ccc")
 
         chain.assertBlock(n3)
         var ok = false
@@ -133,8 +133,8 @@ class Tests {
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
         val src_chain = src.createChain("/d3", arrayOf("secret","",""))
-        src_chain.publish("utf8",false, "aaa", 0)
-        src_chain.publish("utf8",false, "bbb", 0)
+        src_chain.publish("utf8",false, "aaa")
+        src_chain.publish("utf8",false, "bbb")
         thread { daemon(src) }
 
         // DESTINY
@@ -172,13 +172,13 @@ class Tests {
         chain.reheads(b1)
 
         //val ab2 =
-        chain.publish("utf8",false, "ab2", 0)
+        chain.publish("utf8",false, "ab2")
 
         val b2 = chain.newBlock(BlockHashable(0,"utf8",false, "b2", arrayOf(b1.hash)))
         chain.saveBlock(b2)
         chain.reheads(b2)
 
-        chain.publish("utf8",false, "ab3", 0)
+        chain.publish("utf8",false, "ab3")
         chain.save()
         /*
                /-- (a1) --\
@@ -193,12 +193,12 @@ class Tests {
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
         val h1_chain = h1.createChain("/xxx", arrayOf("","",""))
-        h1_chain.publish("utf8",false, "h1_1", 0)
-        h1_chain.publish("utf8",false, "h1_2", 0)
+        h1_chain.publish("utf8",false, "h1_1")
+        h1_chain.publish("utf8",false, "h1_2")
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
         val h2_chain = h2.createChain("/xxx", arrayOf("","",""))
-        h2_chain.publish("utf8",false, "h2_1", 0)
+        h2_chain.publish("utf8",false, "h2_1")
         h2_chain.publish("utf8",false, "h2_2", 0)
 
         Thread.sleep(100)
