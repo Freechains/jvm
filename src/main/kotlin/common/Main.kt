@@ -14,7 +14,9 @@ Usage:
     freechains host create <dir> [<port>]
     freechains host start <dir>
     freechains [options] host stop
-    freechains [options] chain create <chain> [shared <shared_key> | pubpvt <public_key> [<private_key>]]
+    freechains [options] chain create <chain>
+    freechains [options] chain create <chain> shared (rw | ro) <shared_key>
+    freechains [options] chain create <chain> pubpvt (rw | ro) <public_key> [<private_key>]
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain>
     freechains [options] chain get <chain> <height_hash>
@@ -92,10 +94,13 @@ fun main_ (args: Array<String>) : String? {
             val writer = DataOutputStream(socket.getOutputStream()!!)
             val reader = DataInputStream(socket.getInputStream()!!)
             when {
-                // freechains [options] chain create <chain> [shared <shared_key> | pubpvt <public_key> [<private_key>]]
+                // freechains [options] chain create <chain>
+                // freechains [options] chain create <chain> shared (rw | ro) <shared_key>
+                // freechains [options] chain create <chain> pubpvt (rw | ro) <public_key> [<private_key>]
                 opts["create"] as Boolean -> {
                     writer.writeLineX("FC chain create")
                     writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX((opts["ro"] as Boolean).toString())
                     writer.writeLineX(opts["<shared_key>"] as String? ?: "")
                     writer.writeLineX(opts["<public_key>"] as String? ?: "")
                     writer.writeLineX(opts["<private_key>"] as String? ?: "")
@@ -112,20 +117,20 @@ fun main_ (args: Array<String>) : String? {
                     var ret = ""
                     while (true) {
                         val hash = reader.readLineX()
-                        if (hash == "") {
+                        if (hash.isEmpty()) {
                             break
                         } else {
                             ret += hash + "\n"
                         }
                     }
-                    return if (ret == "") null else ret
+                    return if (ret.isEmpty()) null else ret
                 }
                 opts["get"] as Boolean -> {
                     writer.writeLineX("FC chain get")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<height_hash>"] as Hash)
                     val json = reader.readLinesX()
-                    if (json == "") {
+                    if (json.isEmpty()) {
                         System.err.println("chain get: not found")
                         return null
                     } else {

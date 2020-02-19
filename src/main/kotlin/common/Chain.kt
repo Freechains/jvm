@@ -19,6 +19,7 @@ import org.freechains.platform.lazySodium
 data class Chain (
     val root  : String,
     val name  : String,
+    val ro    : Boolean,
     val keys  : Array<String>   // [shared,public,private]
 ) {
     val hash  : String = this.toHash()
@@ -52,14 +53,15 @@ fun Chain.publish (encoding: String, encrypt: Boolean, payload: String) : Block 
 }
 
 fun Chain.publish (encoding: String, encrypt: Boolean, payload: String, time: Long) : Block {
+    assert(!this.ro || this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty()) // checks if owner of read-only chain
     val payload2 =
         if (encrypt) {
-            if (this.keys[0] != "") {
+            if (this.keys[0].isNotEmpty()) {
                 val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
                 val key = Key.fromHexString(this.keys[0])
                 LazySodium.toHex(nonce) + lazySodium.cryptoSecretBoxEasy(payload,nonce,key)
             } else {
-                assert(this.keys[1] != "")
+                assert(this.keys[1].isNotEmpty())
                 val dec = payload.toByteArray()
                 val enc = ByteArray(Box.SEALBYTES + dec.size)
                 val key = Key.fromHexString(this.keys[1]).asBytes
@@ -105,7 +107,7 @@ private fun String.calcHash () : String {
 }
 
 fun Chain.toHash () : String {
-    return (this.name+this.keys[1]).calcHash() // no shared/private allows untrusted nodes
+    return (this.name+this.ro.toString()+this.keys[1]).calcHash() // no shared/private allows untrusted nodes
 }
 
 fun BlockHashable.toHash () : Hash {
@@ -128,7 +130,7 @@ fun Chain.newBlock (h: BlockHashable) : Block {
     val hash = h.toHash()
 
     var signature = ""
-    if (keys[2] != "") {
+    if (keys[2].isNotEmpty()) {
         val sig = ByteArray(Sign.BYTES)
         val msg = lazySodium.bytes(hash)
         val pvt = Key.fromHexString(this.keys[2]).asBytes
@@ -144,7 +146,7 @@ fun Chain.newBlock (h: BlockHashable) : Block {
 fun Chain.assertBlock (blk: Block) {
     val h = blk.hashable
     assert(blk.hash == h.toHash())
-    if (blk.signature != "") {
+    if (blk.signature.isNotEmpty()) {
         val sig = LazySodium.toBin(blk.signature)
         val msg = lazySodium.bytes(blk.hash)
         val key = Key.fromHexString(this.keys[1]).asBytes
@@ -159,8 +161,8 @@ fun Chain.saveBlock (blk: Block) {
 fun Chain.loadBlockFromHash (hash: Hash, decrypt: Boolean = false) : Block {
     val blk = File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
     val h = blk.hashable
-    if (decrypt && h.encrypted && (this.keys[0]!="" || this.keys[2]!="")) {
-        if (this.keys[0] != "") {
+    if (decrypt && h.encrypted && (this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty())) {
+        if (this.keys[0].isNotEmpty()) {
             val idx = SecretBox.NONCEBYTES * 2
             val pay = lazySodium.cryptoSecretBoxOpenEasy(
                 h.payload.substring(idx),

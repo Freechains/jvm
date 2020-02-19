@@ -51,10 +51,11 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
         }
         "FC chain create" -> {
             val path    = reader.readLineX()
+            val ro      = reader.readLineX() == "ro"
             val shared  = reader.readLineX()
             val public  = reader.readLineX()
             val private = reader.readLineX()
-            val chain = local.createChain(path,arrayOf(shared,public,private))
+            val chain = local.createChain(path,ro,arrayOf(shared,public,private))
             writer.writeLineX(chain.hash)
             System.err.println("chain create: $path (${chain.hash})")
         }
@@ -261,7 +262,7 @@ fun Socket.chain_recv (chain: Chain) : Int {
         while (true) {
             val hash = reader.readLineX()           // receives hash in the path
             //println("[recv] $hash")
-            if (hash == "") {
+            if (hash.isEmpty()) {
                 break                               // nothing else to answer
             } else {
                 val has = chain.containsBlock(hash)

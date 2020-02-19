@@ -17,7 +17,7 @@ freechains --host=localhost:8400 chain create /
 g=`freechains --host=localhost:8400 chain genesis /`
 h=`freechains --host=localhost:8400 --time=0 chain put / inline utf8 Hello_World`
 freechains --host=localhost:8400 chain get / "$h" > $FC/freechains-tests-get-1.out
-freechains --host=localhost:8400 chain get / 0_A45339EBC7CAC12BE09ACEA98410490DC2B2989DC114F2CC8DD5C274E1BC0595 > $FC/freechains-tests-get-0.out
+freechains --host=localhost:8400 chain get / 0_E7FCC59344F7F6D23A62DCF947EE764E5149290D0D99C31BC33FD7E05BAD71D3 > $FC/freechains-tests-get-0.out
 hs=`freechains --host=localhost:8400 chain heads /`
 freechains --host=localhost:8400 chain get / "$g" > $FC/freechains-tests-gen.out
 freechains --host=localhost:8400 chain get / "$hs" > $FC/freechains-tests-heads.out

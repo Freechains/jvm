@@ -31,7 +31,7 @@ fun DataInputStream.readLinesX () : String {
     var ret = ""
     while (true) {
         val line = this.readLineX()
-        if (line == "") {
+        if (line.isEmpty()) {
             break
         } else {
             ret += line + "\n"
