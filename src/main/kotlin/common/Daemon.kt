@@ -10,11 +10,11 @@ import kotlin.concurrent.thread
 import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import java.time.Instant
 import java.util.*
 import kotlin.collections.HashSet
 
-val h24 = 1000 * 60 * 60 * 24
-
+val h = 1000 * 60 * 60
 
 fun daemon (host : Host) {
     val socket = ServerSocket(host.port)
@@ -190,7 +190,7 @@ fun Socket.chain_send (chain: Chain) : Int {
                 continue                             // already has: finishes subpath
             }
             val blk = chain.loadBlockFromHash(hash)
-            if (maxTime-h24 > blk.hashable.time) {
+            if (maxTime-24*h > blk.hashable.time) {
                 //println("[send] max: $hash")
                 toSend.clear()                       // no, but too old: aborts this head path entirely
                 break
@@ -276,7 +276,8 @@ fun Socket.chain_recv (chain: Chain) : Int {
         for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock()
             //println("[recv] ${blk.hash}")
-            assert(maxTime-h24 <= blk.hashable.time)
+            assert(maxTime-24*h <= blk.hashable.time)
+            assert(Instant.now().toEpochMilli()+3*h >= blk.hashable.time)
             chain.assertBlock(blk)
             chain.reheads(blk)
             chain.saveBlock(blk)

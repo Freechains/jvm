@@ -26,7 +26,6 @@ data class MeuDado(val v: String)
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 -> 809 LOC
  *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 KB
- *  - refuse publish in the future
  *  - chain locks
  *  - all use cases (chain cfg e usos da industria)
  *  - nao verificar shared/public se !readonly (verificar caso contrario)
@@ -35,6 +34,7 @@ data class MeuDado(val v: String)
  *  - RX Kotlin
  *  - pipes / filtros
  *  - freechains chain remove
+ *  - freechains chain listen
  *  - freechains host configure (json)
  *    - peer/chain configurations in host
  *    - freechains host restart
