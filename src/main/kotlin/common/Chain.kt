@@ -54,7 +54,12 @@ fun Chain.publish (encoding: String, encrypt: Boolean, payload: String) : Block 
 fun Chain.publish (encoding: String, encrypt: Boolean, payload: String, time: Long) : Block {
     val payload2 =
         if (encrypt) {
-            if (this.keys[1] != "") {
+            if (this.keys[0] != "") {
+                val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
+                val key = Key.fromHexString(this.keys[0])
+                LazySodium.toHex(nonce) + lazySodium.cryptoSecretBoxEasy(payload,nonce,key)
+            } else {
+                assert(this.keys[1] != "")
                 val dec = payload.toByteArray()
                 val enc = ByteArray(Box.SEALBYTES + dec.size)
                 val key = Key.fromHexString(this.keys[1]).asBytes
@@ -62,11 +67,6 @@ fun Chain.publish (encoding: String, encrypt: Boolean, payload: String, time: Lo
                 assert(lazySodium.convertPublicKeyEd25519ToCurve25519(key_,key))
                 lazySodium.cryptoBoxSeal(enc, dec, dec.size.toLong(), key_)
                 LazySodium.toHex(enc)
-            } else {
-                assert(this.keys[0] != "")
-                val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
-                val key = Key.fromHexString(this.keys[0])
-                LazySodium.toHex(nonce) + lazySodium.cryptoSecretBoxEasy(payload,nonce,key)
             }
         } else {
             payload
