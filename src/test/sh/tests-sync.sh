@@ -13,12 +13,12 @@ echo "#### 1"
 freechains host create $FC/8400 8400
 freechains host start $FC/8400 &
 sleep 0.5
-freechains --host=localhost:8400 chain create /
+freechains --host=localhost:8400 chain join /
 
 freechains host create $FC/8401 8401
 freechains host start $FC/8401 &
 sleep 0.5
-freechains --host=localhost:8401 chain create /
+freechains --host=localhost:8401 chain join /
 
 freechains --host=localhost:8400 chain put / inline utf8 111
 freechains --host=localhost:8401 chain put / inline utf8 aaa

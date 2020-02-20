@@ -26,9 +26,10 @@ data class MeuDado(val v: String)
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 -> 809 LOC
  *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 KB
- *  - liferea
- *  - put --sign
  *  - recv start instead of send
+ *  - create -> join (freechains/liferea)
+ *  - "" in inline
+ *  - put --sign
  *  - chain locks (test sends in parallel)
  *  - all use cases (chain cfg e usos da industria)
  *  - commands with auth. ip port time to avoid reuse
@@ -227,7 +228,7 @@ class Tests {
             main(arrayOf("host","start","/tmp/freechains/tests/M1/"))
         }
         Thread.sleep(100)
-        main(arrayOf("chain","create","/xxx"))
+        main(arrayOf("chain","join","/xxx"))
 
         main(arrayOf("chain","genesis","/xxx"))
         main(arrayOf("chain","heads","/xxx"))
@@ -372,8 +373,8 @@ class Tests {
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M50/")) }
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M51/")) }
         Thread.sleep(100)
-        main(arrayOf("chain","create","/xxx","shared","rw","64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"))
-        main(arrayOf("--host=localhost:8331","chain","create","/xxx","shared","rw","64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"))
+        main(arrayOf("chain","join","/xxx","shared","rw","64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"))
+        main(arrayOf("--host=localhost:8331","chain","join","/xxx","shared","rw","64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"))
 
         main(arrayOf("chain","put","/xxx","inline","utf8","aaa","--encrypt"))
         main(arrayOf("chain","send","/xxx","localhost:8331"))
@@ -387,8 +388,8 @@ class Tests {
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M60/")) }
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M61/")) }
         Thread.sleep(100)
-        main(arrayOf("chain","create","/xxx","pubpvt","rw","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
-        main(arrayOf("--host=localhost:8331","chain","create","/xxx","pubpvt","rw","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        main(arrayOf("chain","join","/xxx","pubpvt","rw","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        main(arrayOf("--host=localhost:8331","chain","join","/xxx","pubpvt","rw","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
         val hash = main_(arrayOf("chain","put","/xxx","inline","utf8","aaa","--encrypt"))
 
         val json = main_(arrayOf("chain","get","/xxx",hash!!))

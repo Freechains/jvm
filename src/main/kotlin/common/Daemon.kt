@@ -61,7 +61,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             server.close()
             System.err.println("host stop: $local")
         }
-        "FC chain create" -> {
+        "FC chain join" -> {
             val path    = reader.readLineX()
             val ro      = reader.readLineX() == "ro"
             val shared  = reader.readLineX()
@@ -69,7 +69,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val private = reader.readLineX()
             val chain = local.createChain(path,ro,arrayOf(shared,public,private))
             writer.writeLineX(chain.hash)
-            System.err.println("chain create: $path (${chain.hash})")
+            System.err.println("chain join: $path (${chain.hash})")
         }
         "FC chain genesis" -> {
             val path  = reader.readLineX().nameCheck()

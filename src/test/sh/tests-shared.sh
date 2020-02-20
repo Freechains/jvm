@@ -12,27 +12,27 @@ freechains host create $FC/8400 8400
 freechains host start $FC/8400 &
 sleep 0.5
 k=`freechains --host=localhost:8400 crypto create shared correct`
-freechains --host=localhost:8400 chain create / shared rw $k
+freechains --host=localhost:8400 chain join / shared rw $k
 
 # 8401 (wrong password)
 freechains host create $FC/8401 8401
 freechains host start $FC/8401 &
 sleep 0.5
 k=`freechains --host=localhost:8401 crypto create shared wrong`
-freechains --host=localhost:8401 chain create / shared rw $k
+freechains --host=localhost:8401 chain join / shared rw $k
 
 # 8402 (correct password)
 freechains host create $FC/8402 8402
 freechains host start $FC/8402 &
 sleep 0.5
 k=`freechains --host=localhost:8402 crypto create shared correct`
-freechains --host=localhost:8402 chain create / shared rw $k
+freechains --host=localhost:8402 chain join / shared rw $k
 
 # 8403 (no password)
 freechains host create $FC/8403 8403
 freechains host start $FC/8403 &
 sleep 0.5
-freechains --host=localhost:8403 chain create /
+freechains --host=localhost:8403 chain join /
 
 # get genesis block of each host
 g0=`freechains --host=localhost:8400 chain genesis /`
