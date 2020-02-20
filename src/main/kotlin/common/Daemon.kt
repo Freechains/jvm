@@ -41,18 +41,13 @@ fun daemon (host : Host) {
 
 val listening = mutableMapOf<String,MutableSet<DataOutputStream>>()
 fun signal (path: String, n: Int) {
-    println("out1")
     thread {
-        println("in1")
         if (listening.containsKey(path)) {
-            println("in2 // $listening")
             for (wr in listening[path]!!) {
-                println("in3")
                 wr.writeLineX(n.toString())
             }
         }
     }
-    println("out2")
 }
 
 fun handle (server: ServerSocket, remote: Socket, local: Host) {
