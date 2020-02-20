@@ -44,7 +44,7 @@ $ freechains chain join /chat
 - Publish some content:
 
 ```
-$ freechains chain put /chat inline utf8 Hello_World
+$ freechains chain put /chat inline utf8 "Hello World!"
 ```
 
 - Communicate with other peers:

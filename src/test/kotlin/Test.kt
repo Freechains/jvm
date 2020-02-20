@@ -26,22 +26,15 @@ data class MeuDado(val v: String)
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 -> 809 LOC
  *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 KB
- *  - recv start instead of send
- *  - create -> join (freechains/liferea)
- *  - "" in inline
- *  - put --sign
  *  - chain locks (test sends in parallel)
+ *  - put --sign
  *  - all use cases (chain cfg e usos da industria)
  *  - commands with auth. ip port time to avoid reuse
  *  - sistema de reputacao
  *  - testes antigos
  *  - RX Kotlin
  *  - pipes / filtros
- *  - freechains chain remove
- *  - freechains chain listen
- *  - freechains host configure (json)
- *    - peer/chain configurations in host
- *    - freechains host restart
+ *  - freechains host restart
  *  - Future:
  *  - Xfreechains
  *    - chain xtraverse
