@@ -12,6 +12,7 @@ import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 import java.time.Instant
 import java.util.*
+import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 val h = 1000 * 60 * 60
@@ -38,10 +39,26 @@ fun daemon (host : Host) {
     }
 }
 
+val listening = mutableMapOf<String,MutableSet<DataOutputStream>>()
+fun signal (path: String, n: Int) {
+    println("out1")
+    thread {
+        println("in1")
+        if (listening.containsKey(path)) {
+            println("in2 // $listening")
+            for (wr in listening[path]!!) {
+                println("in3")
+                wr.writeLineX(n.toString())
+            }
+        }
+    }
+    println("out2")
+}
+
 fun handle (server: ServerSocket, remote: Socket, local: Host) {
     val reader = DataInputStream(remote.getInputStream()!!)
     val writer = DataOutputStream(remote.getOutputStream()!!)
-
+    var shouldClose = true
     val ln = reader.readLineX()
     when (ln) {
         "FC host stop" -> {
@@ -100,6 +117,15 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
 
             writer.writeLineX(blk.hash)
             System.err.println("chain put: ${blk.hash}")
+            signal(path,1)
+        }
+        "FC chain listen" -> {
+            val path = reader.readLineX().nameCheck()
+            if (! listening.containsKey(path)) {
+                listening[path] = mutableSetOf()
+            }
+            listening[path]!!.add(writer)
+            shouldClose = false
         }
         "FC chain send" -> {
             val path = reader.readLineX().nameCheck()
@@ -118,6 +144,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val chain = local.loadChain(path)
             val n = remote.chain_recv(chain)
             System.err.println("chain recv: $path: $n")
+            signal(path, n)
             //writer.writeLineX(ret)
         }
         "FC crypto create" -> {
@@ -149,7 +176,9 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
         }
         else -> { error("$ln: invalid header type") }
     }
-    remote.close()
+    if (shouldClose) {
+        remote.close()
+    }
 }
 
 fun Socket.chain_send (chain: Chain) : Int {

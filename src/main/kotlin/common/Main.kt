@@ -21,8 +21,8 @@ Usage:
     freechains [options] chain heads <chain>
     freechains [options] chain get <chain> <height_hash>
     freechains [options] chain put <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
-    freechains [options] chain send <chain> <host:port>
     freechains [options] chain listen <chain>
+    freechains [options] chain send <chain> <host:port>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
 
 Options:
@@ -161,6 +161,14 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX("\n")
                     val hash = reader.readLineX()
                     return hash
+                }
+                opts["listen"] as Boolean -> {
+                    writer.writeLineX("FC chain listen")
+                    writer.writeLineX(opts["<chain>"] as String)
+                    while (true) {
+                        val n = reader.readLineX()
+                        println(n)
+                    }
                 }
                 opts["send"] as Boolean -> {
                     writer.writeLineX("FC chain send")

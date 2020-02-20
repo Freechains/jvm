@@ -26,8 +26,12 @@ data class MeuDado(val v: String)
  *  TODO:
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 -> 809 LOC
  *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 KB
- *  - chain locks
+ *  - chain listen
+ *  - put --sign
+ *  - liferea
+ *  - chain locks (test sends in parallel)
  *  - all use cases (chain cfg e usos da industria)
+ *  - commands with auth. ip port time to avoid reuse
  *  - sistema de reputacao
  *  - testes antigos
  *  - RX Kotlin
@@ -40,9 +44,9 @@ data class MeuDado(val v: String)
  *  - Future:
  *  - Xfreechains
  *    - chain xtraverse
- *    - chain xlisten
  *  - Android WiFi Direct
  *  - crypto host-to-host
+ *  - RPi: cable + router + phones
  */
 
 @TestMethodOrder(Alphanumeric::class)
@@ -125,6 +129,7 @@ class Tests {
         main(arrayOf("host","stop"))
         Thread.sleep(100)
     }
+
     @Test
     fun d3_proto () {
         //a_reset()
