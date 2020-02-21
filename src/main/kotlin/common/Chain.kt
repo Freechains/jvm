@@ -129,16 +129,16 @@ fun Chain.save () {
 fun Chain.newBlock (h: BlockHashable) : Block {
     val hash = h.toHash()
 
-    var signature = ""
+    var sig_hash = ""
     if (keys[2].isNotEmpty()) {
         val sig = ByteArray(Sign.BYTES)
         val msg = lazySodium.bytes(hash)
         val pvt = Key.fromHexString(this.keys[2]).asBytes
         lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), pvt)
-        signature = LazySodium.toHex(sig)
+        sig_hash = LazySodium.toHex(sig)
     }
 
-    val new = Block(h, emptyArray(), signature, hash)
+    val new = Block(h, emptyArray(), Pair(sig_hash,""), hash)
     this.assertBlock(new)  // TODO: remove (paranoid test)
     return new
 }
@@ -146,8 +146,8 @@ fun Chain.newBlock (h: BlockHashable) : Block {
 fun Chain.assertBlock (blk: Block) {
     val h = blk.hashable
     assert(blk.hash == h.toHash())
-    if (blk.signature.isNotEmpty()) {
-        val sig = LazySodium.toBin(blk.signature)
+    if (blk.signature.first.isNotEmpty()) {
+        val sig = LazySodium.toBin(blk.signature.first)
         val msg = lazySodium.bytes(blk.hash)
         val key = Key.fromHexString(this.keys[1]).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }

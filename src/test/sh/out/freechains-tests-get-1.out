@@ -10,7 +10,10 @@
     },
     "fronts": [
     ],
-    "signature": "",
+    "signature": {
+        "first": "",
+        "second": ""
+    },
     "hash": "1_BA87EE3B93169055099FBE686A42ECAA4664E36DCC683CD24FE0E789C5A5738F",
     "height": 1
 }

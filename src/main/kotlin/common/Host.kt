@@ -36,7 +36,7 @@ fun Host.createChain (name: String, ro: Boolean, keys: Array<String>) : Chain {
     chain.save()
     val genesis = Block (
         BlockHashable(0,"", false,"", emptyArray()),
-        emptyArray(),"",chain.toGenHash()
+        emptyArray(), Pair("",""), chain.toGenHash()
     )
     chain.saveBlock(genesis)
     return file.readText().fromJsonToChain()
