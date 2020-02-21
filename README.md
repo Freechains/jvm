@@ -2,7 +2,7 @@
 
 Freechains is a decentralized topic-based publish-subscribe system.
 
-A peer publishes a message to a topic (a chain) and all other connected peers
+A peer posts a message to a topic (a chain) and all other connected peers
 interested in the same topic eventually receive the message.
 
 ## Goals
@@ -13,11 +13,11 @@ scalable:
 
 1. The system **should not be** controlled by an authority (or a minority).
 2. Users **should be** equally able to publish content.
-3. Publishing **should not be** censorable.
-4. Publishing and reading **should be** free of charge (as much as possible).
-5. Publications **should be** hideable from unwanted users.
-6. Publications **should be** verifiable and **should not be** modifiable.
-7. Publications **should be** permanently available.
+3. Posting **should not be** censorable.
+4. Posting and reading **should be** free of charge (as much as possible).
+5. Posting **should be** hideable from unwanted users.
+6. Posting **should be** verifiable and **should not be** modifiable.
+7. Posting **should be** permanently available.
 8. The system **should be** resistant to SPAM.
 9. The system **should be** scalable to the size of the Internet.
 
@@ -47,7 +47,7 @@ $ freechains host start /tmp/myhost &
 $ freechains chain join /chat
 ```
 
-- Publish some content:
+- Post some content:
 
 ```
 $ freechains chain put /chat inline utf8 "Hello World!"
@@ -67,11 +67,11 @@ $ freechains --host=localhost:8331 chain join /chat
 $ freechains --host=localhost:8330 chain send /chat localhost:8331
 ```
 
-The last command sends all new publications from `8330` to `8331`, which can
+The last command sends all new posts from `8330` to `8331`, which can
 then be traversed as follows:
-    - Identify the predefined "genesis" publication of `/chat`.
+    - Identify the predefined "genesis" post of `/chat`.
     - Acquire it to see what comes next.
-    - Iterate over its `fronts` publications recursively.
+    - Iterate over its `fronts` posts recursively.
 
 ```
 $ freechains chain genesis /chat

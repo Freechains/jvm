@@ -27,10 +27,10 @@ data class MeuDado(val v: String)
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 -> 809 -> 930 LOC
  *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 ->10557 KB
  *  - chain locks (test sends in parallel)
- *  - 2 newlines in utf8 payload
+ *  - sistema de reputacao (likes in headline)
+ *  - test --utf8-eof
  *  - all use cases (chain cfg e usos da industria)
  *  - commands with auth. ip port time to avoid reuse
- *  - sistema de reputacao (likes in headline)
  *  - testes antigos
  *  - RX Kotlin
  *  - pipes / filtros
@@ -89,12 +89,12 @@ class Tests {
     }
 
     @Test
-    fun c1_publish () {
+    fun c1_post () {
         val host = Host_load("/tmp/freechains/tests/local/")
         val chain = host.createChain("/ceu", false, arrayOf("","",""))
-        val n1 = chain.publish("utf8",false,"", "aaa")
-        val n2 = chain.publish("utf8",false,"", "bbb")
-        val n3 = chain.publish("utf8",false,"", "ccc")
+        val n1 = chain.post("utf8",false,"", "aaa")
+        val n2 = chain.post("utf8",false,"", "bbb")
+        val n3 = chain.post("utf8",false,"", "ccc")
 
         chain.assertBlock(n3)
         var ok = false
@@ -131,8 +131,8 @@ class Tests {
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
         val src_chain = src.createChain("/d3", false, arrayOf("secret","",""))
-        src_chain.publish("utf8",false,"", "aaa")
-        src_chain.publish("utf8",false,"", "bbb")
+        src_chain.post("utf8",false,"", "aaa")
+        src_chain.post("utf8",false,"", "bbb")
         thread { daemon(src) }
 
         // DESTINY
@@ -170,13 +170,13 @@ class Tests {
         chain.reheads(b1)
 
         //val ab2 =
-        chain.publish("utf8",false,"", "ab2")
+        chain.post("utf8",false,"", "ab2")
 
         val b2 = chain.newBlock(BlockHashable(0,"utf8",false, "b2", arrayOf(b1.hash)))
         chain.saveBlock(b2)
         chain.reheads(b2)
 
-        chain.publish("utf8",false,"", "ab3")
+        chain.post("utf8",false,"", "ab3")
         chain.save()
         /*
                /-- (a1) --\
@@ -191,13 +191,13 @@ class Tests {
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
         val h1_chain = h1.createChain("/xxx", false, arrayOf("","",""))
-        h1_chain.publish("utf8",false,"", "h1_1")
-        h1_chain.publish("utf8",false,"", "h1_2")
+        h1_chain.post("utf8",false,"", "h1_1")
+        h1_chain.post("utf8",false,"", "h1_2")
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
         val h2_chain = h2.createChain("/xxx", false, arrayOf("","",""))
-        h2_chain.publish("utf8",false,"", "h2_1")
-        h2_chain.publish("utf8",false,"", "h2_2", 0)
+        h2_chain.post("utf8",false,"", "h2_1")
+        h2_chain.post("utf8",false,"", "h2_2", 0)
 
         Thread.sleep(100)
         thread { daemon(h1) }
@@ -316,12 +316,12 @@ class Tests {
     }
 
     @Test
-    fun m3_crypto_publish () {
+    fun m3_crypto_post () {
         //a_reset()
         val host = Host_load("/tmp/freechains/tests/M2/")
 
         val c1 = host.createChain("/sym", false, arrayOf("64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2","",""))
-        val n1 = c1.publish("utf8",false,"", "aaa", 0)
+        val n1 = c1.post("utf8",false,"", "aaa", 0)
         c1.assertBlock(n1)
         var ok1 = false
         try {
@@ -333,7 +333,7 @@ class Tests {
         assert(!ok1)
 
         val c2 = host.createChain("/asy", false, arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
-        val n2 = c2.publish("utf8",false,"", "aaa", 0)
+        val n2 = c2.post("utf8",false,"", "aaa", 0)
         c2.assertBlock(n2)
         val cx = c2.copy(keys=arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322",""))
         cx.assertBlock(n2)
@@ -352,7 +352,7 @@ class Tests {
         //a_reset()
         val host = Host_load("/tmp/freechains/tests/M2/")
         val c1 = host.loadChain("/sym")
-        val n1 = c1.publish("utf8", true,"","aaa", 0)
+        val n1 = c1.post("utf8", true,"","aaa", 0)
         val n2 = c1.loadBlockFromHash(n1.hash, true)
         assert(n2.hashable.payload == "aaa")
         //Thread.sleep(500)

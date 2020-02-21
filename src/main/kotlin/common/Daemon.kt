@@ -114,7 +114,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
 
             val chain = local.loadChain(path)
-            val blk = if (time == "now") chain.publish(cods[0],cry,sig,pay) else chain.publish(cods[0],cry,sig,pay,time.toLong())
+            val blk = if (time == "now") chain.post(cods[0],cry,sig,pay) else chain.post(cods[0],cry,sig,pay,time.toLong())
 
             writer.writeLineX(blk.hash)
             System.err.println("chain put: ${blk.hash}")

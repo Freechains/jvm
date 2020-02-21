@@ -46,13 +46,13 @@ fun String.fromJsonToChain () : Chain {
     return json.parse(Chain.serializer(), this)
 }
 
-// PUBLISH
+// POST
 
-fun Chain.publish (encoding: String, encrypt: Boolean, sig_pvt: String, payload: String) : Block {
-    return this.publish(encoding, encrypt, sig_pvt, payload, Instant.now().toEpochMilli())
+fun Chain.post (encoding: String, encrypt: Boolean, sig_pvt: String, payload: String) : Block {
+    return this.post(encoding, encrypt, sig_pvt, payload, Instant.now().toEpochMilli())
 }
 
-fun Chain.publish (encoding: String, encrypt: Boolean, sig_pvt: String, payload: String, time: Long) : Block {
+fun Chain.post (encoding: String, encrypt: Boolean, sig_pvt: String, payload: String, time: Long) : Block {
     assert(!this.ro || this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty()) // checks if owner of read-only chain
     val payload2 =
         if (encrypt) {
