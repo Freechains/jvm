@@ -100,7 +100,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
 
             assert(json.length <= Int.MAX_VALUE)
             writer.writeBytes(json)
-            writer.writeLineX("\n")
+            //writer.writeLineX("\n")
             System.err.println("chain get: $hash")
         }
         "FC chain put" -> {
@@ -109,10 +109,12 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val time = reader.readLineX()
             val cry  = reader.readLineX().toBoolean()
             val sig  = reader.readLineX()
-            val pay  = reader.readLinesX()
+
+            val cods = cod.split(' ')
+            val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
 
             val chain = local.loadChain(path)
-            val blk = if (time == "now") chain.publish(cod,cry,sig,pay) else chain.publish(cod,cry,sig,pay,time.toLong())
+            val blk = if (time == "now") chain.publish(cods[0],cry,sig,pay) else chain.publish(cods[0],cry,sig,pay,time.toLong())
 
             writer.writeLineX(blk.hash)
             System.err.println("chain put: ${blk.hash}")

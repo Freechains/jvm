@@ -32,6 +32,7 @@ Options:
     --time=<ms>                 [put]  sets block timestamp [default: now]
     --encrypt                   [put]  encrypts payload with chain's shared or private key
     --sign=<private_key>        [put]  signs block with given key
+    --utf8-eof=<word>           [put]  sets word terminator for utf8 input
 
 More Information:
 
@@ -127,7 +128,7 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX("FC chain get")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<height_hash>"] as Hash)
-                    val json = reader.readLinesX()
+                    val json = reader.readAllBytes().toString(Charsets.UTF_8)
                     if (json.isEmpty()) {
                         System.err.println("chain get: not found")
                         return null
@@ -137,9 +138,10 @@ fun main_ (args: Array<String>) : String? {
                 }
                 // freechains [options] chain put <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
                 opts["put"] as Boolean -> {
+                    val eof = opts["--utf8-eof"] as String? ?: ""
                     writer.writeLineX("FC chain put")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(if (opts["utf8"] as Boolean) "utf8" else "base64")
+                    writer.writeLineX(if (opts["utf8"] as Boolean) "utf8"+(if (eof.isEmpty()) "" else " "+eof) else "base64")
                     writer.writeLineX(opts["--time"] as String)
                     writer.writeLineX((opts["--encrypt"] as Boolean).toString())
                     writer.writeLineX((opts["--sign"] as String? ?: ""))

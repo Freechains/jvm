@@ -24,10 +24,9 @@ data class MeuDado(val v: String)
 
 /*
  *  TODO:
- *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 -> 809 LOC
- *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 KB
+ *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 -> 809 -> 930 LOC
+ *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 ->10557 KB
  *  - chain locks (test sends in parallel)
- *  - put --sign
  *  - 2 newlines in utf8 payload
  *  - all use cases (chain cfg e usos da industria)
  *  - commands with auth. ip port time to avoid reuse
