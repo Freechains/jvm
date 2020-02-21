@@ -30,6 +30,9 @@ fun daemon (host : Host) {
                     handle(socket, remote, host)
                 } catch (e: Throwable) {
                     remote.close()
+                    System.err.println(
+                        e.message ?: e.toString()
+                    )
                 }
             }
         } catch (e: SocketException) {
@@ -105,10 +108,11 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val cod  = reader.readLineX()
             val time = reader.readLineX()
             val cry  = reader.readLineX().toBoolean()
+            val sig  = reader.readLineX()
             val pay  = reader.readLinesX()
 
             val chain = local.loadChain(path)
-            val blk = if (time == "now") chain.publish(cod,cry,pay) else chain.publish(cod,cry,pay,time.toLong())
+            val blk = if (time == "now") chain.publish(cod,cry,sig,pay) else chain.publish(cod,cry,sig,pay,time.toLong())
 
             writer.writeLineX(blk.hash)
             System.err.println("chain put: ${blk.hash}")

@@ -48,11 +48,11 @@ fun String.fromJsonToChain () : Chain {
 
 // PUBLISH
 
-fun Chain.publish (encoding: String, encrypt: Boolean, payload: String) : Block {
-    return this.publish(encoding, encrypt, payload, Instant.now().toEpochMilli())
+fun Chain.publish (encoding: String, encrypt: Boolean, sig_pvt: String, payload: String) : Block {
+    return this.publish(encoding, encrypt, sig_pvt, payload, Instant.now().toEpochMilli())
 }
 
-fun Chain.publish (encoding: String, encrypt: Boolean, payload: String, time: Long) : Block {
+fun Chain.publish (encoding: String, encrypt: Boolean, sig_pvt: String, payload: String, time: Long) : Block {
     assert(!this.ro || this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty()) // checks if owner of read-only chain
     val payload2 =
         if (encrypt) {
@@ -74,7 +74,7 @@ fun Chain.publish (encoding: String, encrypt: Boolean, payload: String, time: Lo
             payload
         }
 
-    val blk = this.newBlock(BlockHashable(time,encoding,encrypt,payload2,this.heads.toTypedArray()))
+    val blk = this.newBlock(BlockHashable(time,encoding,encrypt,payload2,this.heads.toTypedArray()), sig_pvt)
     this.saveBlock(blk)
     this.reheads(blk)
     this.save()
@@ -126,19 +126,22 @@ fun Chain.save () {
 
 // NDOE
 
-fun Chain.newBlock (h: BlockHashable) : Block {
+fun Chain.newBlock (h: BlockHashable, sig_pvt: String = "") : Block {
     val hash = h.toHash()
 
     var sig_hash = ""
-    if (keys[2].isNotEmpty()) {
+    //assert(keys[2].isEmpty() || sig_pvt.isEmpty())
+    val pvt = if (sig_pvt.isEmpty()) keys[2] else sig_pvt
+    if (pvt.isNotEmpty()) {
         val sig = ByteArray(Sign.BYTES)
         val msg = lazySodium.bytes(hash)
-        val pvt = Key.fromHexString(this.keys[2]).asBytes
-        lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), pvt)
+        val key = Key.fromHexString(pvt).asBytes
+        lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), key)
         sig_hash = LazySodium.toHex(sig)
     }
 
-    val new = Block(h, emptyArray(), Pair(sig_hash,""), hash)
+    val sig_pub = if (sig_pvt.isEmpty()) "" else sig_pvt.substring(sig_pvt.length/2)
+    val new = Block(h, emptyArray(), Pair(sig_hash,sig_pub), hash)
     this.assertBlock(new)  // TODO: remove (paranoid test)
     return new
 }
@@ -149,7 +152,8 @@ fun Chain.assertBlock (blk: Block) {
     if (blk.signature.first.isNotEmpty()) {
         val sig = LazySodium.toBin(blk.signature.first)
         val msg = lazySodium.bytes(blk.hash)
-        val key = Key.fromHexString(this.keys[1]).asBytes
+        val pub = if (blk.signature.second.isEmpty()) this.keys[1] else blk.signature.second
+        val key = Key.fromHexString(pub).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
     }
 }

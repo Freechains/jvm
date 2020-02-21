@@ -28,6 +28,7 @@ data class MeuDado(val v: String)
  *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 KB
  *  - chain locks (test sends in parallel)
  *  - put --sign
+ *  - 2 newlines in utf8 payload
  *  - all use cases (chain cfg e usos da industria)
  *  - commands with auth. ip port time to avoid reuse
  *  - sistema de reputacao (likes in headline)
@@ -92,9 +93,9 @@ class Tests {
     fun c1_publish () {
         val host = Host_load("/tmp/freechains/tests/local/")
         val chain = host.createChain("/ceu", false, arrayOf("","",""))
-        val n1 = chain.publish("utf8",false, "aaa")
-        val n2 = chain.publish("utf8",false, "bbb")
-        val n3 = chain.publish("utf8",false, "ccc")
+        val n1 = chain.publish("utf8",false,"", "aaa")
+        val n2 = chain.publish("utf8",false,"", "bbb")
+        val n3 = chain.publish("utf8",false,"", "ccc")
 
         chain.assertBlock(n3)
         var ok = false
@@ -131,8 +132,8 @@ class Tests {
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
         val src_chain = src.createChain("/d3", false, arrayOf("secret","",""))
-        src_chain.publish("utf8",false, "aaa")
-        src_chain.publish("utf8",false, "bbb")
+        src_chain.publish("utf8",false,"", "aaa")
+        src_chain.publish("utf8",false,"", "bbb")
         thread { daemon(src) }
 
         // DESTINY
@@ -170,13 +171,13 @@ class Tests {
         chain.reheads(b1)
 
         //val ab2 =
-        chain.publish("utf8",false, "ab2")
+        chain.publish("utf8",false,"", "ab2")
 
         val b2 = chain.newBlock(BlockHashable(0,"utf8",false, "b2", arrayOf(b1.hash)))
         chain.saveBlock(b2)
         chain.reheads(b2)
 
-        chain.publish("utf8",false, "ab3")
+        chain.publish("utf8",false,"", "ab3")
         chain.save()
         /*
                /-- (a1) --\
@@ -191,13 +192,13 @@ class Tests {
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
         val h1_chain = h1.createChain("/xxx", false, arrayOf("","",""))
-        h1_chain.publish("utf8",false, "h1_1")
-        h1_chain.publish("utf8",false, "h1_2")
+        h1_chain.publish("utf8",false,"", "h1_1")
+        h1_chain.publish("utf8",false,"", "h1_2")
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
         val h2_chain = h2.createChain("/xxx", false, arrayOf("","",""))
-        h2_chain.publish("utf8",false, "h2_1")
-        h2_chain.publish("utf8",false, "h2_2", 0)
+        h2_chain.publish("utf8",false,"", "h2_1")
+        h2_chain.publish("utf8",false,"", "h2_2", 0)
 
         Thread.sleep(100)
         thread { daemon(h1) }
@@ -321,7 +322,7 @@ class Tests {
         val host = Host_load("/tmp/freechains/tests/M2/")
 
         val c1 = host.createChain("/sym", false, arrayOf("64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2","",""))
-        val n1 = c1.publish("utf8",false, "aaa", 0)
+        val n1 = c1.publish("utf8",false,"", "aaa", 0)
         c1.assertBlock(n1)
         var ok1 = false
         try {
@@ -333,7 +334,7 @@ class Tests {
         assert(!ok1)
 
         val c2 = host.createChain("/asy", false, arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
-        val n2 = c2.publish("utf8",false, "aaa", 0)
+        val n2 = c2.publish("utf8",false,"", "aaa", 0)
         c2.assertBlock(n2)
         val cx = c2.copy(keys=arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322",""))
         cx.assertBlock(n2)
@@ -352,7 +353,7 @@ class Tests {
         //a_reset()
         val host = Host_load("/tmp/freechains/tests/M2/")
         val c1 = host.loadChain("/sym")
-        val n1 = c1.publish("utf8", true,"aaa", 0)
+        val n1 = c1.publish("utf8", true,"","aaa", 0)
         val n2 = c1.loadBlockFromHash(n1.hash, true)
         assert(n2.hashable.payload == "aaa")
         //Thread.sleep(500)
@@ -374,7 +375,7 @@ class Tests {
     }
 
     @Test
-    fun m6_crypto_encrypt_sym () {
+    fun m6_crypto_encrypt_asy () {
         a_reset()
         main(arrayOf("host","create","/tmp/freechains/tests/M60/"))
         main(arrayOf("host","create","/tmp/freechains/tests/M61/","8331"))
@@ -393,5 +394,11 @@ class Tests {
         val json2 = main_(arrayOf("--host=localhost:8331","chain","get","/xxx",hash))
         val blk2 = json2!!.jsonToBlock()
         assert(blk2.hashable.encrypted)
+
+        val h2 = main_(arrayOf("chain","put","/xxx","inline","utf8","bbb","--sign=6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"))
+        val j2 = main_(arrayOf("chain","get","/xxx",h2!!))
+        val b2 = j2!!.jsonToBlock()
+        assert(b2.hashable.payload == "bbb")
+
     }
 }

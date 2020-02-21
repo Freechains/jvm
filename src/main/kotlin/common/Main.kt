@@ -26,11 +26,12 @@ Usage:
     freechains [options] crypto create (shared | pubpvt) <passphrase>
 
 Options:
-    --help                      [none] display this help
-    --version                   [none] display version information
-    --host=<addr:port>          [all]  address and port to connect [default: localhost:8330]
-    --time=<ms>                 [put]  explicit block timestamp [default: now]
-    --encrypt                   [put]  encrypts payload with shared or private key
+    --help                      [none] displays this help
+    --version                   [none] displays version information
+    --host=<addr:port>          [all]  sets address and port to connect [default: localhost:8330]
+    --time=<ms>                 [put]  sets block timestamp [default: now]
+    --encrypt                   [put]  encrypts payload with chain's shared or private key
+    --sign=<private_key>        [put]  signs block with given key
 
 More Information:
 
@@ -141,6 +142,7 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX(if (opts["utf8"] as Boolean) "utf8" else "base64")
                     writer.writeLineX(opts["--time"] as String)
                     writer.writeLineX((opts["--encrypt"] as Boolean).toString())
+                    writer.writeLineX((opts["--sign"] as String? ?: ""))
 
                     val bytes = when {
                         opts["inline"] as Boolean -> (opts["<path_or_text>"] as String).toByteArray()
