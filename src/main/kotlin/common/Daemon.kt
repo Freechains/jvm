@@ -43,10 +43,10 @@ fun daemon (host : Host) {
 }
 
 val listening = mutableMapOf<String,MutableSet<DataOutputStream>>()
-fun signal (path: String, n: Int) {
+fun signal (chain: String, n: Int) {
     thread {
-        if (listening.containsKey(path)) {
-            for (wr in listening[path]!!) {
+        if (listening.containsKey(chain)) {
+            for (wr in listening[chain]!!) {
                 wr.writeLineX(n.toString())
             }
         }
@@ -65,25 +65,25 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             System.err.println("host stop: $local")
         }
         "FC chain join" -> {
-            val path    = reader.readLineX()
+            val name    = reader.readLineX().nameCheck()
             val ro      = reader.readLineX() == "ro"
             val shared  = reader.readLineX()
             val public  = reader.readLineX()
             val private = reader.readLineX()
-            val chain = local.createChain(path,ro,arrayOf(shared,public,private))
+            val chain = local.createChain(name,ro,arrayOf(shared,public,private))
             writer.writeLineX(chain.hash)
-            System.err.println("chain join: $path (${chain.hash})")
+            System.err.println("chain join: $name (${chain.hash})")
         }
         "FC chain genesis" -> {
-            val path  = reader.readLineX().nameCheck()
-            val chain = local.loadChain(path)
+            val name  = reader.readLineX().nameCheck()
+            val chain = local.loadChain(name)
             val hash  = chain.toGenHash()
             writer.writeLineX(hash)
             System.err.println("chain genesis: $hash")
         }
         "FC chain heads" -> {
-            val path  = reader.readLineX().nameCheck()
-            val chain = local.loadChain(path)
+            val name  = reader.readLineX().nameCheck()
+            val chain = local.loadChain(name)
             for (head in chain.heads) {
                 writer.writeLineX(head)
             }
@@ -91,10 +91,10 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             System.err.println("chain heads: ${chain.heads}")
         }
         "FC chain get" -> {
-            val path = reader.readLineX().nameCheck()
+            val name = reader.readLineX().nameCheck()
             val hash = reader.readLineX()
 
-            val chain = local.loadChain(path)
+            val chain = local.loadChain(name)
             val blk   = chain.loadBlockFromHash(hash,true)
             val json  = blk.toJson()
 
@@ -104,7 +104,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             System.err.println("chain get: $hash")
         }
         "FC chain put" -> {
-            val path = reader.readLineX().nameCheck()
+            val name = reader.readLineX().nameCheck()
             val cod  = reader.readLineX()
             val time = reader.readLineX()
             val cry  = reader.readLineX().toBoolean()
@@ -113,39 +113,39 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val cods = cod.split(' ')
             val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
 
-            val chain = local.loadChain(path)
+            val chain = local.loadChain(name)
             val blk = if (time == "now") chain.post(cods[0],cry,sig,pay) else chain.post(cods[0],cry,sig,pay,time.toLong())
 
             writer.writeLineX(blk.hash)
             System.err.println("chain put: ${blk.hash}")
-            signal(path,1)
+            signal(name,1)
         }
         "FC chain listen" -> {
-            val path = reader.readLineX().nameCheck()
-            if (! listening.containsKey(path)) {
-                listening[path] = mutableSetOf()
+            val name = reader.readLineX().nameCheck()
+            if (! listening.containsKey(name)) {
+                listening[name] = mutableSetOf()
             }
-            listening[path]!!.add(writer)
+            listening[name]!!.add(writer)
             shouldClose = false
         }
         "FC chain send" -> {
-            val path = reader.readLineX().nameCheck()
+            val name = reader.readLineX().nameCheck()
             val host_ = reader.readLineX()
 
-            val chain = local.loadChain(path)
+            val chain = local.loadChain(name)
             val (host,port) = host_.hostSplit()
 
             val socket = Socket(host, port)
             val n = socket.chain_send(chain)
-            System.err.println("chain send: $path: $n")
+            System.err.println("chain send: $name: $n")
             writer.writeLineX(n.toString())
         }
         "FC chain recv" -> {
-            val path = reader.readLineX().nameCheck()
-            val chain = local.loadChain(path)
+            val name = reader.readLineX().nameCheck()
+            val chain = local.loadChain(name)
             val n = remote.chain_recv(chain)
-            System.err.println("chain recv: $path: $n")
-            signal(path, n)
+            System.err.println("chain recv: $name: $n")
+            signal(name, n)
             //writer.writeLineX(ret)
         }
         "FC crypto create" -> {

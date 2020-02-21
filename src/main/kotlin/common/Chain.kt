@@ -28,7 +28,7 @@ data class Chain (
 
 // TODO: change to contract/constructor assertion
 fun String.nameCheck () : String {
-    assert(this[0]=='/' && (this.length==1 || this.last()!='/')) { "invalid chain path: $this"}
+    assert(this[0]=='/' && (this.length==1 || this.last()!='/')) { "invalid chain: $this"}
     return this
 }
 
