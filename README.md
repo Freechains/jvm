@@ -35,6 +35,12 @@ TODO
 $ freechains host create /tmp/myhost
 ```
 
+- Start host:
+
+```
+$ freechains host start /tmp/myhost &
+```
+
 - Join the `/chat` chain:
 
 ```
@@ -45,32 +51,51 @@ $ freechains chain join /chat
 
 ```
 $ freechains chain put /chat inline utf8 "Hello World!"
+$ freechains chain put /chat inline utf8 "I am here!"
 ```
 
 - Communicate with other peers:
+   - Create another `freechains` host.
+   - Start new host.
+   - Join the `/chat` chain.
+   - Synchronize from the first host.
 
-TODO
-
-<!--
 ```
-# Setup configuration files:
-$ cp cfg/config.lua.bak /tmp/config-8331.lua
-$ cp cfg/config.lua.bak /tmp/config-8332.lua
-
-# Start two new nodes:
-$ freechains --port=8331 daemon start /tmp/config-8331.lua &
-$ freechains --port=8332 daemon start /tmp/config-8332.lua &
-
-# Connect, in both directions, 8330 with 8331 and 8331 with 8332:
-$ freechains --port=8330 configure set "chains[''].peers"+="{address='127.0.0.1',port=8331}"
-$ freechains --port=8331 configure set "chains[''].peers"+="{address='127.0.0.1',port=8330}"
-$ freechains --port=8331 configure set "chains[''].peers"+="{address='127.0.0.1',port=8332}"
-$ freechains --port=8332 configure set "chains[''].peers"+="{address='127.0.0.1',port=8331}"
-
-$ freechains --port=8332 publish /0 +"Hello World (from 8332)"
+$ freechains host create /tmp/othost 8331
+$ freechains host start /tmp/othost &
+$ freechains --host=localhost:8331 chain join /chat
+$ freechains --host=localhost:8330 chain send /chat localhost:8331
 ```
 
-This creates a peer-to-peer mesh with the form `8330 <-> 8331 <-> 8332`,
-allowing nodes `8330` and `8332` to communicate even though they are not
-directly connected.
--->
+The last command sends all new publications from `8330` to `8331`, which can
+then be traversed as follows:
+    - Identify the predefined "genesis" publication of `/chat`.
+    - Acquire it to see what comes next.
+    - Iterate over its `fronts` publications recursively.
+
+```
+$ freechains chain genesis /chat
+0_A80B5390F7CF66A8781F42AEB68912F2745FC026A71885D7A3CB70AB81764FB2
+$ freechains chain get /chat 0_A80B5390F7CF66A8781F42AEB68912F2745FC026A71885D7A3CB70AB81764FB2
+{
+    ...
+    "fronts": [
+        "1_1D5D2B146B49AF22F7E738778F08E678D48C6DAAF84AF4128A17D058B6F0D852"
+    ],
+    ...
+}
+$ freechains chain get /chat 1_1D5D2B146B49AF22F7E738778F08E678D48C6DAAF84AF4128A17D058B6F0D852
+{
+    "hashable": {
+        ...
+        "payload": "Hello World!",
+        "backs": [
+            "0_A80B5390F7CF66A8781F42AEB68912F2745FC026A71885D7A3CB70AB81764FB2"
+        ]
+    },
+    "fronts": [
+        "2_DFDC784B4609F16F4487163CAC531A9FE6A0C588DA39D597769DA279AB53C862"
+    ],
+    ...
+}
+```

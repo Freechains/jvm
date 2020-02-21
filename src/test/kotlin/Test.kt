@@ -30,7 +30,7 @@ data class MeuDado(val v: String)
  *  - put --sign
  *  - all use cases (chain cfg e usos da industria)
  *  - commands with auth. ip port time to avoid reuse
- *  - sistema de reputacao
+ *  - sistema de reputacao (likes in headline)
  *  - testes antigos
  *  - RX Kotlin
  *  - pipes / filtros
