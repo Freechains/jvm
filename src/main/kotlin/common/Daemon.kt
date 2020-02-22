@@ -105,54 +105,32 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
         "FC chain post" -> {
             val name = reader.readLineX().nameCheck()
             val time = reader.readLineX()
-            val sig  = reader.readLineX()
+            val like   = reader.readLineX().toInt()
             val cod  = reader.readLineX()
             val cry = reader.readLineX().toBoolean()
 
             val cods = cod.split(' ')
             val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
 
+            val refs = reader.readLinesX()
+            val sig  = reader.readLineX()
+
             val chain = local.loadChain(name)
             val blk = chain.post (
                 sig,
                 BlockHashable (
                     chain.getTime(time),
-                    0,
+                    like,
                     cods[0],
                     cry,
                     chain.encrypt(cry,pay),
-                    emptyArray(),
+                    refs.split('\n').dropLast(1).toTypedArray(),
                     emptyArray()
                 )
             )
 
             writer.writeLineX(blk.hash)
             System.err.println("chain post: ${blk.hash}")
-            signal(name,1)
-        }
-        "FC chain like" -> {
-            val name= reader.readLineX().nameCheck()
-            val time= reader.readLineX()
-            val sig = reader.readLineX()
-            val rep   = reader.readLineX().toInt()
-            val ref = reader.readLineX()
-
-            val chain = local.loadChain(name)
-            val blk = chain.post (
-                sig,
-                BlockHashable (
-                    chain.getTime(time),
-                    rep,
-                    "utf8",
-                    false,
-                    "why?",
-                    arrayOf(ref),
-                    emptyArray()
-                )
-            )
-
-            writer.writeLineX(blk.hash)
-            System.err.println("chain like: ${blk.hash}")
             signal(name,1)
         }
         "FC chain listen" -> {

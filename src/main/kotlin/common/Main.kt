@@ -34,6 +34,8 @@ Options:
     --sign=<private_key>   [post|like]   signs block with given key
     --utf8-eof=<word>      [post]        sets word terminator for utf8 post
     --encrypt              [post]        encrypts post with chain's shared or private key
+    --ref=<hash>           [post]        refers to previous post
+    --why=<text>           [like]        explains reason for the like
 
 More Information:
 
@@ -143,7 +145,7 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX("FC chain post")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["--time"] as String)
-                    writer.writeLineX((opts["--sign"] as String? ?: ""))
+                    writer.writeLineX("0")
                     writer.writeLineX(if (opts["utf8"] as Boolean) "utf8"+(if (eof.isEmpty()) "" else " "+eof) else "base64")
                     writer.writeLineX((opts["--encrypt"] as Boolean).toString())
 
@@ -159,8 +161,11 @@ fun main_ (args: Array<String>) : String? {
                     }
                     //println(payload)
                     writer.writeBytes(payload)
-
                     writer.writeLineX("\n")
+
+                    writer.writeLineX((opts["--ref"] as String? ?: "") + "\n")
+                    writer.writeLineX((opts["--sign"] as String? ?: ""))
+
                     val hash = reader.readLineX()
                     return hash
                 }
@@ -168,12 +173,15 @@ fun main_ (args: Array<String>) : String? {
                     fun minus (v: String) : String {
                         return if (v.last() != '-') v else ("-" + v.substring(0,v.length-1))
                     }
-                    writer.writeLineX("FC chain like")
+                    writer.writeLineX("FC chain post")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["--time"] as String)
-                    writer.writeLineX((opts["--sign"] as String? ?: ""))
                     writer.writeLineX(minus(opts["<integer>"] as String))
-                    writer.writeLineX(opts["<hash>"] as String? ?: opts["<public_key>"] as String)
+                    writer.writeLineX("utf8")
+                    writer.writeLineX("false")
+                    writer.writeLineX((opts["--why"] as String? ?: ""))
+                    writer.writeLineX((opts["<hash>"] as String? ?: opts["<public_key>"] as String) + "\n")
+                    writer.writeLineX(opts["--sign"] as String? ?: "")
 
                     writer.writeLineX("\n")
                     val hash = reader.readLineX()
