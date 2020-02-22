@@ -113,7 +113,18 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
 
             val chain = local.loadChain(name)
-            val blk = if (time == "now") chain.post(Post(cods[0],cry,pay),sig) else chain.post(Post(cods[0],cry,pay),sig,time.toLong())
+            val blk = chain.post (
+                sig,
+                BlockHashable (
+                    chain.getTime(time),
+                    0,
+                    cods[0],
+                    cry,
+                    chain.encrypt(cry,pay),
+                    emptyArray(),
+                    emptyArray()
+                )
+            )
 
             writer.writeLineX(blk.hash)
             System.err.println("chain post: ${blk.hash}")
@@ -127,7 +138,18 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val ref = reader.readLineX()
 
             val chain = local.loadChain(name)
-            val blk = if (time == "now") chain.post(Like(rep,ref),sig) else chain.post(Like(rep,ref),sig,time.toLong())
+            val blk = chain.post (
+                sig,
+                BlockHashable (
+                    chain.getTime(time),
+                    rep,
+                    "utf8",
+                    false,
+                    "why?",
+                    arrayOf(ref),
+                    emptyArray()
+                )
+            )
 
             writer.writeLineX(blk.hash)
             System.err.println("chain like: ${blk.hash}")
@@ -234,7 +256,7 @@ fun Socket.chain_send (chain: Chain) : Int {
                 //println("[send] has: $hash")
                 continue                             // already has: finishes subpath
             }
-            val blk = chain.loadBlockFromHash(hash)
+            val blk = chain.loadBlockFromHash(hash,false)
             if (maxTime-24*h > blk.hashable.time) {
                 //println("[send] max: $hash")
                 toSend.clear()                       // no, but too old: aborts this head path entirely
@@ -259,7 +281,7 @@ fun Socket.chain_send (chain: Chain) : Int {
         val n2 = toSend.size
         while (toSend.isNotEmpty()) {
             val hash = toSend.pop()
-            val old = chain.loadBlockFromHash(hash)
+            val old = chain.loadBlockFromHash(hash,false)
             val new = old.copy(fronts=emptyArray())  // remove fronts
             //println("[send] ${new.hash}")
             writer.writeBytes(new.toJson())
@@ -282,7 +304,7 @@ fun Socket.chain_recv (chain: Chain) : Int {
     fun getMaxTime () : Long {
         var max: Long = 0
         for (head in chain.heads) {
-            val blk = chain.loadBlockFromHash(head)
+            val blk = chain.loadBlockFromHash(head,false)
             if (blk.hashable.time > max) {
                 max = blk.hashable.time
             }

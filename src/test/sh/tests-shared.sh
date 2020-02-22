@@ -69,16 +69,16 @@ freechains --host=localhost:8403 chain get / $h2 > $FC/v32.blk
 echo '"Hello_World"' > $FC/hello.out
 echo '"Bye_World"'   > $FC/bye.out
 touch $FC/empty.out
-jq ".hashable.payload.post" $FC/8400/chains/blocks/2_*.blk > $FC/enc.out
+jq ".hashable.payload" $FC/8400/chains/blocks/2_*.blk > $FC/enc.out
 
-jq ".hashable.payload.post" $FC/v01.blk > $FC/v01.out
-jq ".hashable.payload.post" $FC/v02.blk > $FC/v02.out
-jq ".hashable.payload.post" $FC/v11.blk > $FC/v11.out
-jq ".hashable.payload.post" $FC/v12.blk > $FC/v12.out
-jq ".hashable.payload.post" $FC/v21.blk > $FC/v21.out
-jq ".hashable.payload.post" $FC/v22.blk > $FC/v22.out
-jq ".hashable.payload.post" $FC/v31.blk > $FC/v31.out
-jq ".hashable.payload.post" $FC/v32.blk > $FC/v32.out
+jq ".hashable.payload" $FC/v01.blk > $FC/v01.out
+jq ".hashable.payload" $FC/v02.blk > $FC/v02.out
+jq ".hashable.payload" $FC/v11.blk > $FC/v11.out
+jq ".hashable.payload" $FC/v12.blk > $FC/v12.out
+jq ".hashable.payload" $FC/v21.blk > $FC/v21.out
+jq ".hashable.payload" $FC/v22.blk > $FC/v22.out
+jq ".hashable.payload" $FC/v31.blk > $FC/v31.out
+jq ".hashable.payload" $FC/v32.blk > $FC/v32.out
 
 diff $FC/hello.out $FC/v01.out || exit 1
 diff $FC/hello.out $FC/v11.out || exit 1

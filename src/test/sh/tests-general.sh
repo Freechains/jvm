@@ -29,7 +29,7 @@ diff $FC/freechains-tests-heads.out out/freechains-tests-get-1.out || exit 1
 
 h=`freechains --host=localhost:8400 chain post / file base64 /bin/cat`
 freechains --host=localhost:8400 chain get / "$h" > $FC/cat.blk
-jq ".hashable.payload.post" $FC/cat.blk | tr -d '"' | base64 --decode > $FC/cat
+jq ".hashable.payload" $FC/cat.blk | tr -d '"' | base64 --decode > $FC/cat
 diff $FC/cat /bin/cat || exit 1
 
 ###############################################################################

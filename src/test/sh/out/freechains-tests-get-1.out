@@ -1,12 +1,12 @@
 {
     "hashable": {
         "time": 0,
-        "payload": {
-            "type": "org.freechains.common.Post",
-            "encoding": "utf8",
-            "encrypted": false,
-            "post": "Hello_World"
-        },
+        "like": 0,
+        "encoding": "utf8",
+        "encrypted": false,
+        "payload": "Hello_World",
+        "refs": [
+        ],
         "backs": [
             "0_E7FCC59344F7F6D23A62DCF947EE764E5149290D0D99C31BC33FD7E05BAD71D3"
         ]
@@ -17,6 +17,6 @@
         "first": "",
         "second": ""
     },
-    "hash": "1_E59329F78884E68DCB8F470EF56DB0E535F4C2BE396A773F452B276C4EA82FAC",
+    "hash": "1_922F9EDAF6B3DACFD2513B5828676BC3FEC4D72AF6978B5DE99A606CCE17B521",
     "height": 1
 }

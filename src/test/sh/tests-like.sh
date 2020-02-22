@@ -18,14 +18,14 @@ b1=`freechains --host=localhost:8400 --time=0 chain post / inline utf8 Hello_Wor
 b2=`freechains --host=localhost:8400 chain like / 1 "$b1"`
 echo "b2 = $b2"
 j2=`freechains --host=localhost:8400 chain get / $b2`
-d1=`jq ".hashable.payload.ref" <(echo $j2)`
-d2='"1_E59329F78884E68DCB8F470EF56DB0E535F4C2BE396A773F452B276C4EA82FAC"'
+d1=`jq ".hashable.refs" <(echo $j2)`
+d2='[ "1_922F9EDAF6B3DACFD2513B5828676BC3FEC4D72AF6978B5DE99A606CCE17B521" ]'
 diff <(echo $d1) <(echo $d2) || exit 1
 
 b2=`freechains --host=localhost:8400 chain like / 13- "$b1"`
 echo "b2 = $b2"
 j2=`freechains --host=localhost:8400 chain get / $b2`
-d1=`jq ".hashable.payload.n" <(echo $j2)`
+d1=`jq ".hashable.like" <(echo $j2)`
 diff <(echo $d1) <(echo "-13") || exit 1
 
 ###############################################################################

@@ -48,40 +48,67 @@ fun String.fromJsonToChain () : Chain {
 
 // POST/LIKE
 
-fun Chain.post (payload: Post_or_Like, sig_pvt: String) : Block {
-    return this.post(payload, sig_pvt, Instant.now().toEpochMilli())
+fun Chain.getTime (time: String) : Long {
+    return if (time == "now") Instant.now().toEpochMilli() else time.toLong()
 }
 
-fun Chain.post (payload: Post_or_Like, sig_pvt: String, time: Long) : Block {
+fun Chain.encrypt (encrypt: Boolean, payload: String) : String {
+    if (!encrypt) {
+        return payload
+    }
+
+    if (this.keys[0].isNotEmpty()) {
+        val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
+        val key = Key.fromHexString(this.keys[0])
+        return LazySodium.toHex(nonce) + lazySodium.cryptoSecretBoxEasy(payload, nonce, key)
+    } else {
+        assert(this.keys[1].isNotEmpty())
+        val dec = payload.toByteArray()
+        val enc = ByteArray(Box.SEALBYTES + dec.size)
+        val key = Key.fromHexString(this.keys[1]).asBytes
+        val key_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
+        assert(lazySodium.convertPublicKeyEd25519ToCurve25519(key_, key))
+        lazySodium.cryptoBoxSeal(enc, dec, dec.size.toLong(), key_)
+        return LazySodium.toHex(enc)
+    }
+}
+
+fun Chain.decrypt (decrypt: Boolean, payload: String) : Pair<Boolean,String> {
+    if (!decrypt) {
+        return Pair(false,payload)
+    }
+
+    if (this.keys[0].isEmpty() && this.keys[2].isEmpty()) {
+        return Pair(false,payload)
+    }
+
+    if (this.keys[0].isNotEmpty()) {
+        val idx = SecretBox.NONCEBYTES * 2
+        val pay = lazySodium.cryptoSecretBoxOpenEasy(
+            payload.substring(idx),
+            LazySodium.toBin(payload.substring(0, idx)),
+            Key.fromHexString(this.keys[0])
+        )
+        return Pair(true,pay)
+    } else {
+        val enc = LazySodium.toBin(payload)
+        val dec = ByteArray(enc.size - Box.SEALBYTES)
+
+        val pub = Key.fromHexString(this.keys[1]).asBytes
+        val pvt = Key.fromHexString(this.keys[2]).asBytes
+        val pub_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
+        val pvt_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_SECRETKEYBYTES)
+        assert(lazySodium.convertPublicKeyEd25519ToCurve25519(pub_,pub))
+        assert(lazySodium.convertSecretKeyEd25519ToCurve25519(pvt_,pvt))
+
+        assert(lazySodium.cryptoBoxSealOpen(dec, enc, enc.size.toLong(), pub_, pvt_))
+        return Pair(true,dec.toString(Charsets.UTF_8))
+    }
+}
+
+fun Chain.post (sig_pvt: String, hashable: BlockHashable) : Block {
     assert(!this.ro || this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty()) // checks if owner of read-only chain
-    val payload_ =
-        when (payload) {
-            is Like -> payload
-            is Post -> {
-                val post =
-                    if (payload.encrypted) {
-                        if (this.keys[0].isNotEmpty()) {
-                            val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
-                            val key = Key.fromHexString(this.keys[0])
-                            LazySodium.toHex(nonce) + lazySodium.cryptoSecretBoxEasy(payload.post,nonce,key)
-                        } else {
-                            assert(this.keys[1].isNotEmpty())
-                            val dec = payload.post.toByteArray()
-                            val enc = ByteArray(Box.SEALBYTES + dec.size)
-                            val key = Key.fromHexString(this.keys[1]).asBytes
-                            val key_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
-                            assert(lazySodium.convertPublicKeyEd25519ToCurve25519(key_,key))
-                            lazySodium.cryptoBoxSeal(enc, dec, dec.size.toLong(), key_)
-                            LazySodium.toHex(enc)
-                        }
-                    } else {
-                        payload.post
-                    }
-                payload.copy(post=post)
-            }
-        }
-    
-    val blk = this.newBlock(BlockHashable(time,payload_,this.heads.toTypedArray()), sig_pvt)
+    val blk = this.newBlock(sig_pvt, hashable.copy(backs=this.heads.toTypedArray()))
     this.saveBlock(blk)
     this.reheads(blk)
     this.save()
@@ -92,7 +119,7 @@ fun Chain.reheads (blk: Block) {
     this.heads.add(blk.hash)
     for (back in blk.hashable.backs) {
         this.heads.remove(back)
-        val old = this.loadBlockFromHash(back)
+        val old = this.loadBlockFromHash(back,false)
         if (!old.fronts.contains((blk.hash))) {
             val new = old.copy(fronts=(old.fronts+blk.hash).sortedArray())
             this.saveBlock(new)
@@ -133,7 +160,7 @@ fun Chain.save () {
 
 // NDOE
 
-fun Chain.newBlock (h: BlockHashable, sig_pvt: String = "") : Block {
+fun Chain.newBlock (sig_pvt: String, h: BlockHashable) : Block {
     val hash = h.toHash()
 
     var sig_hash = ""
@@ -169,40 +196,13 @@ fun Chain.saveBlock (blk: Block) {
     File(this.root + this.name + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
 
-fun Chain.loadBlockFromHash (hash: Hash, decrypt: Boolean = false) : Block {
+fun Chain.loadBlockFromHash (hash: Hash, decrypt: Boolean) : Block {
     val blk = File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
-    val pay = blk.hashable.payload
-    when (pay) {
-        is Like ->
-            return blk
-        is Post ->
-            if (decrypt && pay.encrypted && (this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty())) {
-                if (this.keys[0].isNotEmpty()) {
-                    val idx = SecretBox.NONCEBYTES * 2
-                    val post = lazySodium.cryptoSecretBoxOpenEasy(
-                        pay.post.substring(idx),
-                        LazySodium.toBin(pay.post.substring(0, idx)),
-                        Key.fromHexString(this.keys[0])
-                    )
-                    return blk.copy(hashable=blk.hashable.copy(payload=pay.copy(encrypted=false, post=post)))
-                } else {
-                    val enc = LazySodium.toBin(pay.post)
-                    val dec = ByteArray(enc.size - Box.SEALBYTES)
-
-                    val pub = Key.fromHexString(this.keys[1]).asBytes
-                    val pvt = Key.fromHexString(this.keys[2]).asBytes
-                    val pub_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
-                    val pvt_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_SECRETKEYBYTES)
-                    assert(lazySodium.convertPublicKeyEd25519ToCurve25519(pub_,pub))
-                    assert(lazySodium.convertSecretKeyEd25519ToCurve25519(pvt_,pvt))
-
-                    assert(lazySodium.cryptoBoxSealOpen(dec, enc, enc.size.toLong(), pub_, pvt_))
-                    return blk.copy(hashable=blk.hashable.copy(payload=pay.copy(encrypted=false, post=dec.toString(Charsets.UTF_8))))
-                }
-            } else {
-                return blk
-            }
+    if (!decrypt || !blk.hashable.encrypted) {
+        return blk
     }
+    val (decrypted,pay) = this.decrypt(blk.hashable.encrypted, blk.hashable.payload)
+    return blk.copy(hashable = blk.hashable.copy(encrypted = !decrypted, payload = pay))
 }
 
 fun Chain.containsBlock (hash: Hash) : Boolean {
