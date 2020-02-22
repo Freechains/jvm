@@ -13,12 +13,26 @@ import org.freechains.platform.lazySodium
 typealias Hash = String
 
 @Serializable
-data class BlockHashable (
-    val time      : Long,           // TODO: ULong
+sealed class Post_or_Like
+
+@Serializable
+data class Post (
     val encoding  : String,         // payload encoding
     val encrypted : Boolean,        // payload is encrypted (method depends on chain)
-    val payload   : String,
-    val backs     : Array<Hash>     // back links (previous blocks)
+    val post      : String
+) : Post_or_Like()
+
+@Serializable
+data class Like (
+    val n   : Int,
+    val pub : String
+) : Post_or_Like()
+
+@Serializable
+data class BlockHashable (
+    val time    : Long,           // TODO: ULong
+    val payload : Post_or_Like,
+    val backs   : Array<Hash>     // back links (previous blocks)
 )
 
 @Serializable

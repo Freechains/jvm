@@ -21,18 +21,19 @@ Usage:
     freechains [options] chain heads <chain>
     freechains [options] chain get <chain> <height_hash>
     freechains [options] chain put <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
+    freechains [options] chain like <integer> (<height_hash> | <public_key>)
     freechains [options] chain listen <chain>
     freechains [options] chain send <chain> <host:port>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
 
 Options:
-    --help                      [none] displays this help
-    --version                   [none] displays version information
-    --host=<addr:port>          [all]  sets address and port to connect [default: localhost:8330]
-    --time=<ms>                 [put]  sets block timestamp [default: now]
-    --encrypt                   [put]  encrypts payload with chain's shared or private key
-    --sign=<private_key>        [put]  signs block with given key
-    --utf8-eof=<word>           [put]  sets word terminator for utf8 input
+    --help                      [none]     displays this help
+    --version                   [none]     displays version information
+    --host=<addr:port>          [all]      sets address and port to connect [default: localhost:8330]
+    --time=<ms>                 [put]      sets block timestamp [default: now]
+    --utf8-eof=<word>           [put]      sets word terminator for utf8 input
+    --encrypt                   [put]      encrypts payload with chain's shared or private key
+    --sign=<private_key>        [put|like] signs block with given key
 
 More Information:
 

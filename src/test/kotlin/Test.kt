@@ -82,7 +82,7 @@ class Tests {
     @Test
     fun b2_block () {
         val chain = Chain("/tmp/freechains/tests/local/chains/", "/uerj", false, arrayOf("","",""))
-        val blk = chain.newBlock(BlockHashable(0,"utf8", false,"111", arrayOf(chain.toGenHash())))
+        val blk = chain.newBlock(BlockHashable(0, Post("utf8",false,"111"), arrayOf(chain.toGenHash())))
         chain.saveBlock(blk)
         val blk2 = chain.loadBlockFromHash(blk.hash)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
@@ -99,7 +99,7 @@ class Tests {
         chain.assertBlock(n3)
         var ok = false
         try {
-            val n = n3.copy(hashable = n3.hashable.copy(payload = "xxx"))
+            val n = n3.copy(hashable = n3.hashable.copy(payload=Post("utf8",false,"xxx")))
             chain.assertBlock(n)
         } catch (e: Throwable) {
             ok = true
@@ -157,13 +157,13 @@ class Tests {
         val chain = Chain("/tmp/freechains/tests/local/chains/", "/graph", false, arrayOf("secret","",""))
         chain.save()
         val genesis = Block(
-            BlockHashable(0,"utf8", false, "", emptyArray()),
+            BlockHashable(0, Post("utf8",false,""), emptyArray()),
             emptyArray(), Pair("",""), chain.toGenHash()
         )
         chain.saveBlock(genesis)
 
-        val a1 = chain.newBlock(BlockHashable(0,"utf8", false, "a1", arrayOf(chain.toGenHash())))
-        val b1 = chain.newBlock(BlockHashable(0,"utf8", false, "b1", arrayOf(chain.toGenHash())))
+        val a1 = chain.newBlock(BlockHashable(0, Post("utf8",false,"a1"), arrayOf(chain.toGenHash())))
+        val b1 = chain.newBlock(BlockHashable(0, Post("utf8",false,"b1"), arrayOf(chain.toGenHash())))
         chain.saveBlock(a1)
         chain.saveBlock(b1)
         chain.reheads(a1)
@@ -172,7 +172,7 @@ class Tests {
         //val ab2 =
         chain.post("utf8",false,"", "ab2")
 
-        val b2 = chain.newBlock(BlockHashable(0,"utf8",false, "b2", arrayOf(b1.hash)))
+        val b2 = chain.newBlock(BlockHashable(0, Post("utf8",false,"b2"), arrayOf(b1.hash)))
         chain.saveBlock(b2)
         chain.reheads(b2)
 
@@ -354,7 +354,7 @@ class Tests {
         val c1 = host.loadChain("/sym")
         val n1 = c1.post("utf8", true,"","aaa", 0)
         val n2 = c1.loadBlockFromHash(n1.hash, true)
-        assert(n2.hashable.payload == "aaa")
+        assert((n2.hashable.payload as Post).post == "aaa")
         //Thread.sleep(500)
     }
 
@@ -387,17 +387,16 @@ class Tests {
 
         val json = main_(arrayOf("chain","get","/xxx",hash!!))
         val blk = json!!.jsonToBlock()
-        assert(blk.hashable.payload == "aaa")
+        assert((blk.hashable.payload as Post).post == "aaa")
 
         main(arrayOf("chain","send","/xxx","localhost:8331"))
         val json2 = main_(arrayOf("--host=localhost:8331","chain","get","/xxx",hash))
         val blk2 = json2!!.jsonToBlock()
-        assert(blk2.hashable.encrypted)
+        assert((blk2.hashable.payload as Post).encrypted)
 
         val h2 = main_(arrayOf("chain","put","/xxx","inline","utf8","bbb","--sign=6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"))
         val j2 = main_(arrayOf("chain","get","/xxx",h2!!))
         val b2 = j2!!.jsonToBlock()
-        assert(b2.hashable.payload == "bbb")
-
+        assert((b2.hashable.payload as Post).post == "bbb")
     }
 }
