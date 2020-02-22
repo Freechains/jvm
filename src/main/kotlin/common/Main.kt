@@ -6,6 +6,7 @@ import java.io.DataOutputStream
 import java.io.File
 import java.net.Socket
 import java.util.Base64
+import kotlin.io.println as output
 
 val doc = """
 freechains
@@ -47,7 +48,7 @@ More Information:
 fun main (args: Array<String>) {
     val ret = main_(args)
     if (ret != null) {
-        println(ret)
+        output(ret)
     }
 }
 
@@ -192,7 +193,7 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX(opts["<chain>"] as String)
                     while (true) {
                         val n = reader.readLineX()
-                        println(n)
+                        output(n)
                     }
                 }
                 opts["send"] as Boolean -> {
@@ -218,7 +219,7 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX("FC crypto create")
                     writer.writeLineX(if (isShared) "shared" else "pubpvt")
                     writer.writeLineX(opts["<passphrase>"] as String)
-                    println(reader.readLineX())         // shared or private key
+                    output(reader.readLineX())         // shared or private key
                     if (isShared) {
                         return null
                     } else {
