@@ -45,9 +45,9 @@ diff <(echo "$g0") <(echo "$g1") || exit 1
 diff <(echo "$g0") <(echo "$g2") || exit 1
 diff <(echo "$g0") <(echo "$g3") || exit 1
 
-# put to 8400, send to 8401 (fail) 8402 (succees)
-h1=`freechains --host=localhost:8400 chain put / inline utf8 Hello_World`
-h2=`freechains --host=localhost:8400 --encrypt chain put / inline utf8 Bye_World`
+# post to 8400, send to 8401 (fail) 8402 (succees)
+h1=`freechains --host=localhost:8400 chain post / inline utf8 Hello_World`
+h2=`freechains --host=localhost:8400 --encrypt chain post / inline utf8 Bye_World`
 freechains --host=localhost:8400 chain send / localhost:8401
 freechains --host=localhost:8400 chain send / localhost:8402
 freechains --host=localhost:8400 chain send / localhost:8403

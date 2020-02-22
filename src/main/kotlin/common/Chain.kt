@@ -48,11 +48,11 @@ fun String.fromJsonToChain () : Chain {
 
 // POST/LIKE
 
-fun Chain.put (payload: Post_or_Like, sig_pvt: String) : Block {
-    return this.put(payload, sig_pvt, Instant.now().toEpochMilli())
+fun Chain.post (payload: Post_or_Like, sig_pvt: String) : Block {
+    return this.post(payload, sig_pvt, Instant.now().toEpochMilli())
 }
 
-fun Chain.put (payload: Post_or_Like, sig_pvt: String, time: Long) : Block {
+fun Chain.post (payload: Post_or_Like, sig_pvt: String, time: Long) : Block {
     assert(!this.ro || this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty()) // checks if owner of read-only chain
     val payload_ =
         when (payload) {

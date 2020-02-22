@@ -102,7 +102,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             //writer.writeLineX("\n")
             System.err.println("chain get: $hash")
         }
-        "FC chain put" -> {
+        "FC chain post" -> {
             val name = reader.readLineX().nameCheck()
             val time = reader.readLineX()
             val sig  = reader.readLineX()
@@ -113,10 +113,10 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
 
             val chain = local.loadChain(name)
-            val blk = if (time == "now") chain.put(Post(cods[0],cry,pay),sig) else chain.put(Post(cods[0],cry,pay),sig,time.toLong())
+            val blk = if (time == "now") chain.post(Post(cods[0],cry,pay),sig) else chain.post(Post(cods[0],cry,pay),sig,time.toLong())
 
             writer.writeLineX(blk.hash)
-            System.err.println("chain put: ${blk.hash}")
+            System.err.println("chain post: ${blk.hash}")
             signal(name,1)
         }
         "FC chain like" -> {
@@ -127,7 +127,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val ref = reader.readLineX()
 
             val chain = local.loadChain(name)
-            val blk = if (time == "now") chain.put(Like(rep,ref),sig) else chain.put(Like(rep,ref),sig,time.toLong())
+            val blk = if (time == "now") chain.post(Like(rep,ref),sig) else chain.post(Like(rep,ref),sig,time.toLong())
 
             writer.writeLineX(blk.hash)
             System.err.println("chain like: ${blk.hash}")

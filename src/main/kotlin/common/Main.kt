@@ -20,20 +20,20 @@ Usage:
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain>
     freechains [options] chain get <chain> <hash>
-    freechains [options] chain put <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
+    freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
     freechains [options] chain like <chain> <integer> (<hash> | <public_key>)
     freechains [options] chain listen <chain>
     freechains [options] chain send <chain> <host:port>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
 
 Options:
-    --help                 [none]       displays this help
-    --version              [none]       displays version information
-    --host=<addr:port>     [all]        sets address and port to connect [default: localhost:8330]
-    --time=<ms>            [put|like]   sets block timestamp [default: now]
-    --sign=<private_key>   [put|like]   signs block with given key
-    --utf8-eof=<word>      [put]        sets word terminator for utf8 post
-    --encrypt              [put]        encrypts post with chain's shared or private key
+    --help                 [none]        displays this help
+    --version              [none]        displays version information
+    --host=<addr:port>     [all]         sets address and port to connect [default: localhost:8330]
+    --time=<ms>            [post|like]   sets block timestamp [default: now]
+    --sign=<private_key>   [post|like]   signs block with given key
+    --utf8-eof=<word>      [post]        sets word terminator for utf8 post
+    --encrypt              [post]        encrypts post with chain's shared or private key
 
 More Information:
 
@@ -137,10 +137,10 @@ fun main_ (args: Array<String>) : String? {
                         return json
                     }
                 }
-                // freechains [options] chain put <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
-                opts["put"] as Boolean -> {
+                // freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
+                opts["post"] as Boolean -> {
                     val eof = opts["--utf8-eof"] as String? ?: ""
-                    writer.writeLineX("FC chain put")
+                    writer.writeLineX("FC chain post")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["--time"] as String)
                     writer.writeLineX((opts["--sign"] as String? ?: ""))

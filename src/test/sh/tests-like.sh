@@ -13,7 +13,7 @@ freechains host create $FC/8400 8400
 freechains host start $FC/8400 &
 sleep 0.5
 freechains --host=localhost:8400 chain join /
-b1=`freechains --host=localhost:8400 --time=0 chain put / inline utf8 Hello_World`
+b1=`freechains --host=localhost:8400 --time=0 chain post / inline utf8 Hello_World`
 
 b2=`freechains --host=localhost:8400 chain like / 1 "$b1"`
 echo "b2 = $b2"

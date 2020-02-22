@@ -50,8 +50,8 @@ $ freechains chain join /chat
 - Post some content:
 
 ```
-$ freechains chain put /chat inline utf8 "Hello World!"
-$ freechains chain put /chat inline utf8 "I am here!"
+$ freechains chain post /chat inline utf8 "Hello World!"
+$ freechains chain post /chat inline utf8 "I am here!"
 ```
 
 - Communicate with other peers:
