@@ -19,21 +19,21 @@ Usage:
     freechains [options] chain join <chain> pubpvt (rw | ro) <public_key> [<private_key>]
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain>
-    freechains [options] chain get <chain> <height_hash>
+    freechains [options] chain get <chain> <hash>
     freechains [options] chain put <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
-    freechains [options] chain like <integer> (<height_hash> | <public_key>)
+    freechains [options] chain like <chain> <integer> (<hash> | <public_key>)
     freechains [options] chain listen <chain>
     freechains [options] chain send <chain> <host:port>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
 
 Options:
-    --help                    [none]     displays this help
-    --version                 [none]     displays version information
-    --host=<addr:port>        [all]      sets address and port to connect [default: localhost:8330]
-    --time=<ms>               [put|like] sets block timestamp [default: now]
-    --sign=<private_key>      [put|like] signs block with given key
-    --utf8-eof=<word>         [put]      sets word terminator for utf8 post
-    --encrypt                 [put]      encrypts post with chain's shared or private key
+    --help                 [none]       displays this help
+    --version              [none]       displays version information
+    --host=<addr:port>     [all]        sets address and port to connect [default: localhost:8330]
+    --time=<ms>            [put|like]   sets block timestamp [default: now]
+    --sign=<private_key>   [put|like]   signs block with given key
+    --utf8-eof=<word>      [put]        sets word terminator for utf8 post
+    --encrypt              [put]        encrypts post with chain's shared or private key
 
 More Information:
 
@@ -128,7 +128,7 @@ fun main_ (args: Array<String>) : String? {
                 opts["get"] as Boolean -> {
                     writer.writeLineX("FC chain get")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(opts["<height_hash>"] as Hash)
+                    writer.writeLineX(opts["<hash>"] as Hash)
                     val json = reader.readAllBytes().toString(Charsets.UTF_8)
                     if (json.isEmpty()) {
                         System.err.println("chain get: not found")
@@ -164,14 +164,13 @@ fun main_ (args: Array<String>) : String? {
                     val hash = reader.readLineX()
                     return hash
                 }
-                // freechains [options] chain like <integer> (<height_hash> | <public_key>)
                 opts["like"] as Boolean -> {
                     writer.writeLineX("FC chain like")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(opts["<integer>"] as String)
-                    writer.writeLineX(opts["<heigh_hash>"] as String? ?: opts["<public_key>"] as String)
                     writer.writeLineX(opts["--time"] as String)
                     writer.writeLineX((opts["--sign"] as String? ?: ""))
+                    writer.writeLineX(opts["<integer>"] as String)
+                    writer.writeLineX(opts["<hash>"] as String? ?: opts["<public_key>"] as String)
 
                     writer.writeLineX("\n")
                     val hash = reader.readLineX()

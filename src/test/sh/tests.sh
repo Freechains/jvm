@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 #while : ; do
   ./tests-general.sh || exit 1

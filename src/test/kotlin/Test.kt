@@ -27,6 +27,7 @@ data class MeuDado(val v: String)
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 -> 809 -> 930 LOC
  *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 ->10557 KB
  *  - chain locks (test sends in parallel)
+ *  - put -> post
  *  - sistema de reputacao (likes in headline)
  *  - test --utf8-eof
  *  - all use cases (chain cfg e usos da industria)
@@ -35,6 +36,7 @@ data class MeuDado(val v: String)
  *  - RX Kotlin
  *  - pipes / filtros
  *  - freechains host restart
+ *  - --ref=<hash> [put] sets back reference to post
  *  - Future:
  *  - Xfreechains
  *    - chain xtraverse
