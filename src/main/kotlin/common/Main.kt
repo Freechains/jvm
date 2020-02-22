@@ -165,11 +165,14 @@ fun main_ (args: Array<String>) : String? {
                     return hash
                 }
                 opts["like"] as Boolean -> {
+                    fun minus (v: String) : String {
+                        return if (v.last() != '-') v else ("-" + v.substring(0,v.length-1))
+                    }
                     writer.writeLineX("FC chain like")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["--time"] as String)
                     writer.writeLineX((opts["--sign"] as String? ?: ""))
-                    writer.writeLineX(opts["<integer>"] as String)
+                    writer.writeLineX(minus(opts["<integer>"] as String))
                     writer.writeLineX(opts["<hash>"] as String? ?: opts["<public_key>"] as String)
 
                     writer.writeLineX("\n")

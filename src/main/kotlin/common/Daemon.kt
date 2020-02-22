@@ -124,13 +124,13 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val time= reader.readLineX()
             val sig = reader.readLineX()
             val rep   = reader.readLineX().toInt()
-            val ref= reader.readLineX()
+            val ref = reader.readLineX()
 
             val chain = local.loadChain(name)
             val blk = if (time == "now") chain.put(Like(rep,ref),sig) else chain.put(Like(rep,ref),sig,time.toLong())
 
             writer.writeLineX(blk.hash)
-            System.err.println("chain put: ${blk.hash}")
+            System.err.println("chain like: ${blk.hash}")
             signal(name,1)
         }
         "FC chain listen" -> {
@@ -191,6 +191,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
         else -> { error("$ln: invalid header type") }
     }
     if (shouldClose) {
+        Thread.sleep(1000)
         remote.close()
     }
 }
