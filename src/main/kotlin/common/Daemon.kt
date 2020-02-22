@@ -12,7 +12,6 @@ import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 import java.time.Instant
 import java.util.*
-import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 val h = 1000 * 60 * 60
@@ -105,16 +104,30 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
         }
         "FC chain put" -> {
             val name = reader.readLineX().nameCheck()
-            val cod  = reader.readLineX()
             val time = reader.readLineX()
-            val cry  = reader.readLineX().toBoolean()
             val sig  = reader.readLineX()
+            val cod  = reader.readLineX()
+            val cry = reader.readLineX().toBoolean()
 
             val cods = cod.split(' ')
             val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
 
             val chain = local.loadChain(name)
-            val blk = if (time == "now") chain.post(cods[0],cry,sig,pay) else chain.post(cods[0],cry,sig,pay,time.toLong())
+            val blk = if (time == "now") chain.put(Post(cods[0],cry,pay),sig) else chain.put(Post(cods[0],cry,pay),sig,time.toLong())
+
+            writer.writeLineX(blk.hash)
+            System.err.println("chain put: ${blk.hash}")
+            signal(name,1)
+        }
+        "FC chain like" -> {
+            val name= reader.readLineX().nameCheck()
+            val time= reader.readLineX()
+            val sig = reader.readLineX()
+            val rep   = reader.readLineX().toInt()
+            val ref= reader.readLineX()
+
+            val chain = local.loadChain(name)
+            val blk = if (time == "now") chain.put(Like(rep,ref),sig) else chain.put(Like(rep,ref),sig,time.toLong())
 
             writer.writeLineX(blk.hash)
             System.err.println("chain put: ${blk.hash}")

@@ -25,7 +25,7 @@ data class Post (
 @Serializable
 data class Like (
     val n   : Int,
-    val pub : String
+    val ref : String
 ) : Post_or_Like()
 
 @Serializable
