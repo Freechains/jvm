@@ -29,6 +29,8 @@ data class MeuDado(val v: String)
  *  - sistema de reputacao (likes in headline)
  *  - test --utf8-eof
  *  - all use cases (chain cfg e usos da industria)
+ *  - assert time of new >= heads
+ *  - save arrays of hashes ordered
  *  - commands with auth. ip port time to avoid reuse
  *  - testes antigos
  *  - RX Kotlin
@@ -183,6 +185,15 @@ class Tests {
         (G) --<            >-- (ab2) --\__ (ab3)
                \-- (b1) --+--- (b2) ---/
          */
+
+        var n = 0
+        for (blk in traverse(chain, { true })) {
+            n++
+        }
+        assert(n == 6)
+
+        val x = traverse(chain, {it.height>1}).toList()
+        assert(x.size == 3)
     }
 
     @Test

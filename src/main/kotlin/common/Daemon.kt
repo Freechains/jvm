@@ -117,6 +117,13 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
 
             val chain = local.loadChain(name)
 
+            /*
+            if (like != 0) {
+                val rep = chain.getRepOf(sig)
+                println(rep)
+            }
+            */
+
             val blk = chain.post (
                 sig,
                 BlockHashable (

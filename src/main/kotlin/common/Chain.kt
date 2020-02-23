@@ -14,6 +14,8 @@ import com.goterl.lazycode.lazysodium.interfaces.SecretBox
 import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import java.util.*
+import kotlin.collections.ArrayList
 
 @Serializable
 data class Chain (
@@ -179,6 +181,32 @@ fun Chain.reheads (blk: Block) {
             val new = old.copy(fronts=(old.fronts+blk.hash).sortedArray())
             this.saveBlock(new)
         }
+    }
+}
+
+// TRAVERSE
+
+fun traverse (chain: Chain, f: (Block)->Boolean) = sequence {
+    val pending = LinkedList<String>()
+    val visited = mutableSetOf<String>()
+
+    for (head in chain.heads) {
+        pending.add(head)
+    }
+
+    while (pending.isNotEmpty()) {
+        val hash = pending.removeFirst()
+        val blk = chain.loadBlockFromHash(hash,false)
+        if (!f(blk)) {
+            break
+        }
+        for (back in blk.hashable.backs) {
+            if (! visited.contains(back)) {
+                visited.add(back)
+                pending.addLast(back)
+            }
+        }
+        yield(blk)
     }
 }
 
