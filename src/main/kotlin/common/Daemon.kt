@@ -14,8 +14,12 @@ import java.time.Instant
 import java.util.*
 import kotlin.collections.HashSet
 
-val hour = 1000 * 60 * 60
-val day = 24*hour
+val hour = (1000 * 60 * 60).toLong()
+val day  = (24*hour).toLong()
+
+fun String.pvtToPub () : String {
+    return this.substring(this.length/2)
+}
 
 fun daemon (host : Host) {
     val socket = ServerSocket(host.port)
@@ -118,14 +122,6 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
 
             val chain = local.loadChain(name)
 
-            /*
-            val l = traverse(chain, {it.hashable.time})
-            if (like != 0) {
-                val rep = chain.traversegetRepOf(sig)
-                println(rep)
-            }
-             */
-
             val refs_ = if (refs == "") emptyArray() else refs.split('\n').toTypedArray()
             val like_ =
                 if (refs_.isEmpty()) {
@@ -138,6 +134,25 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
                         Like(like,refs_[0])
                     }
                 }
+
+            if (like_ != null) {
+                val pub = sig.pvtToPub()
+                val now = chain.getMaxTime()
+                val b30s = chain.traverseFromHeads {
+                    it.hashable.time >= now - 30 * day
+                }
+                val posts = b30s
+                    .filter { it.signature.second == pub }          // how many I signed
+                    .filter { it.hashable.time <= now - 29 * day }      // older than 1 day?
+                    .count()
+                val recv = b30s
+                    .filter { it.hashable.like != null }            // how many
+                    .filter { it.hashable.like!!.second == pub }    // ppl liked me?
+                    .map { it.hashable.like!!.first }
+                    .sum()
+                val all = posts + recv - sent
+                assert(all > 0)
+            }
 
             val blk = chain.post (
                 sig,

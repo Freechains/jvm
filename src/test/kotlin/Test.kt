@@ -26,6 +26,7 @@ data class MeuDado(val v: String)
  *  - 948 -> 852 -> 841 -> 931 -> 1041 -> 1101 -> 980 -> (no tests) -> 736 -> 809 -> 930 LOC
  *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 ->10557 KB
  *  - chain locks (test sends in parallel)
+ *  - give likes to /dev/null when using 2+
  *  - sistema de reputacao (likes in headline)
  *  - test --utf8-eof
  *  - all use cases (chain cfg e usos da industria)
@@ -164,21 +165,21 @@ class Tests {
         )
         chain.saveBlock(genesis)
 
-        val a1 = chain.newBlock("", h = BlockHashable(0, null,"utf8",false,"a1", emptyArray(), arrayOf(chain.toGenHash())))
-        val b1 = chain.newBlock("", h = BlockHashable(0, null,"utf8",false,"b1", emptyArray(), arrayOf(chain.toGenHash())))
+        val a1 = chain.newBlock("", h = BlockHashable(2*day-1, null,"utf8",false,"a1", emptyArray(), arrayOf(chain.toGenHash())))
+        val b1 = chain.newBlock("", h = BlockHashable(2*day, null,"utf8",false,"b1", emptyArray(), arrayOf(chain.toGenHash())))
         chain.saveBlock(a1)
         chain.saveBlock(b1)
         chain.reheads(a1)
         chain.reheads(b1)
 
         //val ab2 =
-        chain.post("", BlockHashable(0, null,"utf8",false, "ab2", emptyArray(), emptyArray()))
+        chain.post("", BlockHashable(27*day, null,"utf8",false, "ab2", emptyArray(), emptyArray()))
 
-        val b2 = chain.newBlock("", h = BlockHashable(0,null, "utf8",false,"b2", emptyArray(), arrayOf(b1.hash)))
+        val b2 = chain.newBlock("", h = BlockHashable(28*day,null, "utf8",false,"b2", emptyArray(), arrayOf(b1.hash)))
         chain.saveBlock(b2)
         chain.reheads(b2)
 
-        chain.post("", BlockHashable(0,null,"utf8",false, "ab3", emptyArray(), emptyArray()))
+        chain.post("", BlockHashable(32*day,null,"utf8",false, "ab3", emptyArray(), emptyArray()))
         chain.save()
         /*
                /-- (a1) --\
@@ -194,6 +195,10 @@ class Tests {
 
         val x = chain.traverseFromHeads { it.height>1 }
         assert(x.size == 3)
+
+        val y = chain.traverseFromHeads { true }.filter { it.hashable.time >= chain.getMaxTime()-30*day }
+        println(y.map { it.hash })
+        assert(y.size == 4)
     }
 
     @Test

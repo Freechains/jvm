@@ -85,7 +85,7 @@ fun Chain.newBlock (sig_pvt: String, h: BlockHashable) : Block {
         sig_hash = LazySodium.toHex(sig)
     }
 
-    val sig_pub = if (sig_pvt.isEmpty()) "" else sig_pvt.substring(sig_pvt.length/2)
+    val sig_pub = if (sig_pvt.isEmpty()) "" else sig_pvt.pvtToPub()
     val new = Block(h, emptyArray(), Pair(sig_hash,sig_pub), hash)
     this.assertBlock(new)  // TODO: remove (paranoid test)
     return new
@@ -107,6 +107,13 @@ fun Chain.assertBlock (blk: Block) {
 
 fun Chain.getTime (time: String) : Long {
     return if (time == "now") Instant.now().toEpochMilli() else time.toLong()
+}
+
+fun Chain.getMaxTime () : Long {
+    return this.heads
+        .map { this.loadBlockFromHash(it,false) }
+        .map { it.hashable.time }
+        .max()!!
 }
 
 fun Chain.encrypt (encrypt: Boolean, payload: String) : String {
