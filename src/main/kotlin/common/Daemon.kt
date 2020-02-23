@@ -116,6 +116,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val sig  = reader.readLineX()
 
             val chain = local.loadChain(name)
+
             val blk = chain.post (
                 sig,
                 BlockHashable (

@@ -46,6 +46,61 @@ fun String.fromJsonToChain () : Chain {
     return json.parse(Chain.serializer(), this)
 }
 
+// GENESIS
+
+fun Chain.toGenHash () : Hash {
+    return "0_" + this.toHash()
+}
+
+// HASH
+
+val zeros = ByteArray(GenericHash.BYTES)
+private fun String.calcHash () : String {
+    return lazySodium.cryptoGenericHash(this, Key.fromBytes(zeros))
+}
+
+fun Chain.toHash () : String {
+    return (this.name+this.ro.toString()+this.keys[1]).calcHash() // no shared/private allows untrusted nodes
+}
+
+fun BlockHashable.toHash () : Hash {
+    return this.backs.backsToHeight().toString() + "_" + this.toJson().calcHash()
+}
+
+// NODE
+
+fun Chain.newBlock (sig_pvt: String, h: BlockHashable) : Block {
+    val hash = h.toHash()
+
+    var sig_hash = ""
+    //assert(keys[2].isEmpty() || sig_pvt.isEmpty())
+    val pvt = if (sig_pvt.isEmpty()) keys[2] else sig_pvt
+    if (pvt.isNotEmpty()) {
+        val sig = ByteArray(Sign.BYTES)
+        val msg = lazySodium.bytes(hash)
+        val key = Key.fromHexString(pvt).asBytes
+        lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), key)
+        sig_hash = LazySodium.toHex(sig)
+    }
+
+    val sig_pub = if (sig_pvt.isEmpty()) "" else sig_pvt.substring(sig_pvt.length/2)
+    val new = Block(h, emptyArray(), Pair(sig_hash,sig_pub), hash)
+    this.assertBlock(new)  // TODO: remove (paranoid test)
+    return new
+}
+
+fun Chain.assertBlock (blk: Block) {
+    val h = blk.hashable
+    assert(blk.hash == h.toHash())
+    if (blk.signature.first.isNotEmpty()) {
+        val sig = LazySodium.toBin(blk.signature.first)
+        val msg = lazySodium.bytes(blk.hash)
+        val pub = if (blk.signature.second.isEmpty()) this.keys[1] else blk.signature.second
+        val key = Key.fromHexString(pub).asBytes
+        assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
+    }
+}
+
 // POST/LIKE
 
 fun Chain.getTime (time: String) : Long {
@@ -127,27 +182,6 @@ fun Chain.reheads (blk: Block) {
     }
 }
 
-// GENESIS
-
-fun Chain.toGenHash () : Hash {
-    return "0_" + this.toHash()
-}
-
-// HASH
-
-val zeros = ByteArray(GenericHash.BYTES)
-private fun String.calcHash () : String {
-    return lazySodium.cryptoGenericHash(this, Key.fromBytes(zeros))
-}
-
-fun Chain.toHash () : String {
-    return (this.name+this.ro.toString()+this.keys[1]).calcHash() // no shared/private allows untrusted nodes
-}
-
-fun BlockHashable.toHash () : Hash {
-    return this.backs.backsToHeight().toString() + "_" + this.toJson().calcHash()
-}
-
 // FILE SYSTEM
 
 fun Chain.save () {
@@ -156,40 +190,6 @@ fun Chain.save () {
         dir.mkdirs()
     }
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
-}
-
-// NDOE
-
-fun Chain.newBlock (sig_pvt: String, h: BlockHashable) : Block {
-    val hash = h.toHash()
-
-    var sig_hash = ""
-    //assert(keys[2].isEmpty() || sig_pvt.isEmpty())
-    val pvt = if (sig_pvt.isEmpty()) keys[2] else sig_pvt
-    if (pvt.isNotEmpty()) {
-        val sig = ByteArray(Sign.BYTES)
-        val msg = lazySodium.bytes(hash)
-        val key = Key.fromHexString(pvt).asBytes
-        lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), key)
-        sig_hash = LazySodium.toHex(sig)
-    }
-
-    val sig_pub = if (sig_pvt.isEmpty()) "" else sig_pvt.substring(sig_pvt.length/2)
-    val new = Block(h, emptyArray(), Pair(sig_hash,sig_pub), hash)
-    this.assertBlock(new)  // TODO: remove (paranoid test)
-    return new
-}
-
-fun Chain.assertBlock (blk: Block) {
-    val h = blk.hashable
-    assert(blk.hash == h.toHash())
-    if (blk.signature.first.isNotEmpty()) {
-        val sig = LazySodium.toBin(blk.signature.first)
-        val msg = lazySodium.bytes(blk.hash)
-        val pub = if (blk.signature.second.isEmpty()) this.keys[1] else blk.signature.second
-        val key = Key.fromHexString(pub).asBytes
-        assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
-    }
 }
 
 fun Chain.saveBlock (blk: Block) {
