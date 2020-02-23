@@ -14,7 +14,8 @@ import java.time.Instant
 import java.util.*
 import kotlin.collections.HashSet
 
-val h = 1000 * 60 * 60
+val hour = 1000 * 60 * 60
+val day = 24*hour
 
 fun daemon (host : Host) {
     val socket = ServerSocket(host.port)
@@ -257,7 +258,7 @@ fun Socket.chain_send (chain: Chain) : Int {
                 continue                             // already has: finishes subpath
             }
             val blk = chain.loadBlockFromHash(hash,false)
-            if (maxTime-24*h > blk.hashable.time) {
+            if (maxTime-1*day > blk.hashable.time) {
                 //println("[send] max: $hash")
                 toSend.clear()                       // no, but too old: aborts this head path entirely
                 break
@@ -343,8 +344,8 @@ fun Socket.chain_recv (chain: Chain) : Int {
         for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock()
             //println("[recv] ${blk.hash}")
-            assert(maxTime-24*h <= blk.hashable.time)
-            assert(Instant.now().toEpochMilli()+3*h >= blk.hashable.time)
+            assert(maxTime-1*day <= blk.hashable.time)
+            assert(Instant.now().toEpochMilli()+3*hour >= blk.hashable.time)
             chain.assertBlock(blk)
             chain.reheads(blk)
             chain.saveBlock(blk)

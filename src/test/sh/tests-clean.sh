@@ -6,7 +6,7 @@ echo
 
 for i in $(seq 8400 8450)
 do
-  freechains host stop --host=localhost:$i &
+  freechains host stop --host=localhost:$i
 done
 sleep 5
 
