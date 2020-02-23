@@ -186,17 +186,18 @@ fun Chain.reheads (blk: Block) {
 
 // TRAVERSE
 
-fun traverse (chain: Chain, f: (Block)->Boolean) = sequence {
+fun Chain.traverseFromHeads (f: (Block)->Boolean) : Array<Block> {
     val pending = LinkedList<String>()
     val visited = mutableSetOf<String>()
+    val ret = mutableListOf<Block>()
 
-    for (head in chain.heads) {
+    for (head in this.heads) {
         pending.add(head)
     }
 
     while (pending.isNotEmpty()) {
         val hash = pending.removeFirst()
-        val blk = chain.loadBlockFromHash(hash,false)
+        val blk = this.loadBlockFromHash(hash,false)
         if (!f(blk)) {
             break
         }
@@ -206,8 +207,9 @@ fun traverse (chain: Chain, f: (Block)->Boolean) = sequence {
                 pending.addLast(back)
             }
         }
-        yield(blk)
+        ret.add(blk)
     }
+    return ret.toTypedArray()
 }
 
 // FILE SYSTEM

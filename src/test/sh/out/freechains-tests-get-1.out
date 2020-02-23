@@ -1,7 +1,7 @@
 {
     "hashable": {
         "time": 0,
-        "like": 0,
+        "like": null,
         "encoding": "utf8",
         "encrypted": false,
         "payload": "Hello_World",
@@ -17,6 +17,6 @@
         "first": "",
         "second": ""
     },
-    "hash": "1_922F9EDAF6B3DACFD2513B5828676BC3FEC4D72AF6978B5DE99A606CCE17B521",
+    "hash": "1_9EAD2D0A15871A87496F111C493F185290EDAF82AD5829CDFCD7E7E6A1F5F00A",
     "height": 1
 }

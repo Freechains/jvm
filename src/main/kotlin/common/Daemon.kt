@@ -118,21 +118,35 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val chain = local.loadChain(name)
 
             /*
+            val l = traverse(chain, {it.hashable.time})
             if (like != 0) {
-                val rep = chain.getRepOf(sig)
+                val rep = chain.traversegetRepOf(sig)
                 println(rep)
             }
-            */
+             */
+
+            val refs_ = if (refs == "") emptyArray() else refs.split('\n').toTypedArray()
+            val like_ =
+                if (refs_.isEmpty()) {
+                    null
+                } else {
+                    if (chain.containsBlock(refs_[0])) {
+                        val blk = chain.loadBlockFromHash(refs_[0], false)
+                        Like(like,blk.signature.second)
+                    } else {
+                        Like(like,refs_[0])
+                    }
+                }
 
             val blk = chain.post (
                 sig,
                 BlockHashable (
                     chain.getTime(time),
-                    like,
+                    like_,
                     cods[0],
                     cry,
                     chain.encrypt(cry,pay),
-                    if (refs == "") emptyArray() else refs.split('\n').toTypedArray(),
+                    refs_,
                     emptyArray()
                 )
             )

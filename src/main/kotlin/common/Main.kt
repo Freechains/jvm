@@ -7,6 +7,7 @@ import java.io.File
 import java.net.Socket
 import java.util.Base64
 import kotlin.io.println as output
+import kotlin.io.println as println
 
 val doc = """
 freechains
@@ -160,11 +161,12 @@ fun main_ (args: Array<String>) : String? {
                         opts["base64"] as Boolean -> Base64.getEncoder().encode(bytes).toString(Charsets.UTF_8)
                         else -> error("bug found")
                     }
-                    //println(payload)
                     writer.writeBytes(payload)
                     writer.writeLineX("\n")
 
-                    writer.writeLineX((opts["--ref"] as String? ?: "") + "\n")
+                    writer.writeLineX((opts["--ref"] as String?).let {
+                        if (it == null) "" else it + "\n"
+                    })
                     writer.writeLineX((opts["--sign"] as String? ?: ""))
 
                     val hash = reader.readLineX()

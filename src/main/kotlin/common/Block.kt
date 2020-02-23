@@ -11,11 +11,12 @@ import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 
 typealias Hash = String
+typealias Like = Pair<Int,String>?  // 0=normal post, +X: like, -X: dislike
 
 @Serializable
 data class BlockHashable (
     val time      : Long,           // TODO: ULong
-    val like      : Int,            // 0=normal post, +X: like, -X: dislike
+    val like      : Like,
     val encoding  : String,         // payload encoding
     val encrypted : Boolean,        // payload is encrypted (method depends on chain)
     val payload   : String,
