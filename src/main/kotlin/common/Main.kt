@@ -177,10 +177,14 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX("FC chain post")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["--time"] as String)
-                    writer.writeLineX(minus(opts["<integer>"] as String))
+                    writer.writeLineX((opts["<integer>"] as String).let {
+                        if (it.last() != '-') it else ("-" + it.substring(0,it.length-1))
+                    })
                     writer.writeLineX("utf8")
                     writer.writeLineX("false")
-                    writer.writeLineX((opts["--why"] as String? ?: ""))
+                    writer.writeLineX((opts["--why"] as String?).let {
+                        if (it == null) "" else it+"\n"
+                    })
                     writer.writeLineX((opts["<hash>"] as String? ?: opts["<public_key>"] as String) + "\n")
                     writer.writeLineX(opts["--sign"] as String? ?: "")
 
