@@ -124,7 +124,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
                     cods[0],
                     cry,
                     chain.encrypt(cry,pay),
-                    if (refs == "") emptyArray() else (refs+"\n").split('\n').toTypedArray(),
+                    if (refs == "") emptyArray() else refs.split('\n').toTypedArray(),
                     emptyArray()
                 )
             )
