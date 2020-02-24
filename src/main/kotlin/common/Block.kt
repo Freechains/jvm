@@ -6,10 +6,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlin.math.max
 
-import com.goterl.lazycode.lazysodium.LazySodium
-import com.goterl.lazycode.lazysodium.utils.Key
-import org.freechains.platform.lazySodium
-
 typealias Hash = String
 typealias Like = Pair<Int,String>?  // 0=normal post, +X: like, -X: dislike
 

@@ -15,15 +15,19 @@ import java.util.*
 import kotlin.collections.HashSet
 
 val min  = (1000 * 60).toLong()
-val hour = 60 * min
-val day  = 24 * hour
+val hour = 60*min
+val day  = 24*hour
 
 fun String.pvtToPub () : String {
     return this.substring(this.length/2)
 }
 
+fun getNow () : Long {
+    return Instant.now().toEpochMilli()
+}
+
 fun String.nowToTime () : Long {
-    return if (this == "now") Instant.now().toEpochMilli() else this.toLong()
+    return if (this == "now") getNow() else this.toLong()
 }
 
 fun daemon (host : Host) {
@@ -118,7 +122,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val pub = reader.readLineX()
 
             val chain = local.loadChain(name)
-            val likes = chain.likes(time.nowToTime(), pub)
+            val likes = chain.pubkeyLikes(time.nowToTime(), pub)
 
             writer.writeLineX(likes.toString())
             System.err.println("chain reps: $likes")
@@ -245,7 +249,6 @@ fun Socket.chain_send (chain: Chain) : Int {
     writer.writeLineX("FC chain recv")
     writer.writeLineX(chain.name)
 
-    val maxTime = reader.readLineX().toLong()
     val visited = HashSet<Hash>()
     val toSend  = ArrayDeque<Hash>()
     var N       = 0
@@ -269,12 +272,9 @@ fun Socket.chain_send (chain: Chain) : Int {
                 //println("[send] has: $hash")
                 continue                             // already has: finishes subpath
             }
+
             val blk = chain.loadBlockFromHash(hash,false)
-            if (maxTime-1*day > blk.hashable.time) {
-                //println("[send] max: $hash")
-                toSend.clear()                       // no, but too old: aborts this head path entirely
-                break
-            }
+            assert(chain.evalBlock(blk) != -1)
 
             // sends this one and visits children
             toSend.push(hash)
@@ -318,8 +318,6 @@ fun Socket.chain_recv (chain: Chain) : Int {
     // - answers if contains each node
     // - receives all
 
-    val maxTime = chain.getMaxTime()
-    writer.writeLineX(maxTime.toString())
     //println("[recv] $maxTime")
     var N = 0
 
@@ -345,8 +343,7 @@ fun Socket.chain_recv (chain: Chain) : Int {
         for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock()
             //println("[recv] ${blk.hash}")
-            assert(maxTime-1*day <= blk.hashable.time)
-            assert(Instant.now().toEpochMilli()+30*min >= blk.hashable.time)
+            assert(getNow()+30*min >= blk.hashable.time)    // not too much in the future
             chain.assertBlock(blk)
             chain.reheads(blk)
             chain.saveBlock(blk)

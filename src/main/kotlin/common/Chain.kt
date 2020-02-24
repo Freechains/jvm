@@ -5,7 +5,6 @@ import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import java.io.File
-import java.time.Instant
 
 import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.interfaces.Box
@@ -105,13 +104,6 @@ fun Chain.assertBlock (blk: Block) {
 
 // POST/LIKE
 
-fun Chain.getMaxTime () : Long {
-    return this.heads
-        .map { this.loadBlockFromHash(it,false) }
-        .map { it.hashable.time }
-        .max()!!
-}
-
 fun Chain.encrypt (encrypt: Boolean, payload: String) : String {
     if (!encrypt) {
         return payload
@@ -166,21 +158,42 @@ fun Chain.decrypt (decrypt: Boolean, payload: String) : Pair<Boolean,String> {
     }
 }
 
-fun Chain.post (sig_pvt: String, hashable: BlockHashable) : Block {
+fun Chain.post (sig_pvt: String, h: BlockHashable) : Block {
     // checks if is owner of read-only chain
     assert(!this.ro || this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty())
 
     // checks if has enough reputation to like
-    if (hashable.like != null) {
-        val n = hashable.like.first
-        assert(n <= this.likes(hashable.time,sig_pvt.pvtToPub())) { "not enough reputation" }
+    if (h.like != null) {
+        val n = h.like.first
+        assert(n <= this.pubkeyLikes(h.time,sig_pvt.pvtToPub())) { "not enough reputation" }
     }
 
-    val blk = this.newBlock(sig_pvt, hashable.copy(backs=this.heads.toTypedArray()))
+    val blk = this.newBlock(sig_pvt, h.copy(backs=this.decideBacks(h)))
     this.saveBlock(blk)
     this.reheads(blk)
     this.save()
     return blk
+}
+
+fun Chain.decideBacks (h: BlockHashable) : Array<String> {
+    if (h.like != null) {
+        val ref = h.like.second
+        if (this.heads.contains(ref)) {
+            val old = this.loadBlockFromHash(ref,false)
+            if (old.hashable.time >= h.time-2*hour) {
+                return arrayOf(old.hash)
+            }
+        }
+    }
+
+    fun dns (hash: Hash) : List<Hash> {
+        val blk = this.loadBlockFromHash(hash,false)
+        return when (this.evalBlock(blk)) {
+            0 -> blk.hashable.backs.map(::dns).flatten()
+            1 -> arrayListOf<Hash>(blk.hash)
+            else -> error("bug found")
+        }}
+    return this.heads.toList().map(::dns).flatten().toTypedArray()
 }
 
 fun Chain.reheads (blk: Block) {
@@ -195,10 +208,9 @@ fun Chain.reheads (blk: Block) {
     }
 }
 
-fun Chain.likes (now: Long, pub: String) : Int {
-    //val now = this.getMaxTime()
+fun Chain.pubkeyLikes (now: Long, pub: String) : Int {
     val b30s = this.traverseFromHeads {
-        it.hashable.time >= now - 30 * day
+        it.hashable.time >= now - 30*day
     }
     //println("B30s: ${b30s.toList()}")
     val mines = b30s
@@ -221,6 +233,65 @@ fun Chain.likes (now: Long, pub: String) : Int {
     //println("RECV: $recv")
     val all = posts + recv - sent
     return all
+}
+
+// +1: loved or >2h quarantine
+// -1: hated
+//  0: sill in quarantine
+fun Chain.evalBlock (blk: Block) : Int {
+    // immediate likes to this block
+    val news = blk.fronts.toList()
+        .map { this.loadBlockFromHash(it,false) }           // front blocks
+        .filter { it.hashable.time <= blk.hashable.time+2*hour }    // within 2h
+        .filter { it.hashable.like != null }                        // which are likes
+        .filter { it.hashable.like!!.second == blk.hash }           // for received blk
+        .map { it.hashable.like!!.first }                           // get like quantity
+        .sum()                                                      // and sum it all up
+
+    val olds = this.traverseFromHeads {
+        it.hashable.time >= getNow() - 7*day - 3*hour
+    }
+        .filter { it.hashable.like != null }    // number of likes
+        .filter {                               // during same period in the last 7 days
+            for (i in 1..7) {
+                val time = it.hashable.time
+                if (i * day + 3 * hour >= time && time >= i * day - 3 * hour) {
+                    return@filter true
+                }
+            }
+            return@filter false
+        }
+        .map { it.hashable.like!!.first }
+        .sum() / 7                              // average for day
+
+    val ret = when {
+        ( news*0.3 >= olds) ->  1                       // 30% of likes
+        (-news*0.3 >= olds) -> -1                       // 30% of dislikes
+        (blk.hashable.time <= getNow() - 2*hour) -> 1   // quarantine ended
+        else -> 0                                       // still in quarantine
+    }
+
+    if (ret == -1) {
+        // remove blk and fronts from chain.heads
+        fun up (blk: Block) {
+            this.heads.remove(blk.hash)
+
+            // remove blk from each blk.back[i].fronts
+            for (back in blk.hashable.backs) {
+                val b1 = this.loadBlockFromHash(back,false)
+                val b2 = b1.copy(fronts=b1.fronts.toSet().minus(blk.hash).toTypedArray())
+                this.saveBlock(b2)
+            }
+
+            for (front in blk.fronts) {
+                up(this.loadBlockFromHash(front,false))
+            }
+        }
+        up(blk)
+        this.save()
+    }
+
+    return ret
 }
 
 // TRAVERSE

@@ -27,7 +27,12 @@ data class MeuDado(val v: String)
  *  - 10556 -> 10557 -> 10553 -> 10553 -> 10555 ->10557 KB
  *  - chain locks (test sends in parallel)
  *  - give likes to /dev/null when using 2+
- *  - sistema de reputacao (likes in headline)
+ *  - reputation system
+ *    - quarentine
+ *    - new blocks (must work)
+ *    - liferea: likes in title
+ *    - progressive like costs
+ *    - refuse self likes?
  *  - test --utf8-eof
  *  - all use cases (chain cfg e usos da industria)
  *  - assert time of new >= heads
@@ -195,6 +200,13 @@ class Tests {
 
         val x = chain.traverseFromHeads { it.height>1 }
         assert(x.size == 3)
+
+        fun Chain.getMaxTime () : Long {
+            return this.heads
+                .map { this.loadBlockFromHash(it,false) }
+                .map { it.hashable.time }
+                .max()!!
+        }
 
         val y = chain.traverseFromHeads { true }.filter { it.hashable.time >= chain.getMaxTime()-30*day }
         println(y.map { it.hash })
