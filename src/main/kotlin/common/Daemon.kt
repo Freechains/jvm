@@ -14,8 +14,9 @@ import java.time.Instant
 import java.util.*
 import kotlin.collections.HashSet
 
-val hour = (1000 * 60 * 60).toLong()
-val day  = (24*hour)
+val min  = (1000 * 60).toLong()
+val hour = 60 * min
+val day  = 24 * hour
 
 fun String.pvtToPub () : String {
     return this.substring(this.length/2)
@@ -345,7 +346,7 @@ fun Socket.chain_recv (chain: Chain) : Int {
             val blk = reader.readLinesX().jsonToBlock()
             //println("[recv] ${blk.hash}")
             assert(maxTime-1*day <= blk.hashable.time)
-            assert(Instant.now().toEpochMilli()+3*hour >= blk.hashable.time)
+            assert(Instant.now().toEpochMilli()+30*min >= blk.hashable.time)
             chain.assertBlock(blk)
             chain.reheads(blk)
             chain.saveBlock(blk)
