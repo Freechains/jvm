@@ -23,7 +23,8 @@ Usage:
     freechains [options] chain heads <chain>
     freechains [options] chain get <chain> <hash>
     freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
-    freechains [options] chain like <chain> <integer> (<hash> | <public_key>)
+    freechains [options] chain like get <chain> <public_key>
+    freechains [options] chain like post <chain> <integer> (<hash> | <public_key>)
     freechains [options] chain listen <chain>
     freechains [options] chain send <chain> <host:port>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
@@ -129,6 +130,38 @@ fun main_ (args: Array<String>) : String? {
                     }
                     return if (ret.isEmpty()) null else ret
                 }
+                opts["like"] as Boolean -> {
+                    when {
+                        opts["get"] as Boolean -> {
+                            writer.writeLineX("FC chain reps")
+                            writer.writeLineX(opts["<chain>"] as String)
+                            writer.writeLineX(opts["--time"] as String)
+                            writer.writeLineX(opts["<public_key>"] as String)
+                            val ret = reader.readLineX()
+                            System.err.println("chain reps: $ret")
+                            return ret
+                        }
+                        opts["post"] as Boolean -> {
+                            writer.writeLineX("FC chain post")
+                            writer.writeLineX(opts["<chain>"] as String)
+                            writer.writeLineX(opts["--time"] as String)
+                            writer.writeLineX((opts["<integer>"] as String).let {
+                                if (it.last() != '-') it else ("-" + it.substring(0, it.length - 1))
+                            })
+                            writer.writeLineX("utf8")
+                            writer.writeLineX("false")
+                            writer.writeLineX((opts["--why"] as String?).let {
+                                if (it == null) "" else it + "\n"
+                            })
+                            writer.writeLineX((opts["<hash>"] as String? ?: opts["<public_key>"] as String) + "\n")
+                            writer.writeLineX(opts["--sign"] as String? ?: "")
+
+                            writer.writeLineX("\n")
+                            val hash = reader.readLineX()
+                            return hash
+                        }
+                    }
+                }
                 opts["get"] as Boolean -> {
                     writer.writeLineX("FC chain get")
                     writer.writeLineX(opts["<chain>"] as String)
@@ -169,28 +202,6 @@ fun main_ (args: Array<String>) : String? {
                     })
                     writer.writeLineX((opts["--sign"] as String? ?: ""))
 
-                    val hash = reader.readLineX()
-                    return hash
-                }
-                opts["like"] as Boolean -> {
-                    fun minus (v: String) : String {
-                        return if (v.last() != '-') v else ("-" + v.substring(0,v.length-1))
-                    }
-                    writer.writeLineX("FC chain post")
-                    writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(opts["--time"] as String)
-                    writer.writeLineX((opts["<integer>"] as String).let {
-                        if (it.last() != '-') it else ("-" + it.substring(0,it.length-1))
-                    })
-                    writer.writeLineX("utf8")
-                    writer.writeLineX("false")
-                    writer.writeLineX((opts["--why"] as String?).let {
-                        if (it == null) "" else it+"\n"
-                    })
-                    writer.writeLineX((opts["<hash>"] as String? ?: opts["<public_key>"] as String) + "\n")
-                    writer.writeLineX(opts["--sign"] as String? ?: "")
-
-                    writer.writeLineX("\n")
                     val hash = reader.readLineX()
                     return hash
                 }

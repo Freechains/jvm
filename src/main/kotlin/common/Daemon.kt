@@ -15,10 +15,14 @@ import java.util.*
 import kotlin.collections.HashSet
 
 val hour = (1000 * 60 * 60).toLong()
-val day  = (24*hour).toLong()
+val day  = (24*hour)
 
 fun String.pvtToPub () : String {
     return this.substring(this.length/2)
+}
+
+fun String.nowToTime () : Long {
+    return if (this == "now") Instant.now().toEpochMilli() else this.toLong()
 }
 
 fun daemon (host : Host) {
@@ -107,6 +111,17 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             //writer.writeLineX("\n")
             System.err.println("chain get: $hash")
         }
+        "FC chain reps" -> {
+            val name = reader.readLineX().nameCheck()
+            val time = reader.readLineX()
+            val pub = reader.readLineX()
+
+            val chain = local.loadChain(name)
+            val likes = chain.likes(time.nowToTime(), pub)
+
+            writer.writeLineX(likes.toString())
+            System.err.println("chain reps: $likes")
+        }
         "FC chain post" -> {
             val name = reader.readLineX().nameCheck()
             val time = reader.readLineX()
@@ -135,29 +150,10 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
                     }
                 }
 
-            if (like_ != null) {
-                val pub = sig.pvtToPub()
-                val now = chain.getMaxTime()
-                val b30s = chain.traverseFromHeads {
-                    it.hashable.time >= now - 30 * day
-                }
-                val posts = b30s
-                    .filter { it.signature.second == pub }          // how many I signed
-                    .filter { it.hashable.time <= now - 29 * day }      // older than 1 day?
-                    .count()
-                val recv = b30s
-                    .filter { it.hashable.like != null }            // how many
-                    .filter { it.hashable.like!!.second == pub }    // ppl liked me?
-                    .map { it.hashable.like!!.first }
-                    .sum()
-                val all = posts + recv - sent
-                assert(all > 0)
-            }
-
             val blk = chain.post (
                 sig,
                 BlockHashable (
-                    chain.getTime(time),
+                    time.nowToTime(),
                     like_,
                     cods[0],
                     cry,
@@ -317,22 +313,11 @@ fun Socket.chain_recv (chain: Chain) : Int {
     val reader = DataInputStream(this.getInputStream()!!)
     val writer = DataOutputStream(this.getOutputStream()!!)
 
-    fun getMaxTime () : Long {
-        var max: Long = 0
-        for (head in chain.heads) {
-            val blk = chain.loadBlockFromHash(head,false)
-            if (blk.hashable.time > max) {
-                max = blk.hashable.time
-            }
-        }
-        return max
-    }
-
     // - sends most recent timestamp
     // - answers if contains each node
     // - receives all
 
-    val maxTime = getMaxTime()
+    val maxTime = chain.getMaxTime()
     writer.writeLineX(maxTime.toString())
     //println("[recv] $maxTime")
     var N = 0

@@ -334,6 +334,7 @@ class Tests {
     @Test
     fun m3_crypto_post () {
         //a_reset()
+        //main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
         val host = Host_load("/tmp/freechains/tests/M2/")
 
         val c1 = host.createChain("/sym", false, arrayOf("64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2","",""))
@@ -414,5 +415,30 @@ class Tests {
         val j2 = main_(arrayOf("chain","get","/xxx",h2!!))
         val b2 = j2!!.jsonToBlock()
         assert(b2.hashable.payload == "bbb")
+    }
+
+    @Test
+    fun m7_likes () {
+        a_reset()
+        main(arrayOf("host","create","/tmp/freechains/tests/M70/"))
+        thread { main(arrayOf("host","start","/tmp/freechains/tests/M70/")) }
+        Thread.sleep(100)
+        main(arrayOf("chain","join","/xxx","pubpvt","rw","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+
+        val h1 = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--time=0","--sign=6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--time=0","--sign=6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"))
+
+        //main_(arrayOf("chain","like","/xxx","1",h1!!,"--time="+(24*hour-1).toString(),"--sign=6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        assert("0" == main_(arrayOf("chain","like","get","/xxx","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322")))
+        assert("0" == main_(arrayOf("chain","like","get","/xxx","E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369")))
+
+        // give to myself
+        main_(arrayOf("chain","like","post","/xxx","1",h1!!,"--time="+(1*day).toString(),"--sign=6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        assert("1" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322")))
+
+        // give to other
+        main_(arrayOf("chain","like","post","/xxx","1",h2!!,"--time="+(1*day).toString(),"--sign=6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        assert("0" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322")))
+        assert("2" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369")))
     }
 }

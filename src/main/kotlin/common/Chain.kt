@@ -105,10 +105,6 @@ fun Chain.assertBlock (blk: Block) {
 
 // POST/LIKE
 
-fun Chain.getTime (time: String) : Long {
-    return if (time == "now") Instant.now().toEpochMilli() else time.toLong()
-}
-
 fun Chain.getMaxTime () : Long {
     return this.heads
         .map { this.loadBlockFromHash(it,false) }
@@ -171,7 +167,15 @@ fun Chain.decrypt (decrypt: Boolean, payload: String) : Pair<Boolean,String> {
 }
 
 fun Chain.post (sig_pvt: String, hashable: BlockHashable) : Block {
-    assert(!this.ro || this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty()) // checks if owner of read-only chain
+    // checks if is owner of read-only chain
+    assert(!this.ro || this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty())
+
+    // checks if has enough reputation to like
+    if (hashable.like != null) {
+        val n = hashable.like.first
+        assert(n <= this.likes(hashable.time,sig_pvt.pvtToPub())) { "not enough reputation" }
+    }
+
     val blk = this.newBlock(sig_pvt, hashable.copy(backs=this.heads.toTypedArray()))
     this.saveBlock(blk)
     this.reheads(blk)
@@ -189,6 +193,34 @@ fun Chain.reheads (blk: Block) {
             this.saveBlock(new)
         }
     }
+}
+
+fun Chain.likes (now: Long, pub: String) : Int {
+    //val now = this.getMaxTime()
+    val b30s = this.traverseFromHeads {
+        it.hashable.time >= now - 30 * day
+    }
+    //println("B30s: ${b30s.toList()}")
+    val mines = b30s
+        .filter { it.signature.second == pub }          // all I signed
+    //println("MINES: $mines")
+    val posts = mines
+        .filter { it.hashable.time <= now - 1*day }     // mines older than 1 day
+        .count()
+    //println("POSTS: $posts")
+    val sent = mines
+        .filter { it.hashable.like != null }            // my likes to others
+        .map { it.hashable.like!!.first }
+        .sum()
+    //println("SENT: $sent")
+    val recv = b30s
+        .filter { it.hashable.like != null }
+        .filter { it.hashable.like!!.second == pub }    // others liked me
+        .map { it.hashable.like!!.first }
+        .sum()
+    //println("RECV: $recv")
+    val all = posts + recv - sent
+    return all
 }
 
 // TRAVERSE
