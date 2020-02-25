@@ -1,5 +1,7 @@
 #!/bin/env lua5.3
 
+-- lua5.3 dot.lua /tmp/freechains/8400/chains/ | dot -Tpng -o out.png
+
 local json = require 'json'
 
 DIR   = ...
@@ -36,7 +38,7 @@ function go (hash)
 
     local blk = json.decode(assert(io.open(DIR..'/blocks/'..hash..'.blk')):read('*a'))
 
-    NODES[#NODES+1] = '_'..hash..'[label="'..sub(hash)..'\n'..blk.hashable.payload..'"];'
+    NODES[#NODES+1] = '_'..hash..'[label="'..sub(hash)..'\n'..blk.hashable.payload..'\n'..math.floor(blk.hashable.time/3600000)..'"];'
 
     for _,front in ipairs(blk.fronts) do
         CONNS[#CONNS+1] = '_'..hash..' -> _'..front

@@ -176,13 +176,13 @@ fun Chain.post (sig_pvt: String, h: BlockHashable) : Block {
 }
 
 fun Chain.decideBacks (h: BlockHashable) : Array<String> {
+    // if linking a like which refers to a block in quarantine,
+    // ignore current heads and point directly to the liked block
     if (h.like != null) {
-        val ref = h.like.second
-        if (this.heads.contains(ref)) {
-            val old = this.loadBlockFromHash(ref,false)
-            if (old.hashable.time >= h.time-2*hour) {
-                return arrayOf(old.hash)
-            }
+        val ref = h.refs[0]
+        val liked = this.loadBlockFromHash(ref,false)
+        if (liked.hashable.time >= h.time-2*hour) {
+            return arrayOf(liked.hash)
         }
     }
 
@@ -201,6 +201,7 @@ fun Chain.reheads (blk: Block) {
     for (back in blk.hashable.backs) {
         this.heads.remove(back)
         val old = this.loadBlockFromHash(back,false)
+        assert(!old.fronts.contains((blk.hash)))
         if (!old.fronts.contains((blk.hash))) {
             val new = old.copy(fronts=(old.fronts+blk.hash).sortedArray())
             this.saveBlock(new)
