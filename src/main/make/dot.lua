@@ -38,7 +38,11 @@ function go (hash)
 
     local blk = json.decode(assert(io.open(DIR..'/blocks/'..hash..'.blk')):read('*a'))
 
-    NODES[#NODES+1] = '_'..hash..'[label="'..sub(hash)..'\n'..blk.hashable.payload..'\n'..math.floor(blk.hashable.time/3600000)..'"];'
+    local h   = blk.hashable
+    local ref = sub(h.refs[1] or '')
+    local t   = math.floor(h.time/3600000)
+
+    NODES[#NODES+1] = '_'..hash..'[label="'..sub(hash)..'\n'..h.payload..'\n'..ref..'\n'..t..'"];'
 
     for _,front in ipairs(blk.fronts) do
         CONNS[#CONNS+1] = '_'..hash..' -> _'..front

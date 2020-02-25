@@ -202,10 +202,8 @@ fun Chain.reheads (blk: Block) {
         this.heads.remove(back)
         val old = this.loadBlockFromHash(back,false)
         assert(!old.fronts.contains((blk.hash)))
-        if (!old.fronts.contains((blk.hash))) {
-            val new = old.copy(fronts=(old.fronts+blk.hash).sortedArray())
-            this.saveBlock(new)
-        }
+        val new = old.copy(fronts=(old.fronts+blk.hash).sortedArray())
+        this.saveBlock(new)
     }
 }
 
