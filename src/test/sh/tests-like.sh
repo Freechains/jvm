@@ -29,6 +29,15 @@ j4=`freechains --host=localhost:8400 chain get / $b4`
 d41=`jq ".hashable.like" <(echo $j4)`
 diff <(echo $d41) <(echo '{ "first": -13, "second": "4EC5AF592D177459D2338D07FFF9A9B64822EF5BE9E9715E8C63965DD2AF6ECB" }') || exit 1
 
+# 0 <- Hello <- +1 <- -13
+
+###############################################################################
+
+freechains host create $FC/8401 8401
+freechains host start $FC/8401 &
+sleep 0.5
+freechains --host=localhost:8401 chain join /
+
 ###############################################################################
 
 echo

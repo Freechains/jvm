@@ -40,9 +40,10 @@ function go (hash)
 
     local h   = blk.hashable
     local ref = sub(h.refs[1] or '')
-    local t   = math.floor(h.time/3600000)
+    local t   = math.floor(blk.time/3600000)
+    local lik = (type(h.like)=='table' and h.like.n) or '---'
 
-    NODES[#NODES+1] = '_'..hash..'[label="'..sub(hash)..'\n'..h.payload..'\n'..ref..'\n'..t..'"];'
+    NODES[#NODES+1] = '_'..hash..'[label="'..sub(hash)..'\n'..h.payload..'\n'..ref..'\n'..lik..'\n'..t..'"];'
 
     for _,front in ipairs(blk.fronts) do
         CONNS[#CONNS+1] = '_'..hash..' -> _'..front

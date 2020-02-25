@@ -164,7 +164,7 @@ fun Chain.post (sig_pvt: String, now: Long, h: BlockHashable) : Block {
 
     // checks if has enough reputation to like
     if (h.like != null) {
-        val n = h.like.first
+        val n = h.like.n
         assert(n <= this.pubkeyLikes(now,sig_pvt.pvtToPub())) { "not enough reputation" }
     }
 
@@ -223,13 +223,13 @@ fun Chain.pubkeyLikes (now: Long, pub: String) : Int {
     //println("POSTS: $posts")
     val sent = mines
         .filter { it.hashable.like != null }            // my likes to others
-        .map { it.hashable.like!!.first }
+        .map { it.hashable.like!!.n }
         .sum()
     //println("SENT: $sent")
     val recv = b30s
         .filter { it.hashable.like != null }
-        .filter { it.hashable.like!!.second == pub }    // others liked me
-        .map { it.hashable.like!!.first }
+        .filter { it.hashable.like!!.pubkey == pub }    // others liked me
+        .map { it.hashable.like!!.n }
         .sum()
     //println("RECV: $recv")
     val all = posts + recv - sent
@@ -237,15 +237,15 @@ fun Chain.pubkeyLikes (now: Long, pub: String) : Int {
 }
 
 //      forward rehead
-// -1:     no     no
-//  0:    yes     no
-//  1:    yes    yes
+// -1:     no     no        (block dislikes = 1/2 of all likes since post time)
+//  0:    yes     no        (any new likes  < 1/4 of all likes in the past 24h, otherwise change to 1)
+//  1:    yes    yes        (block likes    = 1/2 of all likes since post time)
 fun Chain.evalBlock (blk: Block) : Int {
     // reputation of this block (likes - dislikes)
     val likes = this.traverseFromBacksToFronts (blk, { true })
         .filter { it.hashable.like != null }                    // which are likes
-        .filter { it.hashable.like!!.second == blk.hash }       // for received blk
-        .map { it.hashable.like!!.first }                       // get like quantity
+        .filter { it.hashable.like!!.pubkey == blk.hash }       // for received blk
+        .map { it.hashable.like!!.n }                           // get like quantity
         .sum()                                                  // plus-minus
 
     // all positive likes since block being evaluated
@@ -253,14 +253,14 @@ fun Chain.evalBlock (blk: Block) : Int {
     // (negatives not necessarily, e.g., other spam, etc)
     val ps = this.traverseFromHeads { it.time > getNow()-24*hour }
         .filter { it.hashable.like !=null }
-        .filter { it.hashable.like!!.first > 0 }
+        .filter { it.hashable.like!!.n > 0 }
 
     val psNew = ps.filter { it.time > blk.time }
-        .map { it.hashable.like!!.first }
+        .map { it.hashable.like!!.n }
         .sum()
 
     val ps24 = ps
-        .map { it.hashable.like!!.first }
+        .map { it.hashable.like!!.n }
         .sum()
 
     return when {

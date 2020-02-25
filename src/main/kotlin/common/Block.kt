@@ -7,11 +7,16 @@ import kotlinx.serialization.json.JsonConfiguration
 import kotlin.math.max
 
 typealias Hash = String
-typealias Like = Pair<Int,String>?  // 0=normal post, +X: like, -X: dislike
+
+@Serializable
+data class Like (
+    val n      : Int,       // +X: like, -X: dislike
+    val pubkey : String     // target public key
+)
 
 @Serializable
 data class BlockHashable (
-    val like      : Like,
+    val like      : Like?,
     val encoding  : String,         // payload encoding
     val encrypted : Boolean,        // payload is encrypted (method depends on chain)
     val payload   : String,

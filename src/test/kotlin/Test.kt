@@ -27,12 +27,12 @@ data class MeuDado(val v: String)
  *  -   736 ->   809 ->   930 ->  1180 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 KB
  *  - chain locks (test sends in parallel)
- *  - give likes to /dev/null when using 2+
  *  - reputation system
  *    - quarentine
  *    - new blocks (must work)
  *    - liferea: likes in title
  *    - progressive like costs
+ *      - give likes to /dev/null when using 2+
  *    - refuse self likes?
  *  - test --utf8-eof
  *  - all use cases (chain cfg e usos da industria)
