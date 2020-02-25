@@ -23,7 +23,7 @@ data class BlockHashable (
 @Serializable
 data class Block (
     val hashable  : BlockHashable,       // things to hash
-    val fronts    : Array<Hash>,         // front links (next blocks)
+    val fronts    : MutableList<Hash>,   // front links (next blocks)
     val signature : Pair<String,String>, // <hash,pub> (if pub=="", assumes pub of chain)
     val hash      : Hash                 // hash of hashable
 ) {

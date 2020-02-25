@@ -294,10 +294,9 @@ fun Socket.chain_send (chain: Chain) : Int {
         val n2 = toSend.size
         while (toSend.isNotEmpty()) {
             val hash = toSend.pop()
-            val old = chain.loadBlockFromHash(hash,false)
-            val new = old.copy(fronts=emptyArray())  // remove fronts
-            //println("[send] ${new.hash}")
-            writer.writeBytes(new.toJson())
+            val blk = chain.loadBlockFromHash(hash,false)
+            blk.fronts.clear()
+            writer.writeBytes(blk.toJson())
             writer.writeLineX("\n")
         }
         val n2_ = reader.readLineX().toInt()          // how many blocks again

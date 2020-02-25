@@ -85,7 +85,7 @@ fun Chain.newBlock (sig_pvt: String, h: BlockHashable) : Block {
     }
 
     val sig_pub = if (sig_pvt.isEmpty()) "" else sig_pvt.pvtToPub()
-    val new = Block(h, emptyArray(), Pair(sig_hash,sig_pub), hash)
+    val new = Block(h, mutableListOf(), Pair(sig_hash,sig_pub), hash)
     this.assertBlock(new)  // TODO: remove (paranoid test)
     return new
 }
@@ -202,8 +202,9 @@ fun Chain.reheads (blk: Block) {
         this.heads.remove(back)
         val old = this.loadBlockFromHash(back,false)
         assert(!old.fronts.contains((blk.hash)))
-        val new = old.copy(fronts=(old.fronts+blk.hash).sortedArray())
-        this.saveBlock(new)
+        old.fronts.add(blk.hash)
+        old.fronts.sort()
+        this.saveBlock(old)
     }
 }
 
@@ -239,7 +240,7 @@ fun Chain.pubkeyLikes (now: Long, pub: String) : Int {
 //  0: sill in quarantine
 fun Chain.evalBlock (blk: Block) : Int {
     // immediate likes to this block
-    val news = blk.fronts.toList()
+    val news = blk.fronts
         .map { this.loadBlockFromHash(it,false) }           // front blocks
         .filter { it.hashable.time <= blk.hashable.time+2*hour }    // within 2h
         .filter { it.hashable.like != null }                        // which are likes
@@ -277,9 +278,9 @@ fun Chain.evalBlock (blk: Block) : Int {
 
             // remove blk from each blk.back[i].fronts
             for (back in blk.hashable.backs) {
-                val b1 = this.loadBlockFromHash(back,false)
-                val b2 = b1.copy(fronts=b1.fronts.toSet().minus(blk.hash).toTypedArray())
-                this.saveBlock(b2)
+                val old = this.loadBlockFromHash(back,false)
+                old.fronts.remove(blk.hash)
+                this.saveBlock(old)
             }
 
             for (front in blk.fronts) {

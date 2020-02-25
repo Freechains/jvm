@@ -44,7 +44,7 @@ fun Host.createChain (name: String, ro: Boolean, keys: Array<String>) : Chain {
             emptyArray(),
             emptyArray()
         ),
-        emptyArray(),
+        mutableListOf(),
         Pair("",""),
         chain.toGenHash()
     )
