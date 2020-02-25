@@ -13,10 +13,7 @@
     "fronts": [
         "1_B865A4B2F2C79A1BF4BE047932AD5108BA9B5AF13C711F7B369896C59BC07A2E"
     ],
-    "signature": {
-        "first": "",
-        "second": ""
-    },
+    "signature": null,
     "hash": "0_E7FCC59344F7F6D23A62DCF947EE764E5149290D0D99C31BC33FD7E05BAD71D3",
     "height": 0
 }

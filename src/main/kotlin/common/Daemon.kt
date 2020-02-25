@@ -149,7 +149,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
                 } else {
                     if (chain.containsBlock(refs_[0])) {
                         val blk = chain.loadBlockFromHash(refs_[0], false)
-                        Like(like,blk.signature.second)
+                        Like(like,blk.signature!!.pubkey)
                     } else {
                         Like(like,refs_[0])
                     }

@@ -15,6 +15,12 @@ data class Like (
 )
 
 @Serializable
+data class Signature (
+    val hash   : String,    // signature
+    val pubkey : String     // of pubkey (if "", assumes pub of chain)
+)
+
+@Serializable
 data class BlockHashable (
     val like      : Like?,
     val encoding  : String,         // payload encoding
@@ -29,7 +35,7 @@ data class Block (
     val hashable  : BlockHashable,       // things to hash
     val time      : Long,                // TODO: ULong
     val fronts    : MutableList<Hash>,   // front links (next blocks)
-    val signature : Pair<String,String>, // <hash,pub> (if pub=="", assumes pub of chain)
+    val signature : Signature?,
     val hash      : Hash                 // hash of hashable
 ) {
     val height    : Int = this.hashable.backs.backsToHeight()

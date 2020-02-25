@@ -27,7 +27,7 @@ diff <(echo $d31) <(echo $d32) || exit 1
 b4=`freechains --host=localhost:8400 chain like post / 13- "$b1" --why="hated it"`
 j4=`freechains --host=localhost:8400 chain get / $b4`
 d41=`jq ".hashable.like" <(echo $j4)`
-diff <(echo $d41) <(echo '{ "first": -13, "second": "4EC5AF592D177459D2338D07FFF9A9B64822EF5BE9E9715E8C63965DD2AF6ECB" }') || exit 1
+diff <(echo $d41) <(echo '{ "n": -13, "pubkey": "4EC5AF592D177459D2338D07FFF9A9B64822EF5BE9E9715E8C63965DD2AF6ECB" }') || exit 1
 
 # 0 <- Hello <- +1 <- -13
 

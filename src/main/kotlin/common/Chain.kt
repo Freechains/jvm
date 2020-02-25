@@ -84,8 +84,13 @@ fun Chain.newBlock (sig_pvt: String, now: Long, h: BlockHashable) : Block {
         sig_hash = LazySodium.toHex(sig)
     }
 
-    val sig_pub = if (sig_pvt.isEmpty()) "" else sig_pvt.pvtToPub()
-    val new = Block(h, now, mutableListOf(), Pair(sig_hash,sig_pub), hash)
+    val sig =
+        if (sig_hash.isEmpty())
+            null
+        else
+            Signature(sig_hash, if (sig_pvt.isEmpty()) "" else sig_pvt.pvtToPub())
+
+    val new = Block(h, now, mutableListOf(), sig, hash)
     this.assertBlock(new)  // TODO: remove (paranoid test)
     return new
 }
@@ -93,10 +98,10 @@ fun Chain.newBlock (sig_pvt: String, now: Long, h: BlockHashable) : Block {
 fun Chain.assertBlock (blk: Block) {
     val h = blk.hashable
     assert(blk.hash == h.toHash())
-    if (blk.signature.first.isNotEmpty()) {
-        val sig = LazySodium.toBin(blk.signature.first)
+    if (blk.signature != null) {
+        val sig = LazySodium.toBin(blk.signature.hash)
         val msg = lazySodium.bytes(blk.hash)
-        val pub = if (blk.signature.second.isEmpty()) this.keys[1] else blk.signature.second
+        val pub = if (blk.signature.pubkey.isEmpty()) this.keys[1] else blk.signature.pubkey
         val key = Key.fromHexString(pub).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
     }
@@ -215,10 +220,11 @@ fun Chain.pubkeyLikes (now: Long, pub: String) : Int {
     }
     //println("B30s: ${b30s.toList()}")
     val mines = b30s
-        .filter { it.signature.second == pub }          // all I signed
+        .filter { it.signature != null &&
+                  it.signature.pubkey == pub }           // all I signed
     //println("MINES: $mines")
     val posts = mines
-        .filter { it.time <= now - 1*day }     // mines older than 1 day
+        .filter { it.time <= now - 1*day }              // mines older than 1 day
         .count()
     //println("POSTS: $posts")
     val sent = mines

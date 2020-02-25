@@ -167,7 +167,7 @@ class Tests {
         chain.save()
         val genesis = Block(
             BlockHashable(null,"utf8",false,"", emptyArray(), emptyArray()),
-            0, mutableListOf(), Pair("",""), chain.toGenHash()
+            0, mutableListOf(), null, chain.toGenHash()
         )
         chain.saveBlock(genesis)
 
