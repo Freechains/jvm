@@ -168,11 +168,33 @@ fun Chain.post (sig_pvt: String, now: Long, h: BlockHashable) : Block {
         assert(n <= this.pubkeyLikes(now,sig_pvt.pvtToPub())) { "not enough reputation" }
     }
 
-    val blk = this.newBlock(sig_pvt, now, h.copy(backs=this.heads.toTypedArray()))
+    val blk = this.newBlock(sig_pvt, now, h.copy(backs=this.decideBacks(h)))
     this.saveBlock(blk)
     this.reheads(blk)
     this.save()
     return blk
+}
+
+fun Chain.decideBacks (h: BlockHashable) : Array<String> {
+    // if linking a new like that refers to a block in quarantine,
+    // ignore current heads and point directly to the liked block only
+    if (h.like != null) {
+        val ref = h.refs[0]
+        val liked = this.loadBlockFromHash(ref,false)
+        if (this.evalBlock(liked) != 1) {
+            return arrayOf(liked.hash)          // liked block still in quarantine
+        }
+    }
+
+    // otherwise, link to heads that are not in quarantine
+    fun downs (hash: Hash) : List<Hash> {
+        val blk = this.loadBlockFromHash(hash, false)
+        return when (this.evalBlock(blk)) {
+            1    -> arrayListOf<Hash>(blk.hash)
+            else -> blk.hashable.backs.map(::downs).flatten()
+        }
+    }
+    return this.heads.toList().map(::downs).flatten().toTypedArray()
 }
 
 fun Chain.reheads (blk: Block) {
@@ -214,6 +236,43 @@ fun Chain.pubkeyLikes (now: Long, pub: String) : Int {
     return all
 }
 
+//      forward rehead
+// -1:     no     no
+//  0:    yes     no
+//  1:    yes    yes
+fun Chain.evalBlock (blk: Block) : Int {
+    // reputation of this block (likes - dislikes)
+    val likes = this.traverseFromBacksToFronts (blk, { true })
+        .filter { it.hashable.like != null }                    // which are likes
+        .filter { it.hashable.like!!.second == blk.hash }       // for received blk
+        .map { it.hashable.like!!.first }                       // get like quantity
+        .sum()                                                  // plus-minus
+
+    // all positive likes since block being evaluated
+    // (only positive likes because they are the ones that could be used to refuse this block)
+    // (negatives not necessarily, e.g., other spam, etc)
+    val ps = this.traverseFromHeads { it.time > getNow()-24*hour }
+        .filter { it.hashable.like !=null }
+        .filter { it.hashable.like!!.first > 0 }
+
+    val psNew = ps.filter { it.time > blk.time }
+        .map { it.hashable.like!!.first }
+        .sum()
+
+    val ps24 = ps
+        .map { it.hashable.like!!.first }
+        .sum()
+
+    return when {
+        likes  > psNew/2 -> 1
+        -likes > psNew/2 -> -1
+        else -> if (psNew >= ps24/4)
+                    1   // number of new likes is 1/4 over yesterday, time to move on
+                else
+                    0   // still in quarantine
+    }
+}
+
 // TRAVERSE
 
 fun Chain.traverseFromHeads (f: (Block)->Boolean) : Array<Block> {
@@ -222,7 +281,7 @@ fun Chain.traverseFromHeads (f: (Block)->Boolean) : Array<Block> {
     val ret = mutableListOf<Block>()
 
     for (head in this.heads) {
-        pending.add(head)
+        pending.addLast(head)
     }
 
     while (pending.isNotEmpty()) {
@@ -235,6 +294,32 @@ fun Chain.traverseFromHeads (f: (Block)->Boolean) : Array<Block> {
             if (! visited.contains(back)) {
                 visited.add(back)
                 pending.addLast(back)
+            }
+        }
+        ret.add(blk)
+    }
+    return ret.toTypedArray()
+}
+
+fun Chain.traverseFromBacksToFronts (blk: Block, f: (Block)->Boolean) : Array<Block> {
+    val pending = LinkedList<String>()
+    val visited = mutableSetOf<String>()
+    val ret = mutableListOf<Block>()
+
+    for (front in blk.fronts) {
+        pending.addLast(front)
+    }
+
+    while (pending.isNotEmpty()) {
+        val hash = pending.removeFirst()
+        val new = this.loadBlockFromHash(hash,false)
+        if (!f(new)) {
+            break
+        }
+        for (front in new.fronts) {
+            if (! visited.contains(front)) {
+                visited.add(front)
+                pending.addLast(front)
             }
         }
         ret.add(blk)

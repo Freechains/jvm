@@ -266,14 +266,18 @@ fun Socket.chain_send (chain: Chain) : Int {
             val hash = pending.pop()
             visited.add(hash)
             //println("[send] $hash")
+
+            val blk = chain.loadBlockFromHash(hash,false)
+            if (chain.evalBlock(blk) == -1) {
+                continue                            // block has no reputation
+            }
+
             writer.writeLineX(hash)                  // asks if contains hash
             val has = reader.readLineX().toBoolean() // receives yes or no
             if (has) {
                 //println("[send] has: $hash")
                 continue                             // already has: finishes subpath
             }
-
-            val blk = chain.loadBlockFromHash(hash,false)
 
             // sends this one and visits children
             toSend.push(hash)
