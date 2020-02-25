@@ -25,6 +25,7 @@ data class Chain (
 ) {
     val hash  : String = this.toHash()
     val heads : ArrayList<Hash> = arrayListOf(this.toGenHash())
+    val rems  : MutableList<Hash> = mutableListOf()
 }
 
 // TODO: change to contract/constructor assertion
@@ -176,24 +177,26 @@ fun Chain.post (sig_pvt: String, h: BlockHashable) : Block {
 }
 
 fun Chain.decideBacks (h: BlockHashable) : Array<String> {
-    // if linking a like which refers to a block in quarantine,
+    // if linking a new like that refers to a block in quarantine,
     // ignore current heads and point directly to the liked block
     if (h.like != null) {
         val ref = h.refs[0]
         val liked = this.loadBlockFromHash(ref,false)
-        if (liked.hashable.time >= h.time-2*hour) {
-            return arrayOf(liked.hash)
+        if (liked.localTime >= h.time-tTine) {
+            return arrayOf(liked.hash)          // liked block still in quarantine
         }
     }
 
-    fun dns (hash: Hash) : List<Hash> {
-        val blk = this.loadBlockFromHash(hash,false)
-        return when (this.evalBlock(blk)) {
-            0 -> blk.hashable.backs.map(::dns).flatten()
-            1 -> arrayListOf<Hash>(blk.hash)
+    fun downs (hash: Hash) : List<Hash> {
+        val blk = this.loadBlockFromHash(hash, false)
+        val tine = this.evalBlock(blk)
+        return when {
+            (tine == null) -> blk.hashable.backs.map(::downs).flatten()
+            tine -> arrayListOf<Hash>(blk.hash)
             else -> error("bug found")
-        }}
-    return this.heads.toList().map(::dns).flatten().toTypedArray()
+        }
+    }
+    return this.heads.toList().map(::downs).flatten().toTypedArray()
 }
 
 fun Chain.reheads (blk: Block) {
@@ -235,46 +238,38 @@ fun Chain.pubkeyLikes (now: Long, pub: String) : Int {
     return all
 }
 
-// +1: loved or >2h quarantine
-// -1: hated
-//  0: sill in quarantine
-fun Chain.evalBlock (blk: Block) : Int {
+fun Chain.evalBlock (blk: Block) : Boolean? {
+    if (blk.quarantine != null) {
+        return blk.quarantine!!
+    }
+    if (blk.localTime >= getNow() - tTine) {
+        return null    // still in quarantine
+    }
+
     // immediate likes to this block
-    val news = blk.fronts
-        .map { this.loadBlockFromHash(it,false) }           // front blocks
-        .filter { it.hashable.time <= blk.hashable.time+2*hour }    // within 2h
-        .filter { it.hashable.like != null }                        // which are likes
-        .filter { it.hashable.like!!.second == blk.hash }           // for received blk
-        .map { it.hashable.like!!.first }                           // get like quantity
-        .sum()                                                      // and sum it all up
+    val likes = blk.fronts
+        .map { this.loadBlockFromHash(it,false) }       // front blocks
+        .filter { it.localTime <= blk.localTime+tTine }         // within quarantine
+        .filter { it.hashable.like != null }                    // which are likes
+        .filter { it.hashable.like!!.second == blk.hash }       // for received blk
+        .map { it.hashable.like!!.first }                       // get like quantity
 
-    val olds = this.traverseFromHeads {
-        it.hashable.time >= getNow() - 7*day - 3*hour
-    }
-        .filter { it.hashable.like != null }    // number of likes
-        .filter {                               // during same period in the last 7 days
-            for (i in 1..7) {
-                val time = it.hashable.time
-                if (i * day + 3 * hour >= time && time >= i * day - 3 * hour) {
-                    return@filter true
-                }
-            }
-            return@filter false
-        }
-        .map { it.hashable.like!!.first }
-        .sum() / 7                              // average for day
+    val plus  = likes.filter { it > 0 }.sum()
+    val minus = likes.filter { it < 0 }.sum()
 
-    val ret = when {
-        ( news*0.3 >= olds) ->  1                       // 30% of likes
-        (-news*0.3 >= olds) -> -1                       // 30% of dislikes
-        (blk.hashable.time <= getNow() - 2*hour) -> 1   // quarantine ended
-        else -> 0                                       // still in quarantine
-    }
+    val accepted = (plus+1)*5 > minus
+    blk.quarantine = accepted
 
-    if (ret == -1) {
+    if (accepted) {
+        this.saveBlock(blk)
+    } else {
         // remove blk and fronts from chain.heads
         fun up (blk: Block) {
             this.heads.remove(blk.hash)
+            blk.quarantine = false
+            this.saveBlock(blk)
+            this.rems.add(blk.hash)
+            this.save()
 
             // remove blk from each blk.back[i].fronts
             for (back in blk.hashable.backs) {
@@ -291,7 +286,7 @@ fun Chain.evalBlock (blk: Block) : Int {
         this.save()
     }
 
-    return ret
+    return accepted
 }
 
 // TRAVERSE

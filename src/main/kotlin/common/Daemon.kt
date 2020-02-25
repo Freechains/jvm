@@ -14,9 +14,11 @@ import java.time.Instant
 import java.util.*
 import kotlin.collections.HashSet
 
-val min  = (1000 * 60).toLong()
-val hour = 60*min
-val day  = 24*hour
+const val min  = (1000 * 60).toLong()
+const val hour = 60*min
+const val day  = 24*hour
+
+const val tTine = 2*hour
 
 fun String.pvtToPub () : String {
     return this.substring(this.length/2)
@@ -274,7 +276,8 @@ fun Socket.chain_send (chain: Chain) : Int {
             }
 
             val blk = chain.loadBlockFromHash(hash,false)
-            assert(chain.evalBlock(blk) != -1)
+            val tine = chain.evalBlock(blk)
+            assert(tine==null || tine)
 
             // sends this one and visits children
             toSend.push(hash)
