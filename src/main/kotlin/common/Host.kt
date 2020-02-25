@@ -36,7 +36,6 @@ fun Host.createChain (name: String, ro: Boolean, keys: Array<String>) : Chain {
     chain.save()
     val genesis = Block (
         BlockHashable (
-            0,
             null,
             "",
             false,
@@ -44,6 +43,7 @@ fun Host.createChain (name: String, ro: Boolean, keys: Array<String>) : Chain {
             emptyArray(),
             emptyArray()
         ),
+        0,
         mutableListOf(),
         Pair("",""),
         chain.toGenHash()

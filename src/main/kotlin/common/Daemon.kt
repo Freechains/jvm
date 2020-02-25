@@ -18,8 +18,6 @@ const val min  = (1000 * 60).toLong()
 const val hour = 60*min
 const val day  = 24*hour
 
-const val tTine = 2*hour
-
 fun String.pvtToPub () : String {
     return this.substring(this.length/2)
 }
@@ -159,8 +157,8 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
 
             val blk = chain.post (
                 sig,
+                time.nowToTime(),
                 BlockHashable (
-                    time.nowToTime(),
                     like_,
                     cods[0],
                     cry,
@@ -343,7 +341,6 @@ fun Socket.chain_recv (chain: Chain) : Int {
         for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock()
             //println("[recv] ${blk.hash}")
-            assert(getNow()+30*min >= blk.hashable.time)    // not too much in the future
             chain.assertBlock(blk)
             chain.reheads(blk)
             chain.saveBlock(blk)

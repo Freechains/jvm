@@ -70,7 +70,7 @@ fun BlockHashable.toHash () : Hash {
 
 // NODE
 
-fun Chain.newBlock (sig_pvt: String, h: BlockHashable) : Block {
+fun Chain.newBlock (sig_pvt: String, now: Long, h: BlockHashable) : Block {
     val hash = h.toHash()
 
     var sig_hash = ""
@@ -85,7 +85,7 @@ fun Chain.newBlock (sig_pvt: String, h: BlockHashable) : Block {
     }
 
     val sig_pub = if (sig_pvt.isEmpty()) "" else sig_pvt.pvtToPub()
-    val new = Block(h, mutableListOf(), Pair(sig_hash,sig_pub), hash)
+    val new = Block(h, now, mutableListOf(), Pair(sig_hash,sig_pub), hash)
     this.assertBlock(new)  // TODO: remove (paranoid test)
     return new
 }
@@ -158,17 +158,17 @@ fun Chain.decrypt (decrypt: Boolean, payload: String) : Pair<Boolean,String> {
     }
 }
 
-fun Chain.post (sig_pvt: String, h: BlockHashable) : Block {
+fun Chain.post (sig_pvt: String, now: Long, h: BlockHashable) : Block {
     // checks if is owner of read-only chain
     assert(!this.ro || this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty())
 
     // checks if has enough reputation to like
     if (h.like != null) {
         val n = h.like.first
-        assert(n <= this.pubkeyLikes(h.time,sig_pvt.pvtToPub())) { "not enough reputation" }
+        assert(n <= this.pubkeyLikes(now,sig_pvt.pvtToPub())) { "not enough reputation" }
     }
 
-    val blk = this.newBlock(sig_pvt, h.copy(backs=this.heads.toTypedArray()))
+    val blk = this.newBlock(sig_pvt, now, h.copy(backs=this.heads.toTypedArray()))
     this.saveBlock(blk)
     this.reheads(blk)
     this.save()
@@ -189,14 +189,14 @@ fun Chain.reheads (blk: Block) {
 
 fun Chain.pubkeyLikes (now: Long, pub: String) : Int {
     val b30s = this.traverseFromHeads {
-        it.hashable.time >= now - 30*day
+        it.time >= now - 30*day
     }
     //println("B30s: ${b30s.toList()}")
     val mines = b30s
         .filter { it.signature.second == pub }          // all I signed
     //println("MINES: $mines")
     val posts = mines
-        .filter { it.hashable.time <= now - 1*day }     // mines older than 1 day
+        .filter { it.time <= now - 1*day }     // mines older than 1 day
         .count()
     //println("POSTS: $posts")
     val sent = mines

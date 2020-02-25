@@ -11,7 +11,6 @@ typealias Like = Pair<Int,String>?  // 0=normal post, +X: like, -X: dislike
 
 @Serializable
 data class BlockHashable (
-    val time      : Long,           // TODO: ULong
     val like      : Like,
     val encoding  : String,         // payload encoding
     val encrypted : Boolean,        // payload is encrypted (method depends on chain)
@@ -23,6 +22,7 @@ data class BlockHashable (
 @Serializable
 data class Block (
     val hashable  : BlockHashable,       // things to hash
+    val time      : Long,                // TODO: ULong
     val fronts    : MutableList<Hash>,   // front links (next blocks)
     val signature : Pair<String,String>, // <hash,pub> (if pub=="", assumes pub of chain)
     val hash      : Hash                 // hash of hashable

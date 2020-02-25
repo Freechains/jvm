@@ -21,7 +21,7 @@ diff <(echo $b2) <(echo "") || exit 1
 b3=`freechains --host=localhost:8400 --time=86400000 chain like post / 1 "$b1"`
 j3=`freechains --host=localhost:8400 chain get / $b3`
 d31=`jq ".hashable.refs" <(echo $j3)`
-d32='[ "1_9EAD2D0A15871A87496F111C493F185290EDAF82AD5829CDFCD7E7E6A1F5F00A" ]'
+d32='[ "1_B865A4B2F2C79A1BF4BE047932AD5108BA9B5AF13C711F7B369896C59BC07A2E" ]'
 diff <(echo $d31) <(echo $d32) || exit 1
 
 b4=`freechains --host=localhost:8400 chain like post / 13- "$b1" --why="hated it"`

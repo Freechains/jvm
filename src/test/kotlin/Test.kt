@@ -90,7 +90,7 @@ class Tests {
     @Test
     fun b2_block () {
         val chain = Chain("/tmp/freechains/tests/local/chains/", "/uerj", false, arrayOf("","",""))
-        val blk = chain.newBlock("", h = BlockHashable(0,  null,"utf8",false,"111", emptyArray(), arrayOf(chain.toGenHash())))
+        val blk = chain.newBlock("", 0,  h = BlockHashable(null,"utf8",false,"111", emptyArray(), arrayOf(chain.toGenHash())))
         chain.saveBlock(blk)
         val blk2 = chain.loadBlockFromHash(blk.hash,false)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
@@ -100,9 +100,9 @@ class Tests {
     fun c1_post () {
         val host = Host_load("/tmp/freechains/tests/local/")
         val chain = host.createChain("/ceu", false, arrayOf("","",""))
-        val n1 = chain.post("", BlockHashable(0, null,"utf8",false,"aaa", emptyArray(), emptyArray()))
-        val n2 = chain.post("", BlockHashable(0, null,"utf8",false,"bbb", emptyArray(), emptyArray()))
-        val n3 = chain.post("", BlockHashable(0, null,"utf8",false,"ccc", emptyArray(), emptyArray()))
+        val n1 = chain.post("", 0, BlockHashable(null,"utf8",false,"aaa", emptyArray(), emptyArray()))
+        val n2 = chain.post("", 0, BlockHashable(null,"utf8",false,"bbb", emptyArray(), emptyArray()))
+        val n3 = chain.post("", 0, BlockHashable(null,"utf8",false,"ccc", emptyArray(), emptyArray()))
 
         chain.assertBlock(n3)
         var ok = false
@@ -139,8 +139,8 @@ class Tests {
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
         val src_chain = src.createChain("/d3", false, arrayOf("secret","",""))
-        src_chain.post("", BlockHashable(0, null,"utf8",false,"aaa", emptyArray(), emptyArray()))
-        src_chain.post("", BlockHashable(0,null,"utf8",false,"bbb", emptyArray(), emptyArray()))
+        src_chain.post("", 0, BlockHashable(null,"utf8",false,"aaa", emptyArray(), emptyArray()))
+        src_chain.post("", 0, BlockHashable(null,"utf8",false,"bbb", emptyArray(), emptyArray()))
         thread { daemon(src) }
 
         // DESTINY
@@ -165,26 +165,26 @@ class Tests {
         val chain = Chain("/tmp/freechains/tests/local/chains/", "/graph", false, arrayOf("secret","",""))
         chain.save()
         val genesis = Block(
-            BlockHashable(0, null,"utf8",false,"", emptyArray(), emptyArray()),
-            mutableListOf(), Pair("",""), chain.toGenHash()
+            BlockHashable(null,"utf8",false,"", emptyArray(), emptyArray()),
+            0, mutableListOf(), Pair("",""), chain.toGenHash()
         )
         chain.saveBlock(genesis)
 
-        val a1 = chain.newBlock("", h = BlockHashable(2*day-1, null,"utf8",false,"a1", emptyArray(), arrayOf(chain.toGenHash())))
-        val b1 = chain.newBlock("", h = BlockHashable(2*day, null,"utf8",false,"b1", emptyArray(), arrayOf(chain.toGenHash())))
+        val a1 = chain.newBlock("", 2*day-1, h = BlockHashable(null,"utf8",false,"a1", emptyArray(), arrayOf(chain.toGenHash())))
+        val b1 = chain.newBlock("", 2*day, h = BlockHashable(null,"utf8",false,"b1", emptyArray(), arrayOf(chain.toGenHash())))
         chain.saveBlock(a1)
         chain.saveBlock(b1)
         chain.reheads(a1)
         chain.reheads(b1)
 
         //val ab2 =
-        chain.post("", BlockHashable(27*day, null,"utf8",false, "ab2", emptyArray(), emptyArray()))
+        chain.post("", 27*day, BlockHashable(null,"utf8",false, "ab2", emptyArray(), emptyArray()))
 
-        val b2 = chain.newBlock("", h = BlockHashable(28*day,null, "utf8",false,"b2", emptyArray(), arrayOf(b1.hash)))
+        val b2 = chain.newBlock("", 28*day, h = BlockHashable(null, "utf8",false,"b2", emptyArray(), arrayOf(b1.hash)))
         chain.saveBlock(b2)
         chain.reheads(b2)
 
-        chain.post("", BlockHashable(32*day,null,"utf8",false, "ab3", emptyArray(), emptyArray()))
+        chain.post("", 32*day,BlockHashable(null,"utf8",false, "ab3", emptyArray(), emptyArray()))
         chain.save()
         /*
                /-- (a1) --\
@@ -204,11 +204,11 @@ class Tests {
         fun Chain.getMaxTime () : Long {
             return this.heads
                 .map { this.loadBlockFromHash(it,false) }
-                .map { it.hashable.time }
+                .map { it.time }
                 .max()!!
         }
 
-        val y = chain.traverseFromHeads { true }.filter { it.hashable.time >= chain.getMaxTime()-30*day }
+        val y = chain.traverseFromHeads { true }.filter { it.time >= chain.getMaxTime()-30*day }
         println(y.map { it.hash })
         assert(y.size == 4)
     }
@@ -219,13 +219,13 @@ class Tests {
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
         val h1_chain = h1.createChain("/xxx", false, arrayOf("","",""))
-        h1_chain.post("", BlockHashable(0,null,"utf8",false,"h1_1", emptyArray(), emptyArray()))
-        h1_chain.post("", BlockHashable(0,null,"utf8",false,"h1_2", emptyArray(), emptyArray()))
+        h1_chain.post("", 0, BlockHashable(null,"utf8",false,"h1_1", emptyArray(), emptyArray()))
+        h1_chain.post("", 0, BlockHashable(null,"utf8",false,"h1_2", emptyArray(), emptyArray()))
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
         val h2_chain = h2.createChain("/xxx", false, arrayOf("","",""))
-        h2_chain.post("", BlockHashable(0, null,"utf8",false, "h2_1", emptyArray(), emptyArray()))
-        h2_chain.post("", BlockHashable(0,null,"utf8",false, "h2_2", emptyArray(), emptyArray()))
+        h2_chain.post("", 0, BlockHashable(null,"utf8",false, "h2_1", emptyArray(), emptyArray()))
+        h2_chain.post("", 0, BlockHashable(null,"utf8",false, "h2_2", emptyArray(), emptyArray()))
 
         Thread.sleep(100)
         thread { daemon(h1) }
@@ -350,7 +350,7 @@ class Tests {
         val host = Host_load("/tmp/freechains/tests/M2/")
 
         val c1 = host.createChain("/sym", false, arrayOf("64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2","",""))
-        val n1 = c1.post("",BlockHashable(0, null,"utf8",false, "aaa", emptyArray(), emptyArray()))
+        val n1 = c1.post("", 0, BlockHashable(null,"utf8",false, "aaa", emptyArray(), emptyArray()))
         c1.assertBlock(n1)
         var ok1 = false
         try {
@@ -362,7 +362,7 @@ class Tests {
         assert(!ok1)
 
         val c2 = host.createChain("/asy", false, arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
-        val n2 = c2.post("",BlockHashable(0,null,"utf8",false, "aaa", emptyArray(), emptyArray()))
+        val n2 = c2.post("", 0, BlockHashable(null,"utf8",false, "aaa", emptyArray(), emptyArray()))
         c2.assertBlock(n2)
         val cx = c2.copy(keys=arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322",""))
         cx.assertBlock(n2)
@@ -381,7 +381,7 @@ class Tests {
         //a_reset()
         val host = Host_load("/tmp/freechains/tests/M2/")
         val c1 = host.loadChain("/sym")
-        val n1 = c1.post("",BlockHashable(0, null,"utf8",true,c1.encrypt(true,"aaa"), emptyArray(), emptyArray()))
+        val n1 = c1.post("",0, BlockHashable(null,"utf8",true,c1.encrypt(true,"aaa"), emptyArray(), emptyArray()))
         val n2 = c1.loadBlockFromHash(n1.hash, true)
         assert(n2.hashable.payload == "aaa")
         //Thread.sleep(500)
