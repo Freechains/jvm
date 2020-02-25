@@ -276,8 +276,6 @@ fun Socket.chain_send (chain: Chain) : Int {
             }
 
             val blk = chain.loadBlockFromHash(hash,false)
-            val tine = chain.evalBlock(blk)
-            assert(tine==null || tine)
 
             // sends this one and visits children
             toSend.push(hash)

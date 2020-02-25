@@ -25,7 +25,6 @@ data class Chain (
 ) {
     val hash  : String = this.toHash()
     val heads : ArrayList<Hash> = arrayListOf(this.toGenHash())
-    val rems  : MutableList<Hash> = mutableListOf()
 }
 
 // TODO: change to contract/constructor assertion
@@ -169,34 +168,11 @@ fun Chain.post (sig_pvt: String, h: BlockHashable) : Block {
         assert(n <= this.pubkeyLikes(h.time,sig_pvt.pvtToPub())) { "not enough reputation" }
     }
 
-    val blk = this.newBlock(sig_pvt, h.copy(backs=this.decideBacks(h)))
+    val blk = this.newBlock(sig_pvt, h.copy(backs=this.heads.toTypedArray()))
     this.saveBlock(blk)
     this.reheads(blk)
     this.save()
     return blk
-}
-
-fun Chain.decideBacks (h: BlockHashable) : Array<String> {
-    // if linking a new like that refers to a block in quarantine,
-    // ignore current heads and point directly to the liked block
-    if (h.like != null) {
-        val ref = h.refs[0]
-        val liked = this.loadBlockFromHash(ref,false)
-        if (liked.localTime >= h.time-tTine) {
-            return arrayOf(liked.hash)          // liked block still in quarantine
-        }
-    }
-
-    fun downs (hash: Hash) : List<Hash> {
-        val blk = this.loadBlockFromHash(hash, false)
-        val tine = this.evalBlock(blk)
-        return when {
-            (tine == null) -> blk.hashable.backs.map(::downs).flatten()
-            tine -> arrayListOf<Hash>(blk.hash)
-            else -> error("bug found")
-        }
-    }
-    return this.heads.toList().map(::downs).flatten().toTypedArray()
 }
 
 fun Chain.reheads (blk: Block) {
@@ -236,57 +212,6 @@ fun Chain.pubkeyLikes (now: Long, pub: String) : Int {
     //println("RECV: $recv")
     val all = posts + recv - sent
     return all
-}
-
-fun Chain.evalBlock (blk: Block) : Boolean? {
-    if (blk.quarantine != null) {
-        return blk.quarantine!!
-    }
-    if (blk.localTime >= getNow() - tTine) {
-        return null    // still in quarantine
-    }
-
-    // immediate likes to this block
-    val likes = blk.fronts
-        .map { this.loadBlockFromHash(it,false) }       // front blocks
-        .filter { it.localTime <= blk.localTime+tTine }         // within quarantine
-        .filter { it.hashable.like != null }                    // which are likes
-        .filter { it.hashable.like!!.second == blk.hash }       // for received blk
-        .map { it.hashable.like!!.first }                       // get like quantity
-
-    val plus  = likes.filter { it > 0 }.sum()
-    val minus = likes.filter { it < 0 }.sum()
-
-    val accepted = (plus+1)*5 > minus
-    blk.quarantine = accepted
-
-    if (accepted) {
-        this.saveBlock(blk)
-    } else {
-        // remove blk and fronts from chain.heads
-        fun up (blk: Block) {
-            this.heads.remove(blk.hash)
-            blk.quarantine = false
-            this.saveBlock(blk)
-            this.rems.add(blk.hash)
-            this.save()
-
-            // remove blk from each blk.back[i].fronts
-            for (back in blk.hashable.backs) {
-                val old = this.loadBlockFromHash(back,false)
-                old.fronts.remove(blk.hash)
-                this.saveBlock(old)
-            }
-
-            for (front in blk.fronts) {
-                up(this.loadBlockFromHash(front,false))
-            }
-        }
-        up(blk)
-        this.save()
-    }
-
-    return accepted
 }
 
 // TRAVERSE

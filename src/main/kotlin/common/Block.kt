@@ -22,14 +22,12 @@ data class BlockHashable (
 
 @Serializable
 data class Block (
-    val hashable   : BlockHashable,       // things to hash
-    val fronts     : MutableList<Hash>,   // front links (next blocks)
-    val signature  : Pair<String,String>, // <hash,pub> (if pub=="", assumes pub of chain)
-    val hash       : Hash                 // hash of hashable
+    val hashable  : BlockHashable,       // things to hash
+    val fronts    : MutableList<Hash>,   // front links (next blocks)
+    val signature : Pair<String,String>, // <hash,pub> (if pub=="", assumes pub of chain)
+    val hash      : Hash                 // hash of hashable
 ) {
-    val height     : Int = this.hashable.backs.backsToHeight()
-    val localTime  : Long = getNow()
-    var quarantine : Boolean? = null      // null=still in, false=rejected, true=accepted
+    val height    : Int = this.hashable.backs.backsToHeight()
 }
 
 fun Array<Hash>.backsToHeight () : Int {
