@@ -71,7 +71,19 @@ fun BlockHashable.toHash () : Hash {
 // NODE
 
 fun Chain.newBlock (sig_pvt: String, now: Long, h: BlockHashable) : Block {
-    val hash = h.toHash()
+    assert(h.backs.isEmpty())
+
+    // checks if is owner of read-only chain
+    assert(!this.ro || this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty())
+
+    // checks if has enough reputation to like
+    if (h.like != null) {
+        val n = h.like.n
+        assert(n <= this.pubkeyReputation(now,sig_pvt.pvtToPub())) { "not enough reputation" }
+    }
+
+    val h_ = h.copy(backs=this.decideBacks(h))
+    val hash = h_.toHash()
 
     var sig_hash = ""
     //assert(keys[2].isEmpty() || sig_pvt.isEmpty())
@@ -90,12 +102,23 @@ fun Chain.newBlock (sig_pvt: String, now: Long, h: BlockHashable) : Block {
         else
             Signature(sig_hash, if (sig_pvt.isEmpty()) "" else sig_pvt.pvtToPub())
 
-    val new = Block(h, now, mutableListOf(), sig, hash)
-    this.assertBlock(new)  // TODO: remove (paranoid test)
+    val new = Block(h_, now, mutableListOf(), sig, hash)
+    this.chainBlock(new)
     return new
 }
 
-fun Chain.assertBlock (blk: Block) {
+// CHAIN BLOCK
+
+fun Chain.chainBlock (blk: Block, asr: Boolean = true) {
+    if (asr) {
+        this.assertBlock(blk)       // skip for testing purposes
+    }
+    this.saveBlock(blk)
+    this.reheads(blk)
+    this.save()
+}
+
+private fun Chain.assertBlock (blk: Block) {
     val h = blk.hashable
     assert(blk.hash == h.toHash())
     if (blk.signature != null) {
@@ -104,6 +127,18 @@ fun Chain.assertBlock (blk: Block) {
         val pub = if (blk.signature.pubkey.isEmpty()) this.keys[1] else blk.signature.pubkey
         val key = Key.fromHexString(pub).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
+    }
+}
+
+private fun Chain.reheads (blk: Block) {
+    this.heads.add(blk.hash)
+    for (back in blk.hashable.backs) {
+        this.heads.remove(back)
+        val old = this.loadBlockFromHash(back,false)
+        assert(!old.fronts.contains((blk.hash)))
+        old.fronts.add(blk.hash)
+        old.fronts.sort()
+        this.saveBlock(old)
     }
 }
 
@@ -163,23 +198,6 @@ fun Chain.decrypt (decrypt: Boolean, payload: String) : Pair<Boolean,String> {
     }
 }
 
-fun Chain.post (sig_pvt: String, now: Long, h: BlockHashable) : Block {
-    // checks if is owner of read-only chain
-    assert(!this.ro || this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty())
-
-    // checks if has enough reputation to like
-    if (h.like != null) {
-        val n = h.like.n
-        assert(n <= this.pubkeyReputation(now,sig_pvt.pvtToPub())) { "not enough reputation" }
-    }
-
-    val blk = this.newBlock(sig_pvt, now, h.copy(backs=this.decideBacks(h)))
-    this.saveBlock(blk)
-    this.reheads(blk)
-    this.save()
-    return blk
-}
-
 fun Chain.decideBacks (h: BlockHashable) : Array<String> {
     // if linking a new like that refers to a block in quarantine,
     // ignore current heads and point directly to the liked block only
@@ -209,18 +227,6 @@ fun Chain.getHeads (min: Int) : Array<String> {
         }
     }
     return this.heads.toList().map(::downs).flatten().toTypedArray()
-}
-
-fun Chain.reheads (blk: Block) {
-    this.heads.add(blk.hash)
-    for (back in blk.hashable.backs) {
-        this.heads.remove(back)
-        val old = this.loadBlockFromHash(back,false)
-        assert(!old.fronts.contains((blk.hash)))
-        old.fronts.add(blk.hash)
-        old.fronts.sort()
-        this.saveBlock(old)
-    }
 }
 
 fun Chain.pubkeyReputation (now: Long, pub: String) : Int {

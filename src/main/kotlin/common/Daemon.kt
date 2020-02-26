@@ -142,7 +142,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
                     }
                 }
 
-            val blk = chain.post (
+            val blk = chain.newBlock (
                 sig,
                 time.nowToTime(),
                 BlockHashable (
@@ -332,10 +332,7 @@ fun Socket.chain_recv (chain: Chain) : Int {
         for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock()
             //println("[recv] ${blk.hash}")
-            chain.assertBlock(blk)
-            chain.reheads(blk)
-            chain.saveBlock(blk)
-            chain.save()
+            chain.chainBlock(blk)
         }
         writer.writeLineX(n2.toString())
     }
