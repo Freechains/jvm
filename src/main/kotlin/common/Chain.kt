@@ -118,6 +118,11 @@ internal fun Chain.blockAssert (blk: Block) {
     val h = blk.hashable
     assert(blk.hash == h.toHash())
 
+    for (back in blk.hashable.backs) {
+        val bk = this.loadBlockFromHash(back,false)
+        assert(bk.hashable.time <= blk.hashable.time)
+    }
+
     // checks if has enough reputation to like
     if (h.like != null) {
         val n = h.like.n

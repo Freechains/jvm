@@ -10,6 +10,7 @@ import kotlin.concurrent.thread
 import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import java.lang.Long.max
 import java.util.*
 import kotlin.collections.HashSet
 
@@ -144,7 +145,10 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val blk = chain.blockNew (
                 sig,
                 BlockHashable (
-                    time.nowToTime(),
+                    max (
+                        time.nowToTime(),
+                        chain.heads.map { chain.loadBlockFromHash(it,false).hashable.time }.max()!!
+                    ),
                     like_,
                     cods[0],
                     cry,
@@ -328,6 +332,15 @@ fun Socket.chain_recv (chain: Chain) : Int {
         for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock()
             //println("[recv] ${blk.hash}")
+
+            val now = getNow()
+            if (blk.hashable.time >= now+30*min) {
+                continue    // refuse block from the future
+            }
+            if (blk.hashable.time <= now-30* min) {
+                //error("TODO: block from the past")
+            }
+
             chain.blockChain(blk)
         }
         writer.writeLineX(n2.toString())
