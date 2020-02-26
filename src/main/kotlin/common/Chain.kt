@@ -72,7 +72,7 @@ fun BlockHashable.toHash () : Hash {
 
 // NODE
 
-fun Chain.blockNew (sig_pvt: String, now: Long, h: BlockHashable) : Block {
+fun Chain.blockNew (sig_pvt: String, h: BlockHashable) : Block {
     // non-empty pre-set backs only used in tests
     val backs = if (h.backs.isNotEmpty()) h.backs else this.heads.toTypedArray()
 
@@ -98,7 +98,7 @@ fun Chain.blockNew (sig_pvt: String, now: Long, h: BlockHashable) : Block {
         else
             Signature(sig_hash, if (sig_pvt.isEmpty()) "" else sig_pvt.pvtToPub())
 
-    val new = Block(h_, now, mutableListOf(), sig, hash)
+    val new = Block(h_, mutableListOf(), sig, hash)
     this.blockChain(new)
     return new
 }
@@ -122,7 +122,7 @@ internal fun Chain.blockAssert (blk: Block) {
     if (h.like != null) {
         val n = h.like.n
         val pub = blk.signature!!.pubkey
-        assert(n <= this.repPubkey(blk.time,pub)) {
+        assert(n <= this.repPubkey(h.time,pub)) {
             "not enough reputation"
         }
     }
@@ -201,15 +201,15 @@ private fun Chain.decrypt (payload: String) : Pair<Boolean,String> {
 
 fun Chain.repPubkey (now: Long, pub: String) : Int {
     val b30s = this.traverseFromHeads {
-        it.time >= now - 30*day
+        it.hashable.time >= now - 30*day
     }
     //println("B30s: ${b30s.toList()}")
     val mines = b30s
         .filter { it.signature != null &&
-                it.signature.pubkey == pub }          // all I signed
+                it.signature.pubkey == pub }            // all I signed
     //println("MINES: $mines")
     val posts = mines
-        .filter { it.time <= now - 1*day }              // mines older than 1 day
+        .filter { it.hashable.time <= now - 1*day }              // mines older than 1 day
         .count() * lk
     //println("POSTS: $posts")
     val sent = mines

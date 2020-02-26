@@ -143,8 +143,8 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
 
             val blk = chain.blockNew (
                 sig,
-                time.nowToTime(),
                 BlockHashable (
+                    time.nowToTime(),
                     like_,
                     cods[0],
                     cry,

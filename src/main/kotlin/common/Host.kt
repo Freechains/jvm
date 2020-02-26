@@ -39,6 +39,7 @@ fun Host.joinChain (name: String, ro: Boolean, keys: Array<String>) : Chain {
     chain.save()
     val genesis = Block (
         BlockHashable (
+            0,
             null,
             "",
             false,
@@ -46,7 +47,6 @@ fun Host.joinChain (name: String, ro: Boolean, keys: Array<String>) : Chain {
             emptyArray(),
             emptyArray()
         ),
-        0,
         mutableListOf(),
         null,
         chain.getGenesis()

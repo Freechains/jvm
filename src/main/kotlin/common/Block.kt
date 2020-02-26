@@ -27,6 +27,7 @@ data class Signature (
 
 @Serializable
 data class BlockHashable (
+    val time      : Long,           // TODO: ULong
     val like      : Like?,
     val encoding  : String,         // payload encoding
     val encrypted : Boolean,        // payload is encrypted (method depends on chain)
@@ -38,7 +39,6 @@ data class BlockHashable (
 @Serializable
 data class Block (
     val hashable  : BlockHashable,       // things to hash
-    val time      : Long,                // TODO: ULong
     val fronts    : MutableList<Hash>,   // front links (next blocks)
     val signature : Signature?,
     val hash      : Hash                 // hash of hashable
