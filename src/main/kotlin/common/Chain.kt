@@ -13,9 +13,11 @@ import com.goterl.lazycode.lazysodium.interfaces.SecretBox
 import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
-import java.lang.Integer.min
+import java.lang.Integer.max
 import java.util.*
 import kotlin.collections.ArrayList
+
+// internal methods are private but are used in tests
 
 @Serializable
 data class Chain (
@@ -73,7 +75,7 @@ fun BlockHashable.toHash () : Hash {
 
 fun Chain.newBlock (sig_pvt: String, now: Long, h: BlockHashable) : Block {
     // non-empty pre-set backs only used in tests
-    val backs = if (h.backs.isNotEmpty()) h.backs else this.decideBacks(h)
+    val backs = if (h.backs.isNotEmpty()) h.backs else this.heads.toTypedArray()
 
     val pay = if (h.encrypted) this.encrypt(h.payload) else h.payload
 
@@ -113,7 +115,7 @@ fun Chain.chainBlock (blk: Block, asr: Boolean = true) {
     this.save()
 }
 
-internal fun Chain.assertBlock (blk: Block) {   // private, but used in tests
+internal fun Chain.assertBlock (blk: Block) {
     val h = blk.hashable
     assert(blk.hash == h.toHash())
 
@@ -196,37 +198,6 @@ private fun Chain.decrypt (payload: String) : Pair<Boolean,String> {
     }
 }
 
-fun Chain.decideBacks (h: BlockHashable) : Array<String> {
-    // if linking a new like that refers to a block in quarantine,
-    // ignore current heads and point directly to the liked block only
-    if (h.like != null) {
-        val ref = h.refs[0]
-        val liked = this.loadBlockFromHash(ref, false)
-        if (this.evalBlock(liked) != 1) {
-            return arrayOf(liked.hash)          // liked block still in quarantine
-        }
-    }
-
-    // otherwise, link to heads that are not in quarantine
-    return this.getHeads(1)
-}
-
-// TODO: likes too
-fun Chain.getHeads (min: Int) : Array<String> {
-    // min=1  : heads that are accepted (not in quarantine)
-    // min=0  : heads in quarantine that I want to forward
-    // min=-1 : all heads (never used)
-    assert(min >= 0)
-    fun downs (hash: Hash) : List<Hash> {
-        val blk = this.loadBlockFromHash(hash, false)
-        return when (this.evalBlock(blk)) {
-            in min..1 -> arrayListOf<Hash>(blk.hash)
-            else      -> blk.hashable.backs.map(::downs).flatten()
-        }
-    }
-    return this.heads.toList().map(::downs).flatten().toTypedArray()
-}
-
 // LIKE
 
 fun Chain.pubkeyReputation (now: Long, pub: String) : Int {
@@ -236,7 +207,7 @@ fun Chain.pubkeyReputation (now: Long, pub: String) : Int {
     //println("B30s: ${b30s.toList()}")
     val mines = b30s
         .filter { it.signature != null &&
-                  it.signature.pubkey == pub }          // all I signed
+                it.signature.pubkey == pub }          // all I signed
     //println("MINES: $mines")
     val posts = mines
         .filter { it.time <= now - 1*day }              // mines older than 1 day
@@ -249,8 +220,8 @@ fun Chain.pubkeyReputation (now: Long, pub: String) : Int {
     //println("SENT: $sent")
     val recv = b30s
         .filter { it.hashable.like != null &&           // others liked me
-                  it.hashable.like.type == LikeType.PUBKEY &&
-                  it.hashable.like.ref == pub }
+                it.hashable.like.type == LikeType.PUBKEY &&
+                it.hashable.like.ref == pub }
         .map { it.hashable.like!!.n }
         .sum()
     //println("RECV: $recv")
@@ -258,56 +229,7 @@ fun Chain.pubkeyReputation (now: Long, pub: String) : Int {
     return all
 }
 
-//      forward rehead
-// -1:     no     no        (block dislikes = 1/2 of all likes since post time)
-//  0:    yes     no        (any new likes  < 1/4 of all likes in the past 24h, otherwise change to 1)
-//  1:    yes    yes        (block likes    = 1/2 of all likes since post time)
-fun Chain.evalBlock (blk: Block) : Int {
-    // reputation of this block (likes - dislikes)
-    val likes = this.traverseFromBacksToFronts (blk, { true })
-        .filter { it.hashable.like != null &&                    // which are likes
-                  it.hashable.like.type == LikeType.POST &&
-                  it.hashable.like.ref == blk.hash }            // for received blk
-        .map { it.hashable.like!!.n }                           // get like quantity
-        .sum()                                                  // plus-minus
-
-    // all positive likes since block being evaluated
-    // (only positive likes because they are the ones that could be used to refuse this block)
-    // (negatives not necessarily, e.g., other spam, etc)
-
-    // all positive likes over the past week
-    val ps = this.traverseFromHeads { it.time > getNow()-7*day }
-        .filter { it.hashable.like !=null }
-        .filter { it.hashable.like!!.n > 0 }
-
-    // N of all new positives since after this block
-    val nAft = ps.filter { it.time > blk.time }
-        .map { it.hashable.like!!.n }
-        .sum()
-
-    // N of all new positives over the past week PER DAY
-    val nDay = ps
-        .map { it.hashable.like!!.n }
-        .sum() / 7
-
-    val day6h= min(10, nDay/4)      // 6h of daily likes (minimum 10)
-    val day2h= min(5,  nDay/12)     // 2h of daily likes (minimum 5)
-
-    return when {
-        // new likes reached 2h of daily likes
-        ( likes>nAft/2 && nAft>=day2h) ->  1    // with half positive to blk, ACCEPT
-        (-likes>nAft/2 && nAft>=day2h) -> -1    // with half negative to blk, REJECT
-
-        // new likes reached 6h daily likes
-        (nAft >= day6h) -> 1                    // time to move on
-
-        else -> 0                               // remain in quarantine
-    }
-}
-
-// TRAVERSE
-
-fun Chain.traverseFromHeads (f: (Block)->Boolean) : Array<Block> {
+internal fun Chain.traverseFromHeads (f: (Block)->Boolean) : Array<Block> {
     val pending = LinkedList<String>()
     val visited = mutableSetOf<String>()
     val ret = mutableListOf<Block>()
@@ -326,32 +248,6 @@ fun Chain.traverseFromHeads (f: (Block)->Boolean) : Array<Block> {
             if (! visited.contains(back)) {
                 visited.add(back)
                 pending.addLast(back)
-            }
-        }
-        ret.add(blk)
-    }
-    return ret.toTypedArray()
-}
-
-fun Chain.traverseFromBacksToFronts (blk: Block, f: (Block)->Boolean) : Array<Block> {
-    val pending = LinkedList<String>()
-    val visited = mutableSetOf<String>()
-    val ret = mutableListOf<Block>()
-
-    for (front in blk.fronts) {
-        pending.addLast(front)
-    }
-
-    while (pending.isNotEmpty()) {
-        val hash = pending.removeFirst()
-        val new = this.loadBlockFromHash(hash,false)
-        if (!f(new)) {
-            break
-        }
-        for (front in new.fronts) {
-            if (! visited.contains(front)) {
-                visited.add(front)
-                pending.addLast(front)
             }
         }
         ret.add(blk)

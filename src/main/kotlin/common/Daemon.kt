@@ -254,9 +254,6 @@ fun Socket.chain_send (chain: Chain) : Int {
             //println("[send] $hash")
 
             val blk = chain.loadBlockFromHash(hash,false)
-            if (chain.evalBlock(blk) == -1) {
-                continue                            // block has no reputation
-            }
 
             writer.writeLineX(hash)                  // asks if contains hash
             val has = reader.readLineX().toBoolean() // receives yes or no

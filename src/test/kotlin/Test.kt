@@ -53,6 +53,11 @@ val H   = BlockHashable(null,"",false, "", emptyArray(), emptyArray())
 val HC  = H.copy(encoding="utf8", encrypted=true)
 val BLK = Block(H,0, mutableListOf(),null, "")
 
+const val PVT1 = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
+const val PUB1 = "3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
+const val PVT2 = "6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"
+const val PUB2 = "E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"
+
 @TestMethodOrder(Alphanumeric::class)
 class Tests {
 
@@ -179,12 +184,12 @@ class Tests {
          */
 
         var n = 0
-        for (blk in chain.traverseFromHeads { true }) {
+        for (blk in chain.traverseFromHeads{ true }) {
             n++
         }
         assert(n == 6)
 
-        val x = chain.traverseFromHeads { it.height>1 }
+        val x = chain.traverseFromHeads{ it.height>1 }
         assert(x.size == 3)
 
         fun Chain.getMaxTime () : Long {
@@ -194,7 +199,7 @@ class Tests {
                 .max()!!
         }
 
-        val y = chain.traverseFromHeads { true }.filter { it.time >= chain.getMaxTime()-30*day }
+        val y = chain.traverseFromHeads{ true }.filter { it.time >= chain.getMaxTime()-30*day }
         println(y.map { it.hash })
         assert(y.size == 4)
     }
@@ -347,10 +352,10 @@ class Tests {
         }
         assert(!ok1)
 
-        val c2 = host.joinChain("/asy", false, arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        val c2 = host.joinChain("/asy", false, arrayOf("",PUB1,PVT1))
         val n2 = c2.newBlock("", 0, H)
         c2.assertBlock(n2)
-        val cx = c2.copy(keys=arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322",""))
+        val cx = c2.copy(keys=arrayOf("",PUB1,""))
         cx.assertBlock(n2)
         var ok2 = false
         try {
@@ -397,8 +402,8 @@ class Tests {
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M60/")) }
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M61/")) }
         Thread.sleep(100)
-        main(arrayOf("chain","join","/xxx","pubpvt","rw","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
-        main(arrayOf("--host=localhost:8331","chain","join","/xxx","pubpvt","rw","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        main(arrayOf("chain","join","/xxx","pubpvt","rw",PUB1,PVT1))
+        main(arrayOf("--host=localhost:8331","chain","join","/xxx","pubpvt","rw",PUB1))
         val hash = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--encrypt"))
 
         val json = main_(arrayOf("chain","get","/xxx",hash!!))
@@ -410,22 +415,10 @@ class Tests {
         val blk2 = json2!!.jsonToBlock()
         assert(blk2.hashable.encrypted)
 
-        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--sign=6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"))
+        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--sign=$PVT2"))
         val j2 = main_(arrayOf("chain","get","/xxx",h2!!))
         val b2 = j2!!.jsonToBlock()
         assert(b2.hashable.payload == "bbb")
-    }
-
-    @Test
-    fun m7_getHeads () {
-        a_reset()
-        val h = Host_create("/tmp/freechains/tests/m7/", 8330)
-        val chain = h.joinChain("/", false, arrayOf("","",""))
-
-        val blk = chain.newBlock("", getNow(), H)
-        println(blk.hash)
-        println(chain.evalBlock(blk))
-        println(chain.getHeads(1).contentToString())
     }
 
     @Test
@@ -434,25 +427,25 @@ class Tests {
         main(arrayOf("host","create","/tmp/freechains/tests/M80/"))
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M80/")) }
         Thread.sleep(100)
-        main(arrayOf("chain","join","/xxx","pubpvt","rw","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        main(arrayOf("chain","join","/xxx","pubpvt","rw",PUB1,PVT1))
 
-        val h1 = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--time=0","--sign=6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
-        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--time=0","--sign=6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"))
+        val h1 = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--time=0","--sign=$PVT1"))
+        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--time=0","--sign=$PVT2"))
 
-        //main_(arrayOf("chain","like","/xxx","1",h1!!,"--time="+(24*hour-1).toString(),"--sign=6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
-        assert("0" == main_(arrayOf("chain","like","get","/xxx","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322")))
-        assert("0" == main_(arrayOf("chain","like","get","/xxx","E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369")))
+        //main_(arrayOf("chain","like","/xxx","1",h1!!,"--time="+(24*hour-1).toString(),"--sign=$PVT1"))
+        assert("0" == main_(arrayOf("chain","like","get","/xxx",PUB1)))
+        assert("0" == main_(arrayOf("chain","like","get","/xxx",PUB2)))
 
         // give to myself
-        main_(arrayOf("chain","like","post","/xxx","1000",h1!!,"--time="+(1*day).toString(),"--sign=6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        main_(arrayOf("chain","like","post","/xxx","1000",h1!!,"--time="+(1*day).toString(),"--sign=$PVT1"))
         assert("500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322")))
 
         // give to other
-        val h3 = main_(arrayOf("chain","like","post","/xxx","1000",h2!!,"--time="+(1*day).toString(),"--sign=6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        val h3 = main_(arrayOf("chain","like","post","/xxx","1000",h2!!,"--time="+(1*day).toString(),"--sign=$PVT1"))
         assert("0" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322")))
-        assert("1000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369")))
+        assert("1000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB2)))
 
-        main_(arrayOf("chain","like","post","/xxx","1000",h3!!,"--time="+(1*day).toString(),"--why="+h3.substring(0,9),"--sign=6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"))
-        main_(arrayOf("chain","like","post","/xxx","1000",h3,"--time="+(1*day+1).toString(),"--why="+h3.substring(0,9),"--sign=6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"))
+        main_(arrayOf("chain","like","post","/xxx","1000",h3!!,"--time="+(1*day).toString(),"--why="+h3.substring(0,9),"--sign=$PVT2"))
+        main_(arrayOf("chain","like","post","/xxx","1000",h3,"--time="+(1*day+1).toString(),"--why="+h3.substring(0,9),"--sign=$PVT2"))
     }
 }
