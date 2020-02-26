@@ -73,7 +73,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
         "FC chain genesis" -> {
             val name  = reader.readLineX().nameCheck()
             val chain = local.loadChain(name)
-            val hash  = chain.toGenHash()
+            val hash  = chain.getGenesis()
             writer.writeLineX(hash)
             System.err.println("chain genesis: $hash")
         }
@@ -148,7 +148,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
                     like_,
                     cods[0],
                     cry,
-                    chain.encrypt(cry,pay),
+                    pay,
                     refs_,
                     emptyArray()
                 )

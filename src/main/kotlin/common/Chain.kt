@@ -24,7 +24,7 @@ data class Chain (
     val keys  : Array<String>   // [shared,public,private]
 ) {
     val hash  : String = this.toHash()
-    val heads : ArrayList<Hash> = arrayListOf(this.toGenHash())
+    val heads : ArrayList<Hash> = arrayListOf(this.getGenesis())
 }
 
 // TODO: change to contract/constructor assertion
@@ -49,7 +49,7 @@ fun String.fromJsonToChain () : Chain {
 
 // GENESIS
 
-fun Chain.toGenHash () : Hash {
+fun Chain.getGenesis () : Hash {
     return "0_" + this.toHash()
 }
 
@@ -71,9 +71,12 @@ fun BlockHashable.toHash () : Hash {
 // NODE
 
 fun Chain.newBlock (sig_pvt: String, now: Long, h: BlockHashable) : Block {
-    assert(h.backs.isEmpty())
+    // non-empty pre-set backs only used in tests
+    val backs = if (h.backs.isNotEmpty()) h.backs else this.decideBacks(h)
 
-    val h_ = h.copy(backs=this.decideBacks(h))
+    val pay = if (h.encrypted) this.encrypt(h.payload) else h.payload
+
+    val h_ = h.copy(payload=pay, backs=backs)
     val hash = h_.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
@@ -109,7 +112,7 @@ fun Chain.chainBlock (blk: Block, asr: Boolean = true) {
     this.save()
 }
 
-private fun Chain.assertBlock (blk: Block) {
+internal fun Chain.assertBlock (blk: Block) {   // private, but used in tests
     val h = blk.hashable
     assert(blk.hash == h.toHash())
 
@@ -136,21 +139,17 @@ private fun Chain.reheads (blk: Block) {
     this.heads.add(blk.hash)
     for (back in blk.hashable.backs) {
         this.heads.remove(back)
-        val old = this.loadBlockFromHash(back,false)
-        assert(!old.fronts.contains((blk.hash)))
-        old.fronts.add(blk.hash)
-        old.fronts.sort()
-        this.saveBlock(old)
+        val bk = this.loadBlockFromHash(back,false)
+        assert(!bk.fronts.contains(blk.hash))
+        bk.fronts.add(blk.hash)
+        bk.fronts.sort()
+        this.saveBlock(bk)
     }
 }
 
-// POST/LIKE
+// CRYPTO
 
-fun Chain.encrypt (encrypt: Boolean, payload: String) : String {
-    if (!encrypt) {
-        return payload
-    }
-
+private fun Chain.encrypt (payload: String) : String {
     if (this.keys[0].isNotEmpty()) {
         val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
         val key = Key.fromHexString(this.keys[0])
@@ -167,11 +166,7 @@ fun Chain.encrypt (encrypt: Boolean, payload: String) : String {
     }
 }
 
-fun Chain.decrypt (decrypt: Boolean, payload: String) : Pair<Boolean,String> {
-    if (!decrypt) {
-        return Pair(false,payload)
-    }
-
+private fun Chain.decrypt (payload: String) : Pair<Boolean,String> {
     if (this.keys[0].isEmpty() && this.keys[2].isEmpty()) {
         return Pair(false,payload)
     }
@@ -230,6 +225,8 @@ fun Chain.getHeads (min: Int) : Array<String> {
     }
     return this.heads.toList().map(::downs).flatten().toTypedArray()
 }
+
+// LIKE
 
 fun Chain.pubkeyReputation (now: Long, pub: String) : Int {
     val b30s = this.traverseFromHeads {
@@ -371,8 +368,12 @@ fun Chain.loadBlockFromHash (hash: Hash, decrypt: Boolean) : Block {
     if (!decrypt || !blk.hashable.encrypted) {
         return blk
     }
-    val (decrypted,pay) = this.decrypt(blk.hashable.encrypted, blk.hashable.payload)
-    return blk.copy(hashable = blk.hashable.copy(encrypted = !decrypted, payload = pay))
+    val (succ,pay) =
+        if (blk.hashable.encrypted)
+            this.decrypt(blk.hashable.payload)
+        else
+            Pair(true,blk.hashable.payload)
+    return blk.copy(hashable = blk.hashable.copy(encrypted=!succ, payload=pay))
 }
 
 fun Chain.containsBlock (hash: Hash) : Boolean {

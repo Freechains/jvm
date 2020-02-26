@@ -49,7 +49,7 @@ fun Host.joinChain (name: String, ro: Boolean, keys: Array<String>) : Chain {
         0,
         mutableListOf(),
         null,
-        chain.toGenHash()
+        chain.getGenesis()
     )
     chain.saveBlock(genesis)
     return file.readText().fromJsonToChain()

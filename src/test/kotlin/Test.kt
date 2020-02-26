@@ -49,7 +49,9 @@ import kotlin.concurrent.thread
  *  - RPi: cable + router + phones
  */
 
-val BLK = BlockHashable(null,"",false, "", emptyArray(), emptyArray())
+val H   = BlockHashable(null,"",false, "", emptyArray(), emptyArray())
+val HC  = H.copy(encoding="utf8", encrypted=true)
+val BLK = Block(H,0, mutableListOf(),null, "")
 
 @TestMethodOrder(Alphanumeric::class)
 class Tests {
@@ -82,32 +84,28 @@ class Tests {
 
     @Test
     fun b1_chain () {
-        val host1 = Host_create("/tmp/freechains/tests/local/")
-        val chain1 = Chain("/tmp/freechains/tests/local/chains/", "/uerj", false, arrayOf("secret","",""))
+        //a_reset()
+        val h = Host_create("/tmp/freechains/tests/local/")
+        val c1 = h.joinChain("/uerj", false, arrayOf("secret","",""))
         //println("Chain /uerj: ${chain1.toHash()}")
-        chain1.save()
-        val chain2 = host1.loadChain(chain1.name)
-        assertThat(chain1.hashCode()).isEqualTo(chain2.hashCode())
-    }
+        c1.save()
 
-    @Test
-    fun b2_block () {
-        val chain = Chain("/tmp/freechains/tests/local/chains/", "/uerj", false, arrayOf("","",""))
-        val blk = chain.newBlock("", 0,  h = BlockHashable(null,"utf8",false,"111", emptyArray(), arrayOf(chain.toGenHash())))
-        chain.saveBlock(blk)
-        val blk2 = chain.loadBlockFromHash(blk.hash,false)
+        val c2 = h.loadChain(c1.name)
+        assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
+
+        val blk = c2.newBlock("", 0,  H)
+        val blk2 = c2.loadBlockFromHash(blk.hash,false)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
     }
 
     @Test
     fun c1_post () {
         val host = Host_load("/tmp/freechains/tests/local/")
-        val chain = host.joinChain("/ceu", false, arrayOf("","",""))
-        val n1 = chain.post("", 0, BlockHashable(null,"utf8",false,"aaa", emptyArray(), emptyArray()))
-        val n2 = chain.post("", 0, BlockHashable(null,"utf8",false,"bbb", emptyArray(), emptyArray()))
-        val n3 = chain.post("", 0, BlockHashable(null,"utf8",false,"ccc", emptyArray(), emptyArray()))
+        val chain = host.joinChain("/", false, arrayOf("","",""))
+        val n1 = chain.newBlock("", 0, H)
+        val n2 = chain.newBlock("", 0, H)
+        val n3 = chain.newBlock("", 0, H)
 
-        chain.assertBlock(n3)
         var ok = false
         try {
             val n = n3.copy(hashable = n3.hashable.copy(payload="xxx"))
@@ -117,7 +115,7 @@ class Tests {
         }
         assert(ok)
 
-        assert(chain.containsBlock(chain.toGenHash()))
+        assert(chain.containsBlock(chain.getGenesis()))
         //println(n1.toHeightHash())
         assert(chain.containsBlock(n1.hash))
         assert(chain.containsBlock(n2.hash))
@@ -142,8 +140,8 @@ class Tests {
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
         val src_chain = src.joinChain("/d3", false, arrayOf("secret","",""))
-        src_chain.post("", 0, BlockHashable(null,"utf8",false,"aaa", emptyArray(), emptyArray()))
-        src_chain.post("", 0, BlockHashable(null,"utf8",false,"bbb", emptyArray(), emptyArray()))
+        src_chain.newBlock("", 0, H)
+        src_chain.newBlock("", 0, H)
         thread { daemon(src) }
 
         // DESTINY
@@ -165,30 +163,15 @@ class Tests {
 
     @Test
     fun e1_graph () {
-        val chain = Chain("/tmp/freechains/tests/local/chains/", "/graph", false, arrayOf("secret","",""))
-        chain.save()
-        val genesis = Block(
-            BlockHashable(null,"utf8",false,"", emptyArray(), emptyArray()),
-            0, mutableListOf(), null, chain.toGenHash()
-        )
-        chain.saveBlock(genesis)
+        //a_reset()
+        val h = Host_create("/tmp/freechains/tests/graph/")
+        val chain = h.joinChain("/", false, arrayOf("secret","",""))
 
-        val a1 = chain.newBlock("", 2*day-1, h = BlockHashable(null,"utf8",false,"a1", emptyArray(), arrayOf(chain.toGenHash())))
-        val b1 = chain.newBlock("", 2*day, h = BlockHashable(null,"utf8",false,"b1", emptyArray(), arrayOf(chain.toGenHash())))
-        chain.saveBlock(a1)
-        chain.saveBlock(b1)
-        chain.reheads(a1)
-        chain.reheads(b1)
-
-        //val ab2 =
-        chain.post("", 27*day, BlockHashable(null,"utf8",false, "ab2", emptyArray(), emptyArray()))
-
-        val b2 = chain.newBlock("", 28*day, h = BlockHashable(null, "utf8",false,"b2", emptyArray(), arrayOf(b1.hash)))
-        chain.saveBlock(b2)
-        chain.reheads(b2)
-
-        chain.post("", 32*day,BlockHashable(null,"utf8",false, "ab3", emptyArray(), emptyArray()))
-        chain.save()
+        val a1  = chain.newBlock("", 2*day-1, H.copy(payload="a1"))
+        val b1  = chain.newBlock("", 2*day,   H.copy(backs=arrayOf(chain.getGenesis())))
+        val ab2 = chain.newBlock("", 27*day,  H)
+        val b2  = chain.newBlock("", 28*day,  H.copy(backs=arrayOf(b1.hash)))
+        chain.newBlock("", 32*day,  H)
         /*
                /-- (a1) --\
         (G) --<            >-- (ab2) --\__ (ab3)
@@ -222,13 +205,13 @@ class Tests {
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
         val h1_chain = h1.joinChain("/xxx", false, arrayOf("","",""))
-        h1_chain.post("", 0, BlockHashable(null,"utf8",false,"h1_1", emptyArray(), emptyArray()))
-        h1_chain.post("", 0, BlockHashable(null,"utf8",false,"h1_2", emptyArray(), emptyArray()))
+        h1_chain.newBlock("", 0, H)
+        h1_chain.newBlock("", 0, H)
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
         val h2_chain = h2.joinChain("/xxx", false, arrayOf("","",""))
-        h2_chain.post("", 0, BlockHashable(null,"utf8",false, "h2_1", emptyArray(), emptyArray()))
-        h2_chain.post("", 0, BlockHashable(null,"utf8",false, "h2_2", emptyArray(), emptyArray()))
+        h2_chain.newBlock("", 0, H)
+        h2_chain.newBlock("", 0, H)
 
         Thread.sleep(100)
         thread { daemon(h1) }
@@ -353,7 +336,7 @@ class Tests {
         val host = Host_load("/tmp/freechains/tests/M2/")
 
         val c1 = host.joinChain("/sym", false, arrayOf("64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2","",""))
-        val n1 = c1.post("", 0, BlockHashable(null,"utf8",false, "aaa", emptyArray(), emptyArray()))
+        val n1 = c1.newBlock("", 0, H)
         c1.assertBlock(n1)
         var ok1 = false
         try {
@@ -365,7 +348,7 @@ class Tests {
         assert(!ok1)
 
         val c2 = host.joinChain("/asy", false, arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
-        val n2 = c2.post("", 0, BlockHashable(null,"utf8",false, "aaa", emptyArray(), emptyArray()))
+        val n2 = c2.newBlock("", 0, H)
         c2.assertBlock(n2)
         val cx = c2.copy(keys=arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322",""))
         cx.assertBlock(n2)
@@ -381,10 +364,11 @@ class Tests {
 
     @Test
     fun m4_crypto_encrypt () {
-        //a_reset()
         val host = Host_load("/tmp/freechains/tests/M2/")
         val c1 = host.loadChain("/sym")
-        val n1 = c1.post("",0, BlockHashable(null,"utf8",true,c1.encrypt(true,"aaa"), emptyArray(), emptyArray()))
+        println(c1.root)
+        val n1 = c1.newBlock("",0, HC.copy(payload="aaa"))
+        println(n1.hash)
         val n2 = c1.loadBlockFromHash(n1.hash, true)
         assert(n2.hashable.payload == "aaa")
         //Thread.sleep(500)
@@ -407,7 +391,7 @@ class Tests {
 
     @Test
     fun m6_crypto_encrypt_asy () {
-        a_reset()
+        a_reset() // must be here
         main(arrayOf("host","create","/tmp/freechains/tests/M60/"))
         main(arrayOf("host","create","/tmp/freechains/tests/M61/","8331"))
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M60/")) }
@@ -446,7 +430,7 @@ class Tests {
 */
     @Test
     fun m8_likes () {
-        a_reset()
+        //a_reset()
         main(arrayOf("host","create","/tmp/freechains/tests/M80/"))
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M80/")) }
         Thread.sleep(100)
