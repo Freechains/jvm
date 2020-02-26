@@ -10,7 +10,6 @@ import kotlin.concurrent.thread
 import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
-import java.time.Instant
 import java.util.*
 import kotlin.collections.HashSet
 
@@ -67,7 +66,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val shared  = reader.readLineX()
             val public  = reader.readLineX()
             val private = reader.readLineX()
-            val chain = local.createChain(name,ro,arrayOf(shared,public,private))
+            val chain = local.joinChain(name,ro,arrayOf(shared,public,private))
             writer.writeLineX(chain.hash)
             System.err.println("chain join: $name (${chain.hash})")
         }

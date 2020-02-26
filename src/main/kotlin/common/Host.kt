@@ -29,7 +29,10 @@ fun String.fromJsonToHost () : Host {
 
 // CHAIN
 
-fun Host.createChain (name: String, ro: Boolean, keys: Array<String>) : Chain {
+fun Host.joinChain (name: String, ro: Boolean, keys: Array<String>) : Chain {
+    // checks if is owner of read-only chain
+    assert(!ro || keys[0].isNotEmpty() || keys[2].isNotEmpty())
+
     val chain = Chain(this.root+"/chains/", name, ro, keys)
     val file = File(chain.root + chain.name + "/" + "chain")
     assert(!file.exists()) { "chain already exists: $chain"}

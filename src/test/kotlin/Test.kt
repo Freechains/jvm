@@ -102,7 +102,7 @@ class Tests {
     @Test
     fun c1_post () {
         val host = Host_load("/tmp/freechains/tests/local/")
-        val chain = host.createChain("/ceu", false, arrayOf("","",""))
+        val chain = host.joinChain("/ceu", false, arrayOf("","",""))
         val n1 = chain.post("", 0, BlockHashable(null,"utf8",false,"aaa", emptyArray(), emptyArray()))
         val n2 = chain.post("", 0, BlockHashable(null,"utf8",false,"bbb", emptyArray(), emptyArray()))
         val n3 = chain.post("", 0, BlockHashable(null,"utf8",false,"ccc", emptyArray(), emptyArray()))
@@ -141,14 +141,14 @@ class Tests {
 
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
-        val src_chain = src.createChain("/d3", false, arrayOf("secret","",""))
+        val src_chain = src.joinChain("/d3", false, arrayOf("secret","",""))
         src_chain.post("", 0, BlockHashable(null,"utf8",false,"aaa", emptyArray(), emptyArray()))
         src_chain.post("", 0, BlockHashable(null,"utf8",false,"bbb", emptyArray(), emptyArray()))
         thread { daemon(src) }
 
         // DESTINY
         val dst = Host_create("/tmp/freechains/tests/dst/", 8331)
-        dst.createChain("/d3", false, arrayOf("secret","",""))
+        dst.joinChain("/d3", false, arrayOf("secret","",""))
         thread { daemon(dst) }
         Thread.sleep(100)
 
@@ -221,12 +221,12 @@ class Tests {
         //a_reset()
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
-        val h1_chain = h1.createChain("/xxx", false, arrayOf("","",""))
+        val h1_chain = h1.joinChain("/xxx", false, arrayOf("","",""))
         h1_chain.post("", 0, BlockHashable(null,"utf8",false,"h1_1", emptyArray(), emptyArray()))
         h1_chain.post("", 0, BlockHashable(null,"utf8",false,"h1_2", emptyArray(), emptyArray()))
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
-        val h2_chain = h2.createChain("/xxx", false, arrayOf("","",""))
+        val h2_chain = h2.joinChain("/xxx", false, arrayOf("","",""))
         h2_chain.post("", 0, BlockHashable(null,"utf8",false, "h2_1", emptyArray(), emptyArray()))
         h2_chain.post("", 0, BlockHashable(null,"utf8",false, "h2_2", emptyArray(), emptyArray()))
 
@@ -352,7 +352,7 @@ class Tests {
         //main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
         val host = Host_load("/tmp/freechains/tests/M2/")
 
-        val c1 = host.createChain("/sym", false, arrayOf("64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2","",""))
+        val c1 = host.joinChain("/sym", false, arrayOf("64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2","",""))
         val n1 = c1.post("", 0, BlockHashable(null,"utf8",false, "aaa", emptyArray(), emptyArray()))
         c1.assertBlock(n1)
         var ok1 = false
@@ -364,7 +364,7 @@ class Tests {
         }
         assert(!ok1)
 
-        val c2 = host.createChain("/asy", false, arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        val c2 = host.joinChain("/asy", false, arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
         val n2 = c2.post("", 0, BlockHashable(null,"utf8",false, "aaa", emptyArray(), emptyArray()))
         c2.assertBlock(n2)
         val cx = c2.copy(keys=arrayOf("","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322",""))

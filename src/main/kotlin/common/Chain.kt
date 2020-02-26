@@ -73,9 +73,6 @@ fun BlockHashable.toHash () : Hash {
 fun Chain.newBlock (sig_pvt: String, now: Long, h: BlockHashable) : Block {
     assert(h.backs.isEmpty())
 
-    // checks if is owner of read-only chain
-    assert(!this.ro || this.keys[0].isNotEmpty() || this.keys[2].isNotEmpty())
-
     // checks if has enough reputation to like
     if (h.like != null) {
         val n = h.like.n
