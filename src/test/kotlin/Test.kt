@@ -18,9 +18,6 @@ import java.io.File
 import java.util.*
 import kotlin.concurrent.thread
 
-@Serializable
-data class MeuDado(val v: String)
-
 /*
  *  TODO:
  *                                reps
@@ -52,6 +49,8 @@ data class MeuDado(val v: String)
  *  - RPi: cable + router + phones
  */
 
+val BLK = BlockHashable(null,"",false, "", emptyArray(), emptyArray())
+
 @TestMethodOrder(Alphanumeric::class)
 class Tests {
 
@@ -62,6 +61,9 @@ class Tests {
 
     @Test
     fun a2_json () {
+        @Serializable
+        data class MeuDado(val v: String)
+
         val bs : MutableList<Byte> = mutableListOf()
         for (i in 0..255) {
             bs.add(i.toByte())
@@ -429,12 +431,24 @@ class Tests {
         val b2 = j2!!.jsonToBlock()
         assert(b2.hashable.payload == "bbb")
     }
-
+/*
     @Test
-    fun m7_likes () {
+    fun m7_getHeads () {
+        val h = Host_create("/tmp/freechains/tests/m7/", 8330)
+        val chain = h.createChain("/", false, arrayOf("","",""))
+
+        val blk = chain.newBlock("", 0, BLK.copy(backs=arrayOf(chain.toGenHash())))
+        chain.saveBlock(blk)
+        chain.reheads(blk)
+        chain.save()
+
+    }
+*/
+    @Test
+    fun m8_likes () {
         a_reset()
-        main(arrayOf("host","create","/tmp/freechains/tests/M70/"))
-        thread { main(arrayOf("host","start","/tmp/freechains/tests/M70/")) }
+        main(arrayOf("host","create","/tmp/freechains/tests/M80/"))
+        thread { main(arrayOf("host","start","/tmp/freechains/tests/M80/")) }
         Thread.sleep(100)
         main(arrayOf("chain","join","/xxx","pubpvt","rw","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322","6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
 

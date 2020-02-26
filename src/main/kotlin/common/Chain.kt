@@ -185,18 +185,27 @@ fun Chain.decideBacks (h: BlockHashable) : Array<String> {
     // ignore current heads and point directly to the liked block only
     if (h.like != null) {
         val ref = h.refs[0]
-        val liked = this.loadBlockFromHash(ref,false)
+        val liked = this.loadBlockFromHash(ref, false)
         if (this.evalBlock(liked) != 1) {
             return arrayOf(liked.hash)          // liked block still in quarantine
         }
     }
 
     // otherwise, link to heads that are not in quarantine
+    return this.getHeads(1)
+}
+
+// TODO: likes too
+fun Chain.getHeads (min: Int) : Array<String> {
+    // min=1  : heads that are accepted (not in quarantine)
+    // min=0  : heads in quarantine that I want to forward
+    // min=-1 : all heads (never used)
+    assert(min >= 0)
     fun downs (hash: Hash) : List<Hash> {
         val blk = this.loadBlockFromHash(hash, false)
         return when (this.evalBlock(blk)) {
-            1    -> arrayListOf<Hash>(blk.hash)
-            else -> blk.hashable.backs.map(::downs).flatten()
+            in min..1 -> arrayListOf<Hash>(blk.hash)
+            else      -> blk.hashable.backs.map(::downs).flatten()
         }
     }
     return this.heads.toList().map(::downs).flatten().toTypedArray()
@@ -226,19 +235,19 @@ fun Chain.pubkeyReputation (now: Long, pub: String) : Int {
     val posts = mines
         .filter { it.time <= now - 1*day }              // mines older than 1 day
         .count() * lk
-    println("POSTS: $posts")
+    //println("POSTS: $posts")
     val sent = mines
         .filter { it.hashable.like != null }            // my likes to others
         .map { it.hashable.like!!.n }
         .sum()
-    println("SENT: $sent")
+    //println("SENT: $sent")
     val recv = b30s
         .filter { it.hashable.like != null &&           // others liked me
                   it.hashable.like.type == LikeType.PUBKEY &&
                   it.hashable.like.ref == pub }
         .map { it.hashable.like!!.n }
         .sum()
-    println("RECV: $recv")
+    //println("RECV: $recv")
     val all = posts + recv - sent
     return all
 }
