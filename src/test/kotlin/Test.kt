@@ -430,7 +430,7 @@ class Tests {
 */
     @Test
     fun m8_likes () {
-        //a_reset()
+        a_reset() // must be here
         main(arrayOf("host","create","/tmp/freechains/tests/M80/"))
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M80/")) }
         Thread.sleep(100)
