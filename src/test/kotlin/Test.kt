@@ -446,15 +446,15 @@ class Tests {
         assert("0" == main_(arrayOf("chain","like","get","/xxx","E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369")))
 
         // give to myself
-        main_(arrayOf("chain","like","post","/xxx","1",h1!!,"--time="+(1*day).toString(),"--sign=6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
-        assert("1" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322")))
+        main_(arrayOf("chain","like","post","/xxx","1000",h1!!,"--time="+(1*day).toString(),"--sign=6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        assert("500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322")))
 
         // give to other
-        val h3 = main_(arrayOf("chain","like","post","/xxx","1",h2!!,"--time="+(1*day).toString(),"--sign=6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
+        val h3 = main_(arrayOf("chain","like","post","/xxx","1000",h2!!,"--time="+(1*day).toString(),"--sign=6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"))
         assert("0" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322")))
-        assert("2" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369")))
+        assert("1000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369")))
 
-        main_(arrayOf("chain","like","post","/xxx","1",h3!!,"--time="+(1*day).toString(),"--why="+h3.substring(0,9),"--sign=6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"))
-        main_(arrayOf("chain","like","post","/xxx","1",h3,"--time="+(1*day+1).toString(),"--why="+h3.substring(0,9),"--sign=6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"))
+        main_(arrayOf("chain","like","post","/xxx","1000",h3!!,"--time="+(1*day).toString(),"--why="+h3.substring(0,9),"--sign=6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"))
+        main_(arrayOf("chain","like","post","/xxx","1000",h3,"--time="+(1*day+1).toString(),"--why="+h3.substring(0,9),"--sign=6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"))
     }
 }

@@ -8,10 +8,15 @@ import kotlin.math.max
 
 typealias Hash = String
 
+enum class LikeType {
+    POST, PUBKEY
+}
+
 @Serializable
 data class Like (
-    val n      : Int,       // +X: like, -X: dislike
-    val pubkey : String     // target public key
+    val n    : Int,       // +X: like, -X: dislike
+    val type : LikeType,
+    val ref  : String     // target public key or post hash
 )
 
 @Serializable

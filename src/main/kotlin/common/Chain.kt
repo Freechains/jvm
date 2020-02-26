@@ -225,7 +225,7 @@ fun Chain.pubkeyReputation (now: Long, pub: String) : Int {
     //println("MINES: $mines")
     val posts = mines
         .filter { it.time <= now - 1*day }              // mines older than 1 day
-        .count()
+        .count() * lk
     println("POSTS: $posts")
     val sent = mines
         .filter { it.hashable.like != null }            // my likes to others
@@ -233,8 +233,9 @@ fun Chain.pubkeyReputation (now: Long, pub: String) : Int {
         .sum()
     println("SENT: $sent")
     val recv = b30s
-        .filter { it.hashable.like != null }
-        .filter { it.hashable.like!!.pubkey == pub }    // others liked me
+        .filter { it.hashable.like != null &&           // others liked me
+                  it.hashable.like.type == LikeType.PUBKEY &&
+                  it.hashable.like.ref == pub }
         .map { it.hashable.like!!.n }
         .sum()
     println("RECV: $recv")
@@ -249,8 +250,9 @@ fun Chain.pubkeyReputation (now: Long, pub: String) : Int {
 fun Chain.evalBlock (blk: Block) : Int {
     // reputation of this block (likes - dislikes)
     val likes = this.traverseFromBacksToFronts (blk, { true })
-        .filter { it.hashable.like != null }                    // which are likes
-        .filter { it.hashable.like!!.pubkey == blk.hash }       // for received blk
+        .filter { it.hashable.like != null &&                    // which are likes
+                  it.hashable.like.type == LikeType.POST &&
+                  it.hashable.like.ref == blk.hash }            // for received blk
         .map { it.hashable.like!!.n }                           // get like quantity
         .sum()                                                  // plus-minus
 

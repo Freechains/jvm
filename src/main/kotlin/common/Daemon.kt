@@ -132,10 +132,13 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
                     null
                 } else {
                     if (chain.containsBlock(refs_[0])) {
+                        // refs a post
                         val blk = chain.loadBlockFromHash(refs_[0], false)
-                        Like(like,blk.signature!!.pubkey)
+                        Like(like/2, LikeType.POST, refs_[0])
+                        Like(like/2, LikeType.POST, blk.signature!!.pubkey)
                     } else {
-                        Like(like,refs_[0])
+                        // refs a pubkey
+                        Like(like, LikeType.PUBKEY, refs_[0])
                     }
                 }
 
