@@ -73,15 +73,10 @@ fun BlockHashable.toHash () : Hash {
 fun Chain.newBlock (sig_pvt: String, now: Long, h: BlockHashable) : Block {
     assert(h.backs.isEmpty())
 
-    // checks if has enough reputation to like
-    if (h.like != null) {
-        val n = h.like.n
-        assert(n <= this.pubkeyReputation(now,sig_pvt.pvtToPub())) { "not enough reputation" }
-    }
-
     val h_ = h.copy(backs=this.decideBacks(h))
     val hash = h_.toHash()
 
+    // signs message if requested (pvt provided or in pvt chain)
     var sig_hash = ""
     //assert(keys[2].isEmpty() || sig_pvt.isEmpty())
     val pvt = if (sig_pvt.isEmpty()) keys[2] else sig_pvt
@@ -92,7 +87,6 @@ fun Chain.newBlock (sig_pvt: String, now: Long, h: BlockHashable) : Block {
         lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), key)
         sig_hash = LazySodium.toHex(sig)
     }
-
     val sig =
         if (sig_hash.isEmpty())
             null
@@ -118,6 +112,17 @@ fun Chain.chainBlock (blk: Block, asr: Boolean = true) {
 private fun Chain.assertBlock (blk: Block) {
     val h = blk.hashable
     assert(blk.hash == h.toHash())
+
+    // checks if has enough reputation to like
+    if (h.like != null) {
+        val n = h.like.n
+        val pub = blk.signature!!.pubkey
+        assert(n <= this.pubkeyReputation(blk.time,pub)) {
+            "not enough reputation"
+        }
+    }
+
+    // checks if sig.hash/blk.hash/sig.pubkey match
     if (blk.signature != null) {
         val sig = LazySodium.toBin(blk.signature.hash)
         val msg = lazySodium.bytes(blk.hash)
