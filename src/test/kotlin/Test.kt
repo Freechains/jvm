@@ -21,8 +21,8 @@ import kotlin.concurrent.thread
 /*
  *  TODO:
  *                                reps
- *  -   736 ->   809 ->   930 ->  1180 LOC
- *  - 10553 -> 10555 -> 10557 -> 10568 KB
+ *  -   736 ->   809 ->   930 ->  1180 ->  1131 LOC
+ *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 KB
  *  - chain locks (test sends in parallel)
  *  - reputation system
  *    - quarentine
@@ -98,7 +98,7 @@ class Tests {
         val c2 = h.loadChain(c1.name)
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
-        val blk = c2.newBlock("", 0,  H)
+        val blk = c2.blockNew("", 0,  H)
         val blk2 = c2.loadBlockFromHash(blk.hash,false)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
     }
@@ -107,14 +107,14 @@ class Tests {
     fun c1_post () {
         val host = Host_load("/tmp/freechains/tests/local/")
         val chain = host.joinChain("/", false, arrayOf("","",""))
-        val n1 = chain.newBlock("", 0, H)
-        val n2 = chain.newBlock("", 0, H)
-        val n3 = chain.newBlock("", 0, H)
+        val n1 = chain.blockNew("", 0, H)
+        val n2 = chain.blockNew("", 0, H)
+        val n3 = chain.blockNew("", 0, H)
 
         var ok = false
         try {
             val n = n3.copy(hashable = n3.hashable.copy(payload="xxx"))
-            chain.assertBlock(n)
+            chain.blockAssert(n)
         } catch (e: Throwable) {
             ok = true
         }
@@ -145,8 +145,8 @@ class Tests {
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
         val src_chain = src.joinChain("/d3", false, arrayOf("secret","",""))
-        src_chain.newBlock("", 0, H)
-        src_chain.newBlock("", 0, H)
+        src_chain.blockNew("", 0, H)
+        src_chain.blockNew("", 0, H)
         thread { daemon(src) }
 
         // DESTINY
@@ -172,11 +172,11 @@ class Tests {
         val h = Host_create("/tmp/freechains/tests/graph/")
         val chain = h.joinChain("/", false, arrayOf("secret","",""))
 
-        val a1  = chain.newBlock("", 2*day-1, H.copy(payload="a1"))
-        val b1  = chain.newBlock("", 2*day,   H.copy(backs=arrayOf(chain.getGenesis())))
-        val ab2 = chain.newBlock("", 27*day,  H)
-        val b2  = chain.newBlock("", 28*day,  H.copy(backs=arrayOf(b1.hash)))
-        chain.newBlock("", 32*day,  H)
+        val a1  = chain.blockNew("", 2*day-1, H.copy(payload="a1"))
+        val b1  = chain.blockNew("", 2*day,   H.copy(backs=arrayOf(chain.getGenesis())))
+        val ab2 = chain.blockNew("", 27*day,  H)
+        val b2  = chain.blockNew("", 28*day,  H.copy(backs=arrayOf(b1.hash)))
+        chain.blockNew("", 32*day,  H)
         /*
                /-- (a1) --\
         (G) --<            >-- (ab2) --\__ (ab3)
@@ -210,13 +210,13 @@ class Tests {
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
         val h1_chain = h1.joinChain("/xxx", false, arrayOf("","",""))
-        h1_chain.newBlock("", 0, H)
-        h1_chain.newBlock("", 0, H)
+        h1_chain.blockNew("", 0, H)
+        h1_chain.blockNew("", 0, H)
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
         val h2_chain = h2.joinChain("/xxx", false, arrayOf("","",""))
-        h2_chain.newBlock("", 0, H)
-        h2_chain.newBlock("", 0, H)
+        h2_chain.blockNew("", 0, H)
+        h2_chain.blockNew("", 0, H)
 
         Thread.sleep(100)
         thread { daemon(h1) }
@@ -341,26 +341,26 @@ class Tests {
         val host = Host_load("/tmp/freechains/tests/M2/")
 
         val c1 = host.joinChain("/sym", false, arrayOf("64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2","",""))
-        val n1 = c1.newBlock("", 0, H)
-        c1.assertBlock(n1)
+        val n1 = c1.blockNew("", 0, H)
+        c1.blockAssert(n1)
         var ok1 = false
         try {
             val c = c1.copy(keys=arrayOf("wrong","",""))
-            c.assertBlock(n1)       // now I can post w/ the wrong key
+            c.blockAssert(n1)       // now I can post w/ the wrong key
         } catch (e: Throwable) {
             ok1 = true
         }
         assert(!ok1)
 
         val c2 = host.joinChain("/asy", false, arrayOf("",PUB1,PVT1))
-        val n2 = c2.newBlock("", 0, H)
-        c2.assertBlock(n2)
+        val n2 = c2.blockNew("", 0, H)
+        c2.blockAssert(n2)
         val cx = c2.copy(keys=arrayOf("",PUB1,""))
-        cx.assertBlock(n2)
+        cx.blockAssert(n2)
         var ok2 = false
         try {
             val cz = c2.copy(keys=arrayOf("","4CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322",""))
-            cz.assertBlock(n2)
+            cz.blockAssert(n2)
         } catch (e: Throwable) {
             ok2 = true
         }
@@ -372,7 +372,7 @@ class Tests {
         val host = Host_load("/tmp/freechains/tests/M2/")
         val c1 = host.loadChain("/sym")
         println(c1.root)
-        val n1 = c1.newBlock("",0, HC.copy(payload="aaa"))
+        val n1 = c1.blockNew("",0, HC.copy(payload="aaa"))
         println(n1.hash)
         val n2 = c1.loadBlockFromHash(n1.hash, true)
         assert(n2.hashable.payload == "aaa")

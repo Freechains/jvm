@@ -105,7 +105,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val pub = reader.readLineX()
 
             val chain = local.loadChain(name)
-            val likes = chain.pubkeyReputation(time.nowToTime(), pub)
+            val likes = chain.repPubkey(time.nowToTime(), pub)
 
             writer.writeLineX(likes.toString())
             System.err.println("chain reps: $likes")
@@ -141,7 +141,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
                     }
                 }
 
-            val blk = chain.newBlock (
+            val blk = chain.blockNew (
                 sig,
                 time.nowToTime(),
                 BlockHashable (
@@ -328,7 +328,7 @@ fun Socket.chain_recv (chain: Chain) : Int {
         for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock()
             //println("[recv] ${blk.hash}")
-            chain.chainBlock(blk)
+            chain.blockChain(blk)
         }
         writer.writeLineX(n2.toString())
     }

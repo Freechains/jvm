@@ -13,7 +13,6 @@ import com.goterl.lazycode.lazysodium.interfaces.SecretBox
 import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
-import java.lang.Integer.max
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -73,7 +72,7 @@ fun BlockHashable.toHash () : Hash {
 
 // NODE
 
-fun Chain.newBlock (sig_pvt: String, now: Long, h: BlockHashable) : Block {
+fun Chain.blockNew (sig_pvt: String, now: Long, h: BlockHashable) : Block {
     // non-empty pre-set backs only used in tests
     val backs = if (h.backs.isNotEmpty()) h.backs else this.heads.toTypedArray()
 
@@ -100,22 +99,22 @@ fun Chain.newBlock (sig_pvt: String, now: Long, h: BlockHashable) : Block {
             Signature(sig_hash, if (sig_pvt.isEmpty()) "" else sig_pvt.pvtToPub())
 
     val new = Block(h_, now, mutableListOf(), sig, hash)
-    this.chainBlock(new)
+    this.blockChain(new)
     return new
 }
 
 // CHAIN BLOCK
 
-fun Chain.chainBlock (blk: Block, asr: Boolean = true) {
+fun Chain.blockChain (blk: Block, asr: Boolean = true) {
     if (asr) {
-        this.assertBlock(blk)       // skip for testing purposes
+        this.blockAssert(blk)       // skip for testing purposes
     }
     this.saveBlock(blk)
     this.reheads(blk)
     this.save()
 }
 
-internal fun Chain.assertBlock (blk: Block) {
+internal fun Chain.blockAssert (blk: Block) {
     val h = blk.hashable
     assert(blk.hash == h.toHash())
 
@@ -123,7 +122,7 @@ internal fun Chain.assertBlock (blk: Block) {
     if (h.like != null) {
         val n = h.like.n
         val pub = blk.signature!!.pubkey
-        assert(n <= this.pubkeyReputation(blk.time,pub)) {
+        assert(n <= this.repPubkey(blk.time,pub)) {
             "not enough reputation"
         }
     }
@@ -200,7 +199,7 @@ private fun Chain.decrypt (payload: String) : Pair<Boolean,String> {
 
 // LIKE
 
-fun Chain.pubkeyReputation (now: Long, pub: String) : Int {
+fun Chain.repPubkey (now: Long, pub: String) : Int {
     val b30s = this.traverseFromHeads {
         it.time >= now - 30*day
     }

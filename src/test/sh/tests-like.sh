@@ -23,7 +23,7 @@ j3=`freechains --host=localhost:8400 chain get / $b3`
 d31=`jq ".hashable.refs" <(echo $j3)`
 d32='[ "1_B865A4B2F2C79A1BF4BE047932AD5108BA9B5AF13C711F7B369896C59BC07A2E" ]'
 diff <(echo $d31) <(echo $d32) || exit 1
-
+exit 0
 b4=`freechains --host=localhost:8400 chain like post / 13- "$b1" --why="hated it"`
 j4=`freechains --host=localhost:8400 chain get / $b4`
 d41=`jq ".hashable.like" <(echo $j4)`
