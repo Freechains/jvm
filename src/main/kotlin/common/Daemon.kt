@@ -14,22 +14,6 @@ import java.time.Instant
 import java.util.*
 import kotlin.collections.HashSet
 
-const val min  = (1000 * 60).toLong()
-const val hour = 60*min
-const val day  = 24*hour
-
-fun String.pvtToPub () : String {
-    return this.substring(this.length/2)
-}
-
-fun getNow () : Long {
-    return Instant.now().toEpochMilli()
-}
-
-fun String.nowToTime () : Long {
-    return if (this == "now") getNow() else this.toLong()
-}
-
 fun daemon (host : Host) {
     val socket = ServerSocket(host.port)
     //System.err.println("host start: $host")
@@ -122,7 +106,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
             val pub = reader.readLineX()
 
             val chain = local.loadChain(name)
-            val likes = chain.pubkeyLikes(time.nowToTime(), pub)
+            val likes = chain.pubkeyReputation(time.nowToTime(), pub)
 
             writer.writeLineX(likes.toString())
             System.err.println("chain reps: $likes")

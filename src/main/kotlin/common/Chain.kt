@@ -170,7 +170,7 @@ fun Chain.post (sig_pvt: String, now: Long, h: BlockHashable) : Block {
     // checks if has enough reputation to like
     if (h.like != null) {
         val n = h.like.n
-        assert(n <= this.pubkeyLikes(now,sig_pvt.pvtToPub())) { "not enough reputation" }
+        assert(n <= this.pubkeyReputation(now,sig_pvt.pvtToPub())) { "not enough reputation" }
     }
 
     val blk = this.newBlock(sig_pvt, now, h.copy(backs=this.decideBacks(h)))
@@ -214,30 +214,30 @@ fun Chain.reheads (blk: Block) {
     }
 }
 
-fun Chain.pubkeyLikes (now: Long, pub: String) : Int {
+fun Chain.pubkeyReputation (now: Long, pub: String) : Int {
     val b30s = this.traverseFromHeads {
         it.time >= now - 30*day
     }
     //println("B30s: ${b30s.toList()}")
     val mines = b30s
         .filter { it.signature != null &&
-                  it.signature.pubkey == pub }           // all I signed
+                  it.signature.pubkey == pub }          // all I signed
     //println("MINES: $mines")
     val posts = mines
         .filter { it.time <= now - 1*day }              // mines older than 1 day
         .count()
-    //println("POSTS: $posts")
+    println("POSTS: $posts")
     val sent = mines
         .filter { it.hashable.like != null }            // my likes to others
         .map { it.hashable.like!!.n }
         .sum()
-    //println("SENT: $sent")
+    println("SENT: $sent")
     val recv = b30s
         .filter { it.hashable.like != null }
         .filter { it.hashable.like!!.pubkey == pub }    // others liked me
         .map { it.hashable.like!!.n }
         .sum()
-    //println("RECV: $recv")
+    println("RECV: $recv")
     val all = posts + recv - sent
     return all
 }
