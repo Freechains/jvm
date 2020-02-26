@@ -415,19 +415,19 @@ class Tests {
         val b2 = j2!!.jsonToBlock()
         assert(b2.hashable.payload == "bbb")
     }
-/*
+
     @Test
     fun m7_getHeads () {
+        a_reset()
         val h = Host_create("/tmp/freechains/tests/m7/", 8330)
-        val chain = h.createChain("/", false, arrayOf("","",""))
+        val chain = h.joinChain("/", false, arrayOf("","",""))
 
-        val blk = chain.newBlock("", 0, BLK.copy(backs=arrayOf(chain.toGenHash())))
-        chain.saveBlock(blk)
-        chain.reheads(blk)
-        chain.save()
-
+        val blk = chain.newBlock("", getNow(), H)
+        println(blk.hash)
+        println(chain.evalBlock(blk))
+        println(chain.getHeads(1).contentToString())
     }
-*/
+
     @Test
     fun m8_likes () {
         a_reset() // must be here

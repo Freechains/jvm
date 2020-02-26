@@ -13,6 +13,7 @@ import com.goterl.lazycode.lazysodium.interfaces.SecretBox
 import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import java.lang.Integer.min
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -273,25 +274,34 @@ fun Chain.evalBlock (blk: Block) : Int {
     // all positive likes since block being evaluated
     // (only positive likes because they are the ones that could be used to refuse this block)
     // (negatives not necessarily, e.g., other spam, etc)
-    val ps = this.traverseFromHeads { it.time > getNow()-24*hour }
+
+    // all positive likes over the past week
+    val ps = this.traverseFromHeads { it.time > getNow()-7*day }
         .filter { it.hashable.like !=null }
         .filter { it.hashable.like!!.n > 0 }
 
-    val psNew = ps.filter { it.time > blk.time }
+    // N of all new positives since after this block
+    val nAft = ps.filter { it.time > blk.time }
         .map { it.hashable.like!!.n }
         .sum()
 
-    val ps24 = ps
+    // N of all new positives over the past week PER DAY
+    val nDay = ps
         .map { it.hashable.like!!.n }
-        .sum()
+        .sum() / 7
+
+    val day6h= min(10, nDay/4)      // 6h of daily likes (minimum 10)
+    val day2h= min(5,  nDay/12)     // 2h of daily likes (minimum 5)
 
     return when {
-        likes  > psNew/2 -> 1
-        -likes > psNew/2 -> -1
-        else -> if (psNew >= ps24/4)
-                    1   // number of new likes is 1/4 over yesterday, time to move on
-                else
-                    0   // still in quarantine
+        // new likes reached 2h of daily likes
+        ( likes>nAft/2 && nAft>=day2h) ->  1    // with half positive to blk, ACCEPT
+        (-likes>nAft/2 && nAft>=day2h) -> -1    // with half negative to blk, REJECT
+
+        // new likes reached 6h daily likes
+        (nAft >= day6h) -> 1                    // time to move on
+
+        else -> 0                               // remain in quarantine
     }
 }
 
