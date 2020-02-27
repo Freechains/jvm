@@ -18,6 +18,28 @@ fun daemon (host : Host) {
     val socket = ServerSocket(host.port)
     //System.err.println("host start: $host")
 
+    thread {
+        while (true) {
+            Thread.sleep(30 * min)
+            val chains = synchronized (waitLists) { waitLists.keys.toList() }
+            for (chain in chains) {
+                synchronized (chain) {
+                    val waitList = waitLists[chain]!!
+                    if (waitList.nextTime != null && waitList.nextTime!! <= getNow()) {
+                        chain.blockChain(waitList.nextBlock!!)
+                        if (waitList.list.isNotEmpty()) {
+                            waitList.nextTime = waitList.nextTime!! + 4 * hour
+
+                            val first = waitList.list.first()
+                            waitList.list.remove(first)
+                            waitList.nextBlock = first
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     while (true) {
         try {
             val remote = socket.accept()
@@ -63,7 +85,7 @@ fun handle (server: ServerSocket, remote: Socket, local: Host) {
         }
         "FC chain join" -> {
             val name    = reader.readLineX().nameCheck()
-            val ro      = reader.readLineX() == "ro"
+            val ro    = reader.readLineX() == "ro"
             val shared  = reader.readLineX()
             val public  = reader.readLineX()
             val private = reader.readLineX()
@@ -315,7 +337,7 @@ fun Socket.chain_recv (chain: Chain) : Int {
     for (i in 1..n1) {
         // for each head path of blocks
         while (true) {
-            val hash = reader.readLineX()           // receives hash in the path
+            val hash = reader.readLineX()   // receives hash in the path
             //println("[recv] $hash")
             if (hash.isEmpty()) {
                 break                               // nothing else to answer
@@ -337,9 +359,27 @@ fun Socket.chain_recv (chain: Chain) : Int {
             if (blk.hashable.time >= now+30*min) {
                 continue    // refuse block from the future
             }
-            if (blk.hashable.time <= now-30* min) {
-                //error("TODO: block from the past")
+
+            /*
+            if (blk.hashable.time <= now-30*min) {
+                chain.blockAssert(blk)
+
+                synchronized (waitLists) {
+                    if (!waitLists.containsKey(chain)) {
+                        waitLists[chain] = WaitList()
+                    }
+                }
+                val waitList = waitLists[chain]!!
+                if (waitList.nextBlock == null) {
+                    waitList.nextBlock = blk
+                    waitList.nextTime = getNow() + 4*hour
+                } else if (waitList.list.size <= 12) {  // 48h/2d
+                    waitList.list.add(blk)
+                }
+
+                continue
             }
+             */
 
             chain.blockChain(blk)
         }

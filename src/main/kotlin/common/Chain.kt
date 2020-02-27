@@ -15,8 +15,17 @@ import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 // internal methods are private but are used in tests
+
+class WaitList () {
+    var nextTime : Long? = null
+    var nextBlock : Block? = null
+    val list : SortedSet<Block> = sortedSetOf(kotlin.Comparator({a,b->a.hash.compareTo(b.hash)}))
+}
+
+val waitLists : HashMap<Chain,WaitList> = HashMap()
 
 @Serializable
 data class Chain (
@@ -214,7 +223,7 @@ fun Chain.repPubkey (now: Long, pub: String) : Int {
                 it.signature.pubkey == pub }            // all I signed
     //println("MINES: $mines")
     val posts = mines
-        .filter { it.hashable.time <= now - 1*day }              // mines older than 1 day
+        .filter { it.hashable.time <= now - 1*day }     // mines older than 1 day
         .count() * lk
     //println("POSTS: $posts")
     val sent = mines

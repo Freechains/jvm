@@ -66,6 +66,31 @@ class Tests {
         assert( File("/tmp/freechains/tests/").deleteRecursively() )
     }
 
+    /*
+    @Test
+    fun a1_threads () {
+        val c1 = Chain("x", "y", true, arrayOf("x","y"))
+        val c2 = Chain("x", "y", true, arrayOf("x","y"))
+        thread {
+            synchronized(c1.hash) {
+                for (i in 1..5) {
+                    Thread.sleep(1000)
+                    println("thread 1")
+                }
+            }
+        }
+        thread {
+            synchronized(c2.hash) {
+                for (i in 1..5) {
+                    Thread.sleep(1000)
+                    println("thread 2")
+                }
+            }
+        }
+        Thread.sleep(10000)
+    }
+     */
+
     @Test
     fun a2_json () {
         @Serializable
