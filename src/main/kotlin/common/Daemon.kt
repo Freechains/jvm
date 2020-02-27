@@ -10,6 +10,7 @@ import kotlin.concurrent.thread
 import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import java.io.FileNotFoundException
 import java.lang.Long.max
 import java.util.*
 import kotlin.collections.HashSet
@@ -19,9 +20,10 @@ class WaitList () {
     var nextBlock : Block? = null
     val list : SortedSet<Block> = sortedSetOf(kotlin.Comparator({a,b->a.hash.compareTo(b.hash)}))
 }
+typealias WaitLists = HashMap<Chain,WaitList>
 
 class Daemon (host : Host) {
-    val waitLists : HashMap<Chain,WaitList> = HashMap()
+    val waitLists : WaitLists = HashMap()
     val listening = mutableMapOf<String,MutableSet<DataOutputStream>>()
     val server = ServerSocket(host.port)
     val local = host
@@ -47,6 +49,7 @@ class Daemon (host : Host) {
                         System.err.println(
                             e.message ?: e.toString()
                         )
+                        //println(e.stackTrace.contentToString())
                     }
                 }
             } catch (e: SocketException) {
@@ -253,7 +256,7 @@ class Daemon (host : Host) {
                             writer.writeLineX(n.toString())
                         }
                         "FC chain recv" -> {
-                            val n = remote.chain_recv(chain)
+                            val n = remote.chain_recv(chain,waitLists)
                             System.err.println("chain recv: $name: $n")
                             thread {
                                 signal(name, n)
@@ -293,7 +296,7 @@ fun Socket.chain_send (chain: Chain) : Int {
 
     // for each local head
     val n1 = chain.heads.size
-    writer.writeLineX(n1.toString())
+    writer.writeLineX(n1.toString())                              // 1
     for (head in chain.heads) {
         val pending = ArrayDeque<Hash>()
         pending.push(head)
@@ -306,8 +309,8 @@ fun Socket.chain_send (chain: Chain) : Int {
 
             val blk = chain.loadBlockFromHash(hash,false)
 
-            writer.writeLineX(hash)                  // asks if contains hash
-            val has = reader.readLineX().toBoolean() // receives yes or no
+            writer.writeLineX(hash)                               // 2: asks if contains hash
+            val has = reader.readLineX().toBoolean()    // 3: receives yes or no
             if (has) {
                 //println("[send] has: $hash")
                 continue                             // already has: finishes subpath
@@ -325,28 +328,28 @@ fun Socket.chain_send (chain: Chain) : Int {
         }
 
         //println("[send]")
-        writer.writeLineX("")                     // will start sending nodes
+        writer.writeLineX("")                     // 4: will start sending nodes
         //println("[send] ${toSend.size.toString()}")
-        writer.writeLineX(toSend.size.toString())    // how many
+        writer.writeLineX(toSend.size.toString())    // 5: how many
         val n2 = toSend.size
         while (toSend.isNotEmpty()) {
             val hash = toSend.pop()
             val blk = chain.loadBlockFromHash(hash,false)
             blk.fronts.clear()
-            writer.writeBytes(blk.toJson())
+            writer.writeBytes(blk.toJson())          // 6
             writer.writeLineX("\n")
         }
-        val n2_ = reader.readLineX().toInt()          // how many blocks again
+        val n2_ = reader.readLineX().toInt()    // 7: how many blocks again
         assert(n2 == n2_)
         N += n2
     }
-    val n1_ = reader.readLineX().toInt()             // how many heads again
+    val n1_ = reader.readLineX().toInt()        // 8: how many heads again
     assert(n1 == n1_)
 
     return N
 }
 
-fun Socket.chain_recv (chain: Chain) : Int {
+fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Int {
     val reader = DataInputStream(this.getInputStream()!!)
     val writer = DataOutputStream(this.getOutputStream()!!)
 
@@ -356,60 +359,64 @@ fun Socket.chain_recv (chain: Chain) : Int {
 
     //println("[recv] $maxTime")
     var N = 0
+    val now = getNow()
 
     // for each remote head
-    val n1 = reader.readLineX().toInt()
+    val n1 = reader.readLineX().toInt()        // 1
     for (i in 1..n1) {
         // for each head path of blocks
         while (true) {
-            val hash = reader.readLineX()   // receives hash in the path
+            val hash = reader.readLineX()   // 2: receives hash in the path
             //println("[recv] $hash")
-            if (hash.isEmpty()) {
+            if (hash.isEmpty()) {                   // 4
                 break                               // nothing else to answer
             } else {
                 val has = chain.containsBlock(hash)
-                writer.writeLineX(has.toString())   // have or not block
+                writer.writeLineX(has.toString())   // 3: have or not block
             }
         }
 
         // receive blocks
-        val n2 = reader.readLineX().toInt()
+        val n2 = reader.readLineX().toInt()    // 5
         //println("[recv] $n2")
         N += n2
         for (j in 1..n2) {
-            val blk = reader.readLinesX().jsonToBlock()
+            val blk = reader.readLinesX().jsonToBlock() // 6
             //println("[recv] ${blk.hash}")
 
-            val now = getNow()
             if (blk.hashable.time >= now+30*min) {
                 continue    // refuse block from the future
             }
 
-            /*
+            // post is too old:
+            // insert into waiting list to "blockChain()" later
             if (blk.hashable.time <= now-30*min) {
-                chain.blockAssert(blk)
+                try {
+                    chain.blockAssert(blk)  // might fail if back also failed
 
-                synchronized (waitLists) {
-                    if (!waitLists.containsKey(chain)) {
-                        waitLists[chain] = WaitList()
+                    synchronized(waitLists) {
+                        if (!waitLists.containsKey(chain)) {
+                            waitLists[chain] = WaitList()
+                        }
                     }
-                }
-                val waitList = waitLists[chain]!!
-                if (waitList.nextBlock == null) {
-                    waitList.nextBlock = blk
-                    waitList.nextTime = getNow() + 4*hour
-                } else if (waitList.list.size <= 12) {  // 48h/2d
-                    waitList.list.add(blk)
+                    val waitList = waitLists[chain]!!
+                    if (waitList.nextBlock == null) {
+                        waitList.nextBlock = blk
+                        waitList.nextTime = now + 4 * hour
+                    } else if (waitList.list.size <= 12) {  // 48h/2d
+                        waitList.list.add(blk)
+                    }
+                } catch (e: FileNotFoundException) {
+                    // ok: not inserted in waitList
                 }
 
                 continue
             }
-             */
 
             chain.blockChain(blk)
         }
-        writer.writeLineX(n2.toString())
+        writer.writeLineX(n2.toString())            // 7
     }
-    writer.writeLineX(n1.toString())
+    writer.writeLineX(n1.toString())                // 8
     return N
 }

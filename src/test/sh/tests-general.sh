@@ -53,27 +53,24 @@ fi
 ###############################################################################
 echo "#### 3"
 
-while :
-do
-  rm -Rf $FC/8402
-  freechains host create $FC/8402 8402
-  freechains host start $FC/8402 &
-  sleep 0.5
-  freechains --host=localhost:8402 chain join /
-  freechains --host=localhost:8400 chain send / localhost:8402 &
-  P1=$!
-  freechains --host=localhost:8401 chain send / localhost:8402 &
-  P2=$!
-  wait $P1 $P2
+rm -Rf $FC/8402
+freechains host create $FC/8402 8402
+freechains host start $FC/8402 &
+sleep 0.5
+freechains --host=localhost:8402 chain join /
+freechains --host=localhost:8400 chain send / localhost:8402 &
+P1=$!
+freechains --host=localhost:8401 chain send / localhost:8402 &
+P2=$!
+wait $P1 $P2
+sleep 1
 
-  diff $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
-  ret=`ls $FC/8401/chains/blocks/ | wc`
-  if [ "$ret" != "      5       5     355" ]; then
-    echo "$ret"
-    exit 1
-  fi
-  break
-done
+diff $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
+ret=`ls $FC/8401/chains/blocks/ | wc`
+if [ "$ret" != "      5       5     355" ]; then
+  echo "$ret"
+  exit 1
+fi
 
 ###############################################################################
 ###############################################################################

@@ -4,11 +4,8 @@ echo
 echo "=== CLEANING... ==="
 echo
 
-for i in $(seq 8400 8450)
-do
-  freechains host stop --host=localhost:$i
-done
-sleep 5
+ps | grep java | awk '{print $1}' | xargs kill 2> /dev/null
+sleep 0.5
 
 rm -Rf /tmp/freechains/
 mkdir /tmp/freechains/
