@@ -15,7 +15,6 @@ import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 // internal methods are private but are used in tests
 
@@ -115,20 +114,30 @@ fun Chain.blockChain (blk: Block, asr: Boolean = true) {
     this.save()
 }
 
-internal fun Chain.blockAssert (blk: Block) {
+fun Chain.backsCheck (blk: Block) : Boolean {
+    for (back in blk.hashable.backs) {
+        if (! this.containsBlock(back)) {
+            return false
+        }
+        val bk = this.loadBlockFromHash(back,false)
+        if (bk.hashable.time > blk.hashable.time) {
+            return false
+        }
+    }
+    return true
+}
+
+fun Chain.blockAssert (blk: Block) {
     val h = blk.hashable
     assert(blk.hash == h.toHash())
 
-    for (back in blk.hashable.backs) {
-        val bk = this.loadBlockFromHash(back,false)
-        assert(bk.hashable.time <= blk.hashable.time)
-    }
+    assert(this.backsCheck(blk))
 
     // checks if has enough reputation to like
     if (h.like != null) {
         val n = h.like.n
         val pub = blk.signature!!.pubkey
-        assert(n <= this.repPubkey(h.time,pub)) {
+        assert(n <= this.getRep(pub, h.time)) {
             "not enough reputation"
         }
     }
@@ -205,7 +214,7 @@ private fun Chain.decrypt (payload: String) : Pair<Boolean,String> {
 
 // LIKE
 
-fun Chain.repPubkey (now: Long, pub: String) : Int {
+fun Chain.getRep (pub: String, now: Long) : Int {
     val b30s = this.traverseFromHeads {
         it.hashable.time >= now - 30*day
     }

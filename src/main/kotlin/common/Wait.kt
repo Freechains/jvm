@@ -5,9 +5,15 @@ import kotlin.collections.HashMap
 
 typealias WaitLists = HashMap<Chain,WaitList>
 
-fun WaitLists.createGet (chain: Chain, cmp: Comparator<in Block>) : WaitList {
+fun WaitLists.createGet (chain: Chain) : WaitList {
     if (!this.containsKey(chain)) {
-        this[chain] = WaitList(cmp)
+        this[chain] = WaitList(compareBy<Block>{
+            it.signature.let {
+                if (it==null) 0 else chain.getRep(it.pubkey, getNow())
+            }
+        }.thenBy {
+            it.hash
+        })
     }
     return this[chain]!!
 }

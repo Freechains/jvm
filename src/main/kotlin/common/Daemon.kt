@@ -10,7 +10,6 @@ import kotlin.concurrent.thread
 import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
-import java.io.FileNotFoundException
 import java.lang.Long.max
 import java.time.Instant
 import java.util.*
@@ -18,8 +17,7 @@ import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 class Daemon (host : Host) {
-    val pastLists : WaitLists = HashMap()
-    //val noobLists : WaitLists = HashMap()
+    val waitList : WaitLists = HashMap()
     val listenLists = mutableMapOf<String,MutableSet<DataOutputStream>>()
     val server = ServerSocket(host.port)
     val local = host
@@ -58,11 +56,11 @@ class Daemon (host : Host) {
     fun f_waitLists () {
         while (true) {
             Thread.sleep(30 * min)
-            val chains = synchronized (pastLists) { pastLists.keys.toList() }
+            val chains = synchronized (waitList) { waitList.keys.toList() }
             for (chain in chains) {
                 synchronized (getLock(chain)) {
-                    val pastList = pastLists[chain]!!
-                    val nxt = pastList.rem(getNow())
+                    val waitList = waitList[chain]!!
+                    val nxt = waitList.rem(getNow())
                     if (nxt != null) {
                         chain.blockChain(nxt)
                     }
@@ -186,7 +184,7 @@ class Daemon (host : Host) {
                             val time = reader.readLineX()
                             val pub = reader.readLineX()
 
-                            val likes = chain.repPubkey(time.nowToTime(), pub)
+                            val likes = chain.getRep(pub, time.nowToTime())
 
                             writer.writeLineX(likes.toString())
                             System.err.println("chain reps: $likes")
@@ -252,7 +250,7 @@ class Daemon (host : Host) {
                             writer.writeLineX(n.toString())
                         }
                         "FC chain recv" -> {
-                            val n = remote.chain_recv(chain,pastLists)
+                            val n = remote.chain_recv(chain,waitList)
                             System.err.println("chain recv: $name: $n")
                             thread {
                                 signal(name, n)
@@ -345,7 +343,7 @@ fun Socket.chain_send (chain: Chain) : Int {
     return N
 }
 
-fun Socket.chain_recv (chain: Chain, pastLists: WaitLists) : Int {
+fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Int {
     val reader = DataInputStream(this.getInputStream()!!)
     val writer = DataOutputStream(this.getOutputStream()!!)
 
@@ -376,28 +374,33 @@ fun Socket.chain_recv (chain: Chain, pastLists: WaitLists) : Int {
         val n2 = reader.readLineX().toInt()    // 5
         //println("[recv] $n2")
         N += n2
-        for (j in 1..n2) {
+        xxx@for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock() // 6
             //println("[recv] ${blk.hash}")
 
-            if (blk.hashable.time >= now+T30M_future) {
-                continue    // refuse block from the future
-            }
-
-            // post is too old:
-            // insert into waiting list to "blockChain()" it later
-            if (blk.hashable.time <= now-T2H_sync) {
-                try {
-                    chain.blockAssert(blk)  // might fail if back also failed
-                    val pastList = synchronized (pastLists) {
-                        pastLists.createGet(chain, CMP_past)
-                    }
-                    pastList.add(blk,now)
-                } catch (e: FileNotFoundException) {
-                    // ok: not inserted in waitList
+            when {
+                // refuse block from the future
+                (blk.hashable.time >= now+T30M_future) -> {
+                    continue@xxx
                 }
 
-                continue
+                // enqueue noob/late block
+                (
+                    blk.hashable.time <= now-T2H_sync           ||  // late
+                    blk.signature == null                       ||  // no sig
+                    chain.getRep(blk.signature.pubkey,now) <= 0     // no rep
+                ) -> {
+                    if (chain.backsCheck(blk)) {
+                        val waitList = synchronized (waitLists) {
+                            waitLists.createGet(chain)
+                        }
+                        waitList.add(blk,now)
+                    } else {
+                        // not all backs exist (probably because noob/late as well)
+                        // ok: do not inserted in waitList
+                    }
+                    continue@xxx
+                }
             }
 
             chain.blockChain(blk)
