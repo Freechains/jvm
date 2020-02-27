@@ -24,8 +24,11 @@ import kotlin.concurrent.thread
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 KB
  *  - chain locks (test sends in parallel)
+ *  - Simulation.kt
+ *  - refuse posts with backs pointing from my getNow
  *  - reputation system
- *    - quarentine
+ *    - test waitlist
+ *    - lks rewards proportional to childs
  *    - new blocks (must work)
  *    - liferea: likes in title
  *    - progressive like costs

@@ -8,6 +8,9 @@ const val day  = 24*hour
 
 const val lk = 1000     // rewards for post after 24h
 
+const val T2H_waitLists = 2*hour    // period between accepting consecutive old blocks
+const val N12_waitLists = 24        // size of buffer (24 --> 48h --> 2d)
+
 fun String.pvtToPub () : String {
     return this.substring(this.length/2)
 }

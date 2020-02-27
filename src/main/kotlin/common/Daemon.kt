@@ -14,18 +14,56 @@ import java.io.FileNotFoundException
 import java.lang.Long.max
 import java.time.Instant
 import java.util.*
+import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 class WaitList () {
     var nextTime : Long? = null
     var nextBlock : Block? = null
-    val list : SortedSet<Block> = sortedSetOf(kotlin.Comparator({a,b->a.hash.compareTo(b.hash)}))
+    val list : SortedSet<Block> = sortedSetOf(kotlin.Comparator {
+            a,b -> b.hashable.time.compareTo(a.hashable.time)   // greater time first
+    })
+    fun add (blk: Block, now: Long) {
+        if (this.nextBlock == null) {
+            this.nextBlock = blk
+            this.nextTime = now + T2H_waitLists
+        } else if (this.list.size <= N12_waitLists) {
+            this.list.add(blk)
+        }
+    }
+    fun rem (now: Long) : Block? {
+        if (this.nextTime==null || this.nextTime!!<now) {
+            return null
+        }
+        val ret = this.nextBlock!!
+        if (this.list.isEmpty()) {
+            this.nextBlock = null
+            this.nextTime = null
+        } else {
+            this.nextTime = this.nextTime!! + T2H_waitLists
+
+            val first = this.list.first()
+            this.list.remove(first)
+            this.nextBlock = first
+        }
+        return ret
+    }
 }
+
 typealias WaitLists = HashMap<Chain,WaitList>
 
+fun WaitLists.createGet (chain: Chain) : WaitList {
+    if (!this.containsKey(chain)) {
+        this[chain] = WaitList()
+    }
+    return this[chain]!!
+}
+
+
 class Daemon (host : Host) {
-    val waitLists : WaitLists = HashMap()
-    val listening = mutableMapOf<String,MutableSet<DataOutputStream>>()
+    val pastLists : WaitLists = HashMap()
+    //val noobLists : WaitLists = HashMap()
+    val listenLists = mutableMapOf<String,MutableSet<DataOutputStream>>()
     val server = ServerSocket(host.port)
     val local = host
 
@@ -63,19 +101,13 @@ class Daemon (host : Host) {
     fun f_waitLists () {
         while (true) {
             Thread.sleep(30 * min)
-            val chains = synchronized (waitLists) { waitLists.keys.toList() }
+            val chains = synchronized (pastLists) { pastLists.keys.toList() }
             for (chain in chains) {
                 synchronized (getLock(chain)) {
-                    val waitList = waitLists[chain]!!
-                    if (waitList.nextTime != null && waitList.nextTime!! <= getNow()) {
-                        chain.blockChain(waitList.nextBlock!!)
-                        if (waitList.list.isNotEmpty()) {
-                            waitList.nextTime = waitList.nextTime!! + 4 * hour
-
-                            val first = waitList.list.first()
-                            waitList.list.remove(first)
-                            waitList.nextBlock = first
-                        }
+                    val pastList = pastLists[chain]!!
+                    val nxt = pastList.rem(getNow())
+                    if (nxt != null) {
+                        chain.blockChain(nxt)
                     }
                 }
             }
@@ -83,14 +115,14 @@ class Daemon (host : Host) {
     }
 
     fun signal (chain: String, n: Int) {
-        val has = synchronized (listening) { listening.containsKey(chain) }
+        val has = synchronized (listenLists) { listenLists.containsKey(chain) }
         if (has) {
-            val wrs = synchronized (listening) { listening[chain]!!.toList() }
+            val wrs = synchronized (listenLists) { listenLists[chain]!!.toList() }
             for (wr in wrs) {
                 try {
                     wr.writeLineX(n.toString())
                 } catch (e: Throwable) {
-                    synchronized (listening) { listening[chain]!!.remove(wr) }
+                    synchronized (listenLists) { listenLists[chain]!!.remove(wr) }
                 }
             }
         }
@@ -154,11 +186,11 @@ class Daemon (host : Host) {
             }
             "FC chain listen" -> {
                 val name= reader.readLineX().nameCheck()
-                synchronized (listening) {
-                    if (! listening.containsKey(name)) {
-                        listening[name] = mutableSetOf()
+                synchronized (listenLists) {
+                    if (! listenLists.containsKey(name)) {
+                        listenLists[name] = mutableSetOf()
                     }
-                    listening[name]!!.add(writer)
+                    listenLists[name]!!.add(writer)
                 }
                 shouldClose = false
             }
@@ -263,7 +295,7 @@ class Daemon (host : Host) {
                             writer.writeLineX(n.toString())
                         }
                         "FC chain recv" -> {
-                            val n = remote.chain_recv(chain,waitLists)
+                            val n = remote.chain_recv(chain,pastLists)
                             System.err.println("chain recv: $name: $n")
                             thread {
                                 signal(name, n)
@@ -356,7 +388,7 @@ fun Socket.chain_send (chain: Chain) : Int {
     return N
 }
 
-fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Int {
+fun Socket.chain_recv (chain: Chain, pastLists: WaitLists) : Int {
     val reader = DataInputStream(this.getInputStream()!!)
     val writer = DataOutputStream(this.getOutputStream()!!)
 
@@ -396,23 +428,14 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Int {
             }
 
             // post is too old:
-            // insert into waiting list to "blockChain()" later
+            // insert into waiting list to "blockChain()" it later
             if (blk.hashable.time <= now-30*min) {
                 try {
                     chain.blockAssert(blk)  // might fail if back also failed
-
-                    synchronized(waitLists) {
-                        if (!waitLists.containsKey(chain)) {
-                            waitLists[chain] = WaitList()
-                        }
+                    val pastList = synchronized (pastLists) {
+                        pastLists.createGet(chain)
                     }
-                    val waitList = waitLists[chain]!!
-                    if (waitList.nextBlock == null) {
-                        waitList.nextBlock = blk
-                        waitList.nextTime = now + 4 * hour
-                    } else if (waitList.list.size <= 12) {  // 48h/2d
-                        waitList.list.add(blk)
-                    }
+                    pastList.add(blk,now)
                 } catch (e: FileNotFoundException) {
                     // ok: not inserted in waitList
                 }
