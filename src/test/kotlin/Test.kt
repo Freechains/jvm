@@ -156,7 +156,7 @@ class Tests {
     @Test
     fun d2_proto () {
         val local = Host_load("/tmp/freechains/tests/local/")
-        thread { daemon(local) }
+        thread { Daemon(local).daemon() }
         Thread.sleep(100)
 
         main(arrayOf("host","stop"))
@@ -172,12 +172,12 @@ class Tests {
         val src_chain = src.joinChain("/d3", false, arrayOf("secret","",""))
         src_chain.blockNew("", H)
         src_chain.blockNew("", H)
-        thread { daemon(src) }
+        thread { Daemon(src).daemon() }
 
         // DESTINY
         val dst = Host_create("/tmp/freechains/tests/dst/", 8331)
         dst.joinChain("/d3", false, arrayOf("secret","",""))
-        thread { daemon(dst) }
+        thread { Daemon(dst).daemon() }
         Thread.sleep(100)
 
         main(arrayOf("chain","send","/d3","localhost:8331"))
@@ -247,8 +247,8 @@ class Tests {
         h2_chain.blockNew("", H)
 
         Thread.sleep(100)
-        thread { daemon(h1) }
-        thread { daemon(h2) }
+        thread { Daemon(h1).daemon() }
+        thread { Daemon(h2).daemon() }
         Thread.sleep(100)
         main(arrayOf("--host=localhost:8331","chain","send","/xxx","localhost"))
         Thread.sleep(100)

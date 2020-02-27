@@ -81,7 +81,7 @@ fun main_ (args: Array<String>) : String? {
                     val dir = opts["<dir>"] as String
                     val host = Host_load(dir)
                     System.err.println("host start: $host")
-                    daemon(host)
+                    Daemon(host).daemon()
                     return null
                 }
                 opts["stop"] as Boolean -> {
