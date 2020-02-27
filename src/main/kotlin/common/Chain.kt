@@ -233,12 +233,15 @@ fun Chain.repPubkey (now: Long, pub: String) : Int {
     return all
 }
 
-internal fun Chain.traverseFromHeads (f: (Block)->Boolean) : Array<Block> {
+internal fun Chain.traverseFromHeads (
+    heads: List<Hash> = this.heads,
+    f: (Block) -> Boolean
+) : Array<Block> {
     val pending = LinkedList<String>()
     val visited = mutableSetOf<String>()
     val ret = mutableListOf<Block>()
 
-    for (head in this.heads) {
+    for (head in heads) {
         pending.addLast(head)
     }
 

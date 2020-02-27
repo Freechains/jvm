@@ -168,7 +168,7 @@ class Tests {
 
     @Test
     fun e1_graph () {
-        //a_reset()
+        a_reset()
         val h = Host_create("/tmp/freechains/tests/graph/")
         val chain = h.joinChain("/", false, arrayOf("secret","",""))
 
@@ -189,7 +189,7 @@ class Tests {
         }
         assert(n == 6)
 
-        val x = chain.traverseFromHeads{ it.height>1 }
+        val x = chain.traverseFromHeads { it.height>1 }
         assert(x.size == 3)
 
         fun Chain.getMaxTime () : Long {
@@ -202,6 +202,9 @@ class Tests {
         val y = chain.traverseFromHeads{ true }.filter { it.hashable.time >= chain.getMaxTime()-30*day }
         println(y.map { it.hash })
         assert(y.size == 4)
+
+        val z = chain.traverseFromHeads(listOf(ab2.hash), { it.hashable.time>1*day })
+        assert(z.size == 3)
     }
 
     @Test
