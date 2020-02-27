@@ -28,3 +28,5 @@ fun String.nowToTime () : Long {
     return if (this == "now") getNow() else this.toLong()
 }
 
+val CMP_past = compareBy<Block>{ it.hashable.time }.thenBy{ it.hash }
+val CMP_noob = compareBy<Block>{ it.hash }

@@ -5,24 +5,17 @@ import kotlin.collections.HashMap
 
 typealias WaitLists = HashMap<Chain,WaitList>
 
-fun WaitLists.createGet (chain: Chain) : WaitList {
+fun WaitLists.createGet (chain: Chain, cmp: Comparator<in Block>) : WaitList {
     if (!this.containsKey(chain)) {
-        this[chain] = WaitList()
+        this[chain] = WaitList(cmp)
     }
     return this[chain]!!
 }
 
-class WaitList () {
+class WaitList (cmp: Comparator<in Block>) {
     var nextTime : Long? = null
     var nextBlock : Block? = null
-    val list : SortedSet<Block> = sortedSetOf(kotlin.Comparator {
-            a,b -> (b.hashable.time.compareTo(a.hashable.time)).let {
-        when (it) {
-            0 -> a.hash.compareTo(b.hash)   // smaller hash second
-            else -> it                      // greater time first
-        }
-    }
-    })
+    val list : SortedSet<Block> = sortedSetOf(cmp)
     fun add (blk: Block, now: Long) {
         if (this.nextBlock == null) {
             this.nextBlock = blk

@@ -390,7 +390,7 @@ fun Socket.chain_recv (chain: Chain, pastLists: WaitLists) : Int {
                 try {
                     chain.blockAssert(blk)  // might fail if back also failed
                     val pastList = synchronized (pastLists) {
-                        pastLists.createGet(chain)
+                        pastLists.createGet(chain, CMP_past)
                     }
                     pastList.add(blk,now)
                 } catch (e: FileNotFoundException) {
