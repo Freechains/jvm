@@ -19,14 +19,6 @@ import kotlin.collections.HashMap
 
 // internal methods are private but are used in tests
 
-class WaitList () {
-    var nextTime : Long? = null
-    var nextBlock : Block? = null
-    val list : SortedSet<Block> = sortedSetOf(kotlin.Comparator({a,b->a.hash.compareTo(b.hash)}))
-}
-
-val waitLists : HashMap<Chain,WaitList> = HashMap()
-
 @Serializable
 data class Chain (
     val root  : String,

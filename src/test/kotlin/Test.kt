@@ -165,7 +165,7 @@ class Tests {
 
     @Test
     fun d3_proto () {
-        //a_reset()
+        a_reset()
 
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
