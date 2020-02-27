@@ -28,6 +28,7 @@ import kotlin.concurrent.thread
  *  - refuse posts with backs pointing from my getNow
  *  - reputation system
  *    - test waitlist
+ *    - order lateList by reputation
  *    - lks rewards proportional to childs
  *    - new blocks (must work)
  *    - liferea: likes in title

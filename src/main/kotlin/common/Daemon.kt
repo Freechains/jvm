@@ -423,13 +423,13 @@ fun Socket.chain_recv (chain: Chain, pastLists: WaitLists) : Int {
             val blk = reader.readLinesX().jsonToBlock() // 6
             //println("[recv] ${blk.hash}")
 
-            if (blk.hashable.time >= now+30*min) {
+            if (blk.hashable.time >= now+T30M_future) {
                 continue    // refuse block from the future
             }
 
             // post is too old:
             // insert into waiting list to "blockChain()" it later
-            if (blk.hashable.time <= now-30*min) {
+            if (blk.hashable.time <= now-T2H_sync) {
                 try {
                     chain.blockAssert(blk)  // might fail if back also failed
                     val pastList = synchronized (pastLists) {
