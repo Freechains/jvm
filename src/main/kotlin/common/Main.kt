@@ -16,6 +16,7 @@ Usage:
     freechains host create <dir> [<port>]
     freechains host start <dir>
     freechains [options] host stop
+    freechains [options] host now <time>
     freechains [options] chain join <chain>
     freechains [options] chain join <chain> shared (rw | ro) <shared_key>
     freechains [options] chain join <chain> pubpvt (rw | ro) <public_key> [<private_key>]
@@ -92,6 +93,19 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX("FC host stop")
                     assert(reader.readLineX() == "true")
                     System.err.println("host stop: $host:$port")
+                    socket.close()
+                    return null
+                }
+                opts["now"] as Boolean -> {
+                    val (host, port) = optHost()
+                    val socket = Socket(host, port)
+                    val writer = DataOutputStream(socket.getOutputStream()!!)
+                    val reader = DataInputStream(socket.getInputStream()!!)
+                    val now= opts["<time>"] as String
+                    writer.writeLineX("FC host now")
+                    writer.writeLineX(now)
+                    assert(reader.readLineX() == "true")
+                    System.err.println("host now: $now")
                     socket.close()
                     return null
                 }

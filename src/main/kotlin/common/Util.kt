@@ -15,7 +15,7 @@ fun String.pvtToPub () : String {
 var NOW : Long? = null
 
 fun getNow () : Long {
-    return if (NOW != null) NOW!! else Instant.now().toEpochMilli()
+    return Instant.now().toEpochMilli() - (if (NOW == null) 0 else NOW!!)
 }
 
 fun String.nowToTime () : Long {

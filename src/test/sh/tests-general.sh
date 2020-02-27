@@ -14,6 +14,7 @@ freechains host create $FC/8400 8400
 freechains host start $FC/8400 &
 sleep 0.5
 freechains --host=localhost:8400 chain join /
+freechains --host=localhost:8400 host now 0
 g=`freechains --host=localhost:8400 chain genesis /`
 h=`freechains --host=localhost:8400 --time=0 chain post / inline utf8 Hello_World`
 freechains --host=localhost:8400 chain get / "$h" > $FC/freechains-tests-get-1.out
@@ -38,6 +39,7 @@ echo "#### 2"
 freechains host create $FC/8401 8401
 freechains host start $FC/8401 &
 sleep 0.5
+freechains --host=localhost:8401 host now 0
 freechains --host=localhost:8401 chain join /
 freechains --host=localhost:8400 chain post / inline utf8 111
 freechains --host=localhost:8400 chain post / inline utf8 222
@@ -57,6 +59,7 @@ rm -Rf $FC/8402
 freechains host create $FC/8402 8402
 freechains host start $FC/8402 &
 sleep 0.5
+freechains --host=localhost:8402 host now 0
 freechains --host=localhost:8402 chain join /
 freechains --host=localhost:8400 chain send / localhost:8402 &
 P1=$!
@@ -102,6 +105,7 @@ do
   freechains host create $FC/$i $i
   freechains host start $FC/$i &
   sleep 0.5
+  freechains --host=localhost:$i host now 0
   freechains --host=localhost:$i chain join /
 done
 

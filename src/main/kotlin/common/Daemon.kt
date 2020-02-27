@@ -12,6 +12,7 @@ import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 import java.io.FileNotFoundException
 import java.lang.Long.max
+import java.time.Instant
 import java.util.*
 import kotlin.collections.HashSet
 
@@ -105,6 +106,12 @@ class Daemon (host : Host) {
                 writer.writeLineX("true")
                 server.close()
                 System.err.println("host stop: $local")
+            }
+            "FC host now" -> {
+                val now= reader.readLineX().toLong()
+                NOW = Instant.now().toEpochMilli() - now
+                writer.writeLineX("true")
+                System.err.println("host now: $now")
             }
             "FC crypto create" -> {
                 fun pwHash (pwd: ByteArray) : ByteArray {
@@ -357,9 +364,9 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Int {
     // - answers if contains each node
     // - receives all
 
-    //println("[recv] $maxTime")
     var N = 0
     val now = getNow()
+    //println("[recv] $now")
 
     // for each remote head
     val n1 = reader.readLineX().toInt()        // 1
