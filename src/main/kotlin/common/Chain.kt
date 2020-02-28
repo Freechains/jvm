@@ -84,23 +84,21 @@ fun Chain.blockNew (sig_pvt: String, h: BlockHashable) : Block {
     val hash = h_.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
-    var sig_hash = ""
     //assert(keys[2].isEmpty() || sig_pvt.isEmpty())
     val pvt = if (sig_pvt.isEmpty()) keys[2] else sig_pvt
-    if (pvt.isNotEmpty()) {
-        val sig = ByteArray(Sign.BYTES)
-        val msg = lazySodium.bytes(hash)
-        val key = Key.fromHexString(pvt).asBytes
-        lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), key)
-        sig_hash = LazySodium.toHex(sig)
-    }
-    val sig =
-        if (sig_hash.isEmpty())
+    val signature =
+        if (pvt.isEmpty()) {
             null
-        else
-            Signature(sig_hash, if (sig_pvt.isEmpty()) "" else sig_pvt.pvtToPub())
+        } else {
+            val sig = ByteArray(Sign.BYTES)
+            val msg = lazySodium.bytes(hash)
+            val key = Key.fromHexString(pvt).asBytes
+            lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), key)
+            val sig_hash = LazySodium.toHex(sig)
+            Signature(sig_hash, pvt.pvtToPub())
+        }
 
-    val new = Block(h_, mutableListOf(), sig, hash)
+    val new = Block(h_, mutableListOf(), signature, hash)
     this.blockChain(new)
     return new
 }
@@ -155,8 +153,7 @@ fun Chain.blockAssert (blk: Block) {
     if (blk.signature != null) {
         val sig = LazySodium.toBin(blk.signature.hash)
         val msg = lazySodium.bytes(blk.hash)
-        val pub = if (blk.signature.pubkey.isEmpty()) this.keys[1] else blk.signature.pubkey
-        val key = Key.fromHexString(pub).asBytes
+        val key = Key.fromHexString(blk.signature.pubkey).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
     }
 }

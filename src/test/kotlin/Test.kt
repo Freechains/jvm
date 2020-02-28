@@ -390,14 +390,6 @@ class Tests {
         c2.blockAssert(n2)
         val cx = c2.copy(keys=arrayOf("",PUB0,""))
         cx.blockAssert(n2)
-        var ok2 = false
-        try {
-            val cz = c2.copy(keys=arrayOf("","4CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322",""))
-            cz.blockAssert(n2)
-        } catch (e: Throwable) {
-            ok2 = true
-        }
-        assert(ok2)
     }
 
     @Test
@@ -586,7 +578,7 @@ class Tests {
         // like post w/o pub
         main_(arrayOf(H1,"chain","like","post","/xxx","1000",h4!!,"--time="+(1*day).toString(),"--sign=$PVT0"))
         val n7 = main_(arrayOf(H1,"chain","send","/xxx","localhost:8330"))
-        println(n7)
+        //println(n7)
         assert(n7=="1 / 1")
         assert("28750" == main_(arrayOf(H1,"--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
         assert("28750" == main_(arrayOf(H0,"--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
