@@ -24,7 +24,7 @@ import kotlin.collections.ArrayList
 data class Chain (
     val root  : String,
     val name  : String,
-    val ro    : Boolean,
+    val oonly : Boolean,
     val keys  : Array<String>   // [shared,public,private]
 ) {
     val hash  : String = this.toHash()
@@ -65,7 +65,7 @@ private fun String.calcHash () : String {
 }
 
 fun Chain.toHash () : String {
-    return (this.name+this.ro.toString()+this.keys[1]).calcHash() // no shared/private allows untrusted nodes
+    return (this.name+this.oonly.toString()+this.keys[1]).calcHash() // no shared/private allows untrusted nodes
 }
 
 fun BlockHashable.toHash () : Hash {

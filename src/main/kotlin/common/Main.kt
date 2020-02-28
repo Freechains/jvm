@@ -38,7 +38,7 @@ Options:
     --time=<ms>            [post|like]   sets block timestamp [default: now]
     --sign=<private_key>   [post|like]   signs block with given key
     --utf8-eof=<word>      [post]        sets word terminator for utf8 post
-    --encrypt              [post]        encrypts post with chain's shared or private key
+    --encrypt              [post]        encrypts post with chain's private key
     --ref=<hash>           [post]        refers to previous post
     --why=<text>           [like]        explains reason for the like
 

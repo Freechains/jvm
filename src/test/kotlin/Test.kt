@@ -23,12 +23,13 @@ import kotlin.concurrent.thread
  *                                reps             28-02
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 KB
+ *  - Simulation.kt
+ *  - merge master
  *  - HOST
  *    - create receives pvt
  *      - and creates pvt chain RO
  *    - all conns start with pub ends
  *    - all conns log into host chain
- *  - Simulation.kt
  *  - reputation system
  *    - lks rewards proportional to childs
  *    - liferea: likes in title

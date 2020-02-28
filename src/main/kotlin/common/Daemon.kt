@@ -394,9 +394,27 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
         val n2 = reader.readLineX().toInt()    // 5
         Nmax += n2
         //println("[recv] $n2")
+
         xxx@for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock() // 6
             //println("[recv] ${blk.hash}")
+
+            fun checkRepTime () : Boolean {
+                return ! (
+                    chain.keys[0].isNotEmpty()  ||  // shared key, only trusted hosts
+                    chain.fromOwner(blk)        ||  // owner sig always pass
+                    blk.hashable.like != null   ||  // likes always pass
+                    blk.height == 1                 // first block always pass
+                )
+            }
+
+            fun failRepTime () : Boolean {
+                return (
+                    blk.hashable.time <= now-T2H_past           ||  // too late
+                    blk.signature == null                       ||  // no sig
+                    chain.getRep(blk.signature.pubkey,now) <= 0     // no rep
+                )
+            }
 
             //println("${blk.hash} / ${blk.height} / ${blk.hashable.time}")
             when {
@@ -408,26 +426,20 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
                 (blk.hashable.time < now-T120_past) ->
                     continue@xxx
 
+                // refuse blocks not signed by owner (if oonly is set)
+                (chain.oonly && !chain.fromOwner(blk)) ->
+                    continue@xxx
+
                 // enqueue noob/late block
-                (
-                    !chain.fromOwner(blk)                           &&  // owner sig always pass
-                    blk.hashable.like == null                       &&  // likes always pass
-                    blk.height > 1                                  &&  // first block always pass
-                    (
-                        blk.hashable.time <= now-T2H_past           ||  // late
-                        blk.signature == null                       ||  // no sig
-                        chain.getRep(blk.signature.pubkey,now) <= 0     // no rep
-                    )
-                ) -> {
+                (checkRepTime() && failRepTime()) -> {
+                    // enqueue only if backs are ok (otherwise, back is also enqueued)
                     if (chain.backsCheck(blk)) {
                         val waitList = synchronized (waitLists) {
                             waitLists.createGet(chain)
                         }
                         waitList.add(blk,now)
-                    } //else {
-                        // not all backs exist (probably because noob/late as well)
-                        // ok: do not inserted in waitList
-                    //}
+                    }
+                    // otherwise just ignore
                     continue@xxx
                 }
             }
