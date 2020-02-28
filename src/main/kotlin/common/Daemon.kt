@@ -97,6 +97,7 @@ class Daemon (host : Host) {
             "FC host now" -> {
                 val now= reader.readLineX().toLong()
                 NOW = Instant.now().toEpochMilli() - now
+                this.f_waitLists()
                 writer.writeLineX("true")
                 System.err.println("host now: $now")
             }

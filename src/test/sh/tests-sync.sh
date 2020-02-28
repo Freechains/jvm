@@ -20,6 +20,9 @@ freechains host start $FC/8401 &
 sleep 0.5
 freechains --host=localhost:8401 chain join /
 
+freechains --host=localhost:8400 host now 0
+freechains --host=localhost:8401 host now 0
+
 freechains --host=localhost:8400 --time=0 chain post / inline utf8 zero
 freechains --host=localhost:8401 --time=0 chain post / inline utf8 zero
 
@@ -28,6 +31,9 @@ freechains --host=localhost:8401 chain post / inline utf8 aaa
 
 freechains --host=localhost:8400 chain send / localhost:8401
 freechains --host=localhost:8401 chain send / localhost:8400
+
+freechains --host=localhost:8400 host now 8000000
+freechains --host=localhost:8401 host now 8000000
 
 diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 
