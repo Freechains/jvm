@@ -231,7 +231,7 @@ class Daemon (host : Host) {
                             val hashes = mutableListOf<Hash>()
                             for (l in likes) {
                                 val blk = chain.blockNew (
-                                    sig,
+                                    sig,    // TODO: check sig or chain, return error
                                     BlockHashable (
                                         max (
                                             time.nowToTime(),
