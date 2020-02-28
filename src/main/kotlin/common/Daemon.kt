@@ -29,7 +29,10 @@ class Daemon (host : Host) {
     fun daemon () {
         //System.err.println("host start: $host")
         thread {
-            f_waitLists()
+            while (true) {
+                Thread.sleep(30 * min)
+                f_waitLists()
+            }
         }
         while (true) {
             try {
@@ -54,16 +57,13 @@ class Daemon (host : Host) {
     }
 
     fun f_waitLists () {
-        while (true) {
-            Thread.sleep(30 * min)
-            val chains = synchronized (waitList) { waitList.keys.toList() }
-            for (chain in chains) {
-                synchronized (getLock(chain)) {
-                    val waitList = waitList[chain]!!
-                    val nxt = waitList.rem(getNow())
-                    if (nxt != null) {
-                        chain.blockChain(nxt)
-                    }
+        val chains = synchronized (waitList) { waitList.keys.toList() }
+        for (chain in chains) {
+            synchronized (getLock(chain)) {
+                val waitList = waitList[chain]!!
+                val nxt = waitList.rem(getNow())
+                if (nxt != null) {
+                    chain.blockChain(nxt)
                 }
             }
         }
@@ -99,6 +99,11 @@ class Daemon (host : Host) {
                 NOW = Instant.now().toEpochMilli() - now
                 writer.writeLineX("true")
                 System.err.println("host now: $now")
+            }
+            "FC host flush" -> {
+                this.f_waitLists()
+                writer.writeLineX("true")
+                System.err.println("host flush")
             }
             "FC crypto create" -> {
                 fun pwHash (pwd: ByteArray) : ByteArray {
@@ -209,10 +214,11 @@ class Daemon (host : Host) {
                                     if (chain.containsBlock(refs_[0])) {
                                         // refs a post
                                         val blk = chain.loadBlockFromHash(refs_[0], false)
-                                        arrayOf (
-                                            Like(like/2, LikeType.POST, refs_[0]),
-                                            if (blk.signature == null) null else Like(like/2, LikeType.PUBKEY, blk.signature.pubkey)
-                                        )
+                                        val l1 = arrayOf(Like(like/2, LikeType.POST, refs_[0]))
+                                        if (blk.signature == null)
+                                            l1
+                                        else
+                                            l1.plus(Like(like/2, LikeType.PUBKEY, blk.signature.pubkey))
                                     } else {
                                         // refs a pubkey
                                         arrayOf (
@@ -402,9 +408,12 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
 
                 // enqueue noob/late block
                 (
-                    blk.hashable.time <= now-T2H_past           ||  // late
-                    blk.signature == null                       ||  // no sig
-                    chain.getRep(blk.signature.pubkey,now) <= 0     // no rep
+                    blk.hashable.like == null                       &&  // likes always pass
+                    (
+                        blk.hashable.time <= now-T2H_past           ||  // late
+                        blk.signature == null                       ||  // no sig
+                        chain.getRep(blk.signature.pubkey,now) <= 0     // no rep
+                    )
                 ) -> {
                     if (chain.backsCheck(blk)) {
                         val waitList = synchronized (waitLists) {

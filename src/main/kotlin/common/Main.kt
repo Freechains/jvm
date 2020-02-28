@@ -17,6 +17,7 @@ Usage:
     freechains host start <dir>
     freechains [options] host stop
     freechains [options] host now <time>
+    freechains [options] host flush
     freechains [options] chain join <chain>
     freechains [options] chain join <chain> shared (rw | ro) <shared_key>
     freechains [options] chain join <chain> pubpvt (rw | ro) <public_key> [<private_key>]
@@ -75,8 +76,7 @@ fun main_ (args: Array<String>) : String? {
                     val dir = opts["<dir>"] as String
                     val port = (opts["<port>"] as String?)?.toInt() ?: 8330
                     val host = Host_create(dir, port)
-                    System.err.println("host create: $host")
-                    return null
+                    return host.toString()
                 }
                 opts["start"] as Boolean -> {
                     val dir = opts["<dir>"] as String
@@ -92,9 +92,8 @@ fun main_ (args: Array<String>) : String? {
                     val reader = DataInputStream(socket.getInputStream()!!)
                     writer.writeLineX("FC host stop")
                     assert(reader.readLineX() == "true")
-                    System.err.println("host stop: $host:$port")
                     socket.close()
-                    return null
+                    return "true"
                 }
                 opts["now"] as Boolean -> {
                     val (host, port) = optHost()
@@ -105,9 +104,18 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX("FC host now")
                     writer.writeLineX(now)
                     assert(reader.readLineX() == "true")
-                    System.err.println("host now: $now")
                     socket.close()
-                    return null
+                    return "true"
+                }
+                opts["flush"] as Boolean -> {
+                    val (host, port) = optHost()
+                    val socket = Socket(host, port)
+                    val writer = DataOutputStream(socket.getOutputStream()!!)
+                    val reader = DataInputStream(socket.getInputStream()!!)
+                    writer.writeLineX("FC host flush")
+                    assert(reader.readLineX() == "true")
+                    socket.close()
+                    return "true"
                 }
             }
         opts["chain"] as Boolean -> {

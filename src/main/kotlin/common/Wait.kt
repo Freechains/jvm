@@ -31,7 +31,8 @@ class WaitList (cmp: Comparator<in Block>) {
         }
     }
     fun rem (now: Long) : Block? {
-        if (this.nextTime==null || this.nextTime!!<now) {
+        //println("$now >= ${this.nextTime}")
+        if (this.nextTime==null || this.nextTime!!>now) {
             return null
         }
         val ret = this.nextBlock!!
