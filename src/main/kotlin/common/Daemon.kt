@@ -199,7 +199,7 @@ class Daemon (host : Host) {
                             val time = reader.readLineX()
                             val like   = reader.readLineX().toInt()
                             val cod  = reader.readLineX()
-                            val cry = reader.readLineX().toBoolean()
+                            val cry = reader.readLineX().toBoolean() or chain.keys[0].isNotEmpty()
 
                             val cods = cod.split(' ')
                             val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")

@@ -19,7 +19,7 @@ Usage:
     freechains [options] host now <time>
     freechains [options] host flush
     freechains [options] chain join <chain>
-    freechains [options] chain join <chain> shared (rw | ro) <shared_key>
+    freechains [options] chain join <chain> shared <shared_key>
     freechains [options] chain join <chain> pubpvt (rw | ro) <public_key> [<private_key>]
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain>
@@ -38,7 +38,7 @@ Options:
     --time=<ms>            [post|like]   sets block timestamp [default: now]
     --sign=<private_key>   [post|like]   signs block with given key
     --utf8-eof=<word>      [post]        sets word terminator for utf8 post
-    --encrypt              [post]        encrypts post with chain's private key
+    --encrypt              [post]        encrypts post with chain's private key (shared is always encrypted)
     --ref=<hash>           [post]        refers to previous post
     --why=<text>           [like]        explains reason for the like
 
@@ -127,7 +127,7 @@ fun main_ (args: Array<String>) : String? {
                 opts["join"] as Boolean -> {
                     writer.writeLineX("FC chain join")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX((opts["ro"] as Boolean).toString())
+                    writer.writeLineX((opts["ro"] as Boolean? ?: false).toString())
                     writer.writeLineX(opts["<shared_key>"] as String? ?: "")
                     writer.writeLineX(opts["<public_key>"] as String? ?: "")
                     writer.writeLineX(opts["<private_key>"] as String? ?: "")

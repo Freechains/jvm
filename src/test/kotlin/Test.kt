@@ -413,8 +413,8 @@ class Tests {
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M50/")) }
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M51/")) }
         Thread.sleep(100)
-        main(arrayOf("chain","join","/xxx","shared","rw","64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"))
-        main(arrayOf(H1,"chain","join","/xxx","shared","rw","64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"))
+        main(arrayOf("chain","join","/xxx","shared","64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"))
+        main(arrayOf(H1,"chain","join","/xxx","shared","64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"))
 
         main(arrayOf("chain","post","/xxx","inline","utf8","aaa","--encrypt"))
         main(arrayOf("chain","send","/xxx","localhost:8331"))
