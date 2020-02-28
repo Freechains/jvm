@@ -397,6 +397,7 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
             val blk = reader.readLinesX().jsonToBlock() // 6
             //println("[recv] ${blk.hash}")
 
+            //println("${blk.hash} / ${blk.height} / ${blk.hashable.time}")
             when {
                 // refuse block from the future
                 (blk.hashable.time > now+T30M_future) ->
@@ -408,7 +409,9 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
 
                 // enqueue noob/late block
                 (
+                    !chain.fromOwner(blk)                           &&  // owner sig always pass
                     blk.hashable.like == null                       &&  // likes always pass
+                    blk.height > 1                                  &&  // first block always pass
                     (
                         blk.hashable.time <= now-T2H_past           ||  // late
                         blk.signature == null                       ||  // no sig

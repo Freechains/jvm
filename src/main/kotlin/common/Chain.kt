@@ -85,7 +85,7 @@ fun Chain.blockNew (sig_pvt: String, h: BlockHashable) : Block {
 
     // signs message if requested (pvt provided or in pvt chain)
     //assert(keys[2].isEmpty() || sig_pvt.isEmpty())
-    val pvt = if (sig_pvt.isEmpty()) keys[2] else sig_pvt
+    val pvt = if (sig_pvt.isEmpty()) this.keys[2] else sig_pvt
     val signature =
         if (pvt.isEmpty()) {
             null
@@ -144,7 +144,7 @@ fun Chain.blockAssert (blk: Block) {
     if (h.like != null) {
         val n = h.like.n
         val pub = blk.signature!!.pubkey
-        assert(n <= this.getRep(pub, h.time)) {
+        assert(this.fromOwner(blk) || n <= this.getRep(pub, h.time)) {
             "not enough reputation"
         }
     }
@@ -219,6 +219,10 @@ private fun Chain.decrypt (payload: String) : Pair<Boolean,String> {
 }
 
 // LIKE
+
+fun Chain.fromOwner (blk: Block) : Boolean {
+    return (blk.signature!=null && blk.signature.pubkey==this.keys[1])
+}
 
 fun Chain.getRep (pub: String, now: Long) : Int {
     val gen = this.loadBlockFromHash(this.getGenesis(),false).fronts.let {
