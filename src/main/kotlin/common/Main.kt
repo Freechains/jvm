@@ -231,9 +231,7 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX("FC chain send")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<host:port>"] as String)
-                    val ret = reader.readLineX()
-                    System.err.println("chain send: $ret")
-                    return null
+                    return reader.readLineX()
                 }
             }
             socket.close()

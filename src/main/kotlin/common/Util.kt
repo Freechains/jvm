@@ -7,6 +7,7 @@ const val hour = 60*min
 const val day  = 24*hour
 
 const val lk = 1000     // rewards for post after 24h
+const val LK30_max = 30*lk
 
 const val T30M_future = 30*min      // refuse posts +30m in the future
 const val T2H_sync = 2*hour         // refuse posts +2h in the past, add to waitLists

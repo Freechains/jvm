@@ -23,7 +23,11 @@ import kotlin.concurrent.thread
  *                                reps
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 KB
- *  - chain locks (test sends in parallel)
+ *  - HOST
+ *    - create receives pvt
+ *      - and creates pvt chain RO
+ *    - all conns start with pub ends
+ *    - all conns log into host chain
  *  - Simulation.kt
  *  - refuse posts with backs pointing from my getNow
  *  - reputation system
@@ -57,10 +61,13 @@ val H   = BlockHashable(0, null,"",false, "", emptyArray(), emptyArray())
 val HC  = H.copy(encoding="utf8", encrypted=true)
 val BLK = Block(H,mutableListOf(),null, "")
 
-const val PVT1 = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
-const val PUB1 = "3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
-const val PVT2 = "6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"
-const val PUB2 = "E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"
+const val PVT0 = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
+const val PUB0 = "3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
+const val PVT1 = "6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24F4E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"
+const val PUB1 = "E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"
+
+const val H0 = "--host=localhost:8330"
+const val H1 = "--host=localhost:8331"
 
 @TestMethodOrder(Alphanumeric::class)
 class Tests {
@@ -187,7 +194,7 @@ class Tests {
         main(arrayOf("chain","send","/d3","localhost:8331"))
         Thread.sleep(100)
 
-        main(arrayOf("--host=localhost:8331","host","stop"))
+        main(arrayOf(H1,"host","stop"))
         main(arrayOf("host","stop"))
         Thread.sleep(100)
 
@@ -201,24 +208,27 @@ class Tests {
         val h = Host_create("/tmp/freechains/tests/graph/")
         val chain = h.joinChain("/", false, arrayOf("secret","",""))
 
+        val ab0 = chain.blockNew("", H.copy(time=1*day))
         val a1  = chain.blockNew("", H.copy(time=2*day-1, payload="a1"))
-        val b1  = chain.blockNew("", H.copy(time=2*day,   backs=arrayOf(chain.getGenesis())))
+        val b1  = chain.blockNew("", H.copy(time=2*day,   backs=arrayOf(ab0.hash)))
         val ab2 = chain.blockNew("", H.copy(time=27*day))
         val b2  = chain.blockNew("", H.copy(time=28*day, backs=arrayOf(b1.hash)))
         chain.blockNew("", H.copy(time=32*day))
+
         /*
-               /-- (a1) --\
-        (G) --<            >-- (ab2) --\__ (ab3)
-               \-- (b1) --+--- (b2) ---/
+                      /-- (a1) --\
+        (G) -- (ab0) <            >-- (ab2) --\
+                      \          /             > (ab3)
+                       \-- (b1) +---- (b2) ---/
          */
 
         var n = 0
         for (blk in chain.traverseFromHeads{ true }) {
             n++
         }
-        assert(n == 6)
+        assert(n == 7)
 
-        val x = chain.traverseFromHeads { it.height>1 }
+        val x = chain.traverseFromHeads { it.height>2 }
         assert(x.size == 3)
 
         fun Chain.getMaxTime () : Long {
@@ -254,9 +264,9 @@ class Tests {
         thread { Daemon(h1).daemon() }
         thread { Daemon(h2).daemon() }
         Thread.sleep(100)
-        main(arrayOf("--host=localhost:8331","chain","send","/xxx","localhost"))
+        main(arrayOf(H1,"chain","send","/xxx","localhost"))
         Thread.sleep(100)
-        main(arrayOf("--host=localhost:8331","host","stop"))
+        main(arrayOf(H1,"host","stop"))
         main(arrayOf("host","stop"))
         Thread.sleep(100)
 
@@ -283,7 +293,7 @@ class Tests {
         main(arrayOf("chain","genesis","/xxx"))
         main(arrayOf("chain","heads","/xxx"))
 
-        main(arrayOf("chain","get","--host=localhost:8330","/xxx", "0_87732F8F0B42F1A372BB47F43AF4663D8EAB459486459F096FD34FF73E11BFA0"))
+        main(arrayOf("chain","get",H0,"/xxx", "0_87732F8F0B42F1A372BB47F43AF4663D8EAB459486459F096FD34FF73E11BFA0"))
         main(arrayOf("chain","get","/xxx", "0_87732F8F0B42F1A372BB47F43AF4663D8EAB459486459F096FD34FF73E11BFA0"))
 
         main(arrayOf("chain","post","/xxx","file","base64","/bin/cat"))
@@ -384,10 +394,10 @@ class Tests {
         }
         assert(!ok1)
 
-        val c2 = host.joinChain("/asy", false, arrayOf("",PUB1,PVT1))
+        val c2 = host.joinChain("/asy", false, arrayOf("",PUB0,PVT0))
         val n2 = c2.blockNew("", H)
         c2.blockAssert(n2)
-        val cx = c2.copy(keys=arrayOf("",PUB1,""))
+        val cx = c2.copy(keys=arrayOf("",PUB0,""))
         cx.blockAssert(n2)
         var ok2 = false
         try {
@@ -420,7 +430,7 @@ class Tests {
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M51/")) }
         Thread.sleep(100)
         main(arrayOf("chain","join","/xxx","shared","rw","64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"))
-        main(arrayOf("--host=localhost:8331","chain","join","/xxx","shared","rw","64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"))
+        main(arrayOf(H1,"chain","join","/xxx","shared","rw","64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"))
 
         main(arrayOf("chain","post","/xxx","inline","utf8","aaa","--encrypt"))
         main(arrayOf("chain","send","/xxx","localhost:8331"))
@@ -434,8 +444,8 @@ class Tests {
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M60/")) }
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M61/")) }
         Thread.sleep(100)
-        main(arrayOf("chain","join","/xxx","pubpvt","rw",PUB1,PVT1))
-        main(arrayOf("--host=localhost:8331","chain","join","/xxx","pubpvt","rw",PUB1))
+        main(arrayOf("chain","join","/xxx","pubpvt","rw",PUB0,PVT0))
+        main(arrayOf(H1,"chain","join","/xxx","pubpvt","rw",PUB0))
         val hash = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--encrypt"))
 
         val json = main_(arrayOf("chain","get","/xxx",hash!!))
@@ -443,14 +453,43 @@ class Tests {
         assert(blk.hashable.payload == "aaa")
 
         main(arrayOf("chain","send","/xxx","localhost:8331"))
-        val json2 = main_(arrayOf("--host=localhost:8331","chain","get","/xxx",hash))
+        val json2 = main_(arrayOf(H1,"chain","get","/xxx",hash))
         val blk2 = json2!!.jsonToBlock()
         assert(blk2.hashable.encrypted)
 
-        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--sign=$PVT2"))
+        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--sign=$PVT1"))
         val j2 = main_(arrayOf("chain","get","/xxx",h2!!))
         val b2 = j2!!.jsonToBlock()
         assert(b2.hashable.payload == "bbb")
+    }
+
+    @Test
+    fun m7_genensis_fork () {
+        a_reset()
+
+        main(arrayOf("host","create","/tmp/freechains/tests/M70/"))
+        thread { main(arrayOf("host","start","/tmp/freechains/tests/M70/")) }
+        main(arrayOf("host","create","/tmp/freechains/tests/M71/","8331"))
+        thread { main(arrayOf("host","start","/tmp/freechains/tests/M71/")) }
+        Thread.sleep(100)
+
+        main_(arrayOf(H0,"chain","join","/"))
+        main_(arrayOf(H0,"chain","post","/","inline","utf8","first","--sign=$PVT0"))
+        main_(arrayOf(H1,"chain","join","/"))
+        main_(arrayOf(H1,"chain","post","/","inline","utf8","first","--sign=$PVT1"))
+
+        val r0 = main_(arrayOf(H0,"chain","send","/","localhost:8331"))
+        val r1 = main_(arrayOf(H1,"chain","send","/","localhost:8330"))
+        assert(r0==r1 && r0=="0 / 1")
+
+        val r00 = main_(arrayOf(H0,"chain","like","get","/",PUB0))
+        val r01 = main_(arrayOf(H1,"chain","like","get","/",PUB0))
+        val r10 = main_(arrayOf(H0,"chain","like","get","/",PUB1))
+        val r11 = main_(arrayOf(H1,"chain","like","get","/",PUB1))
+        assert(r00!!.toInt() == 25000)
+        assert(r01!!.toInt() == 0)
+        assert(r10!!.toInt() == 0)
+        assert(r11!!.toInt() == 25000)
     }
 
     @Test
@@ -459,25 +498,26 @@ class Tests {
         main(arrayOf("host","create","/tmp/freechains/tests/M80/"))
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M80/")) }
         Thread.sleep(100)
-        main(arrayOf("chain","join","/xxx","pubpvt","rw",PUB1,PVT1))
+        main(arrayOf("chain","join","/xxx","pubpvt","rw",PUB0,PVT0))
 
-        val h1 = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--time=0","--sign=$PVT1"))
-        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--time=0","--sign=$PVT2"))
+        val h1 = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--time=0","--sign=$PVT0"))
+        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--time=0","--sign=$PVT1"))
 
         //main_(arrayOf("chain","like","/xxx","1",h1!!,"--time="+(24*hour-1).toString(),"--sign=$PVT1"))
+        assert("25000" == main_(arrayOf("chain","like","get","/xxx",PUB0)))
         assert("0" == main_(arrayOf("chain","like","get","/xxx",PUB1)))
-        assert("0" == main_(arrayOf("chain","like","get","/xxx",PUB2)))
 
         // give to myself
-        main_(arrayOf("chain","like","post","/xxx","1000",h1!!,"--time="+(1*day).toString(),"--sign=$PVT1"))
-        assert("500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322")))
+        assert("26000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
+        main_(arrayOf("chain","like","post","/xxx","1000",h1!!,"--time="+(1*day).toString(),"--sign=$PVT0"))
+        assert("25500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
 
         // give to other
-        val h3 = main_(arrayOf("chain","like","post","/xxx","1000",h2!!,"--time="+(1*day).toString(),"--sign=$PVT1"))
-        assert("0" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx","3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322")))
-        assert("1000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB2)))
+        val h3 = main_(arrayOf("chain","like","post","/xxx","1000",h2!!,"--time="+(1*day).toString(),"--sign=$PVT0"))
+        assert("25000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
+        assert("1000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
 
-        main_(arrayOf("chain","like","post","/xxx","1000",h3!!,"--time="+(1*day).toString(),"--why="+h3.substring(0,9),"--sign=$PVT2"))
-        main_(arrayOf("chain","like","post","/xxx","1000",h3,"--time="+(1*day+1).toString(),"--why="+h3.substring(0,9),"--sign=$PVT2"))
+        main_(arrayOf("chain","like","post","/xxx","1000",h3!!,"--time="+(1*day).toString(),"--why="+h3.substring(0,9),"--sign=$PVT1"))
+        main_(arrayOf("chain","like","post","/xxx","1000",h3,"--time="+(1*day+1).toString(),"--why="+h3.substring(0,9),"--sign=$PVT1"))
     }
 }

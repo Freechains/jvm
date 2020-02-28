@@ -245,15 +245,15 @@ class Daemon (host : Host) {
                             val (host,port) = host_.hostSplit()
 
                             val socket = Socket(host, port)
-                            val n = socket.chain_send(chain)
-                            System.err.println("chain send: $name: $n")
-                            writer.writeLineX(n.toString())
+                            val (nmin,nmax) = socket.chain_send(chain)
+                            System.err.println("chain send: $name ($nmin/$nmax)")
+                            writer.writeLineX("$nmin / $nmax")
                         }
                         "FC chain recv" -> {
-                            val n = remote.chain_recv(chain,waitList)
-                            System.err.println("chain recv: $name: $n")
+                            val (nmin,nmax) = remote.chain_recv(chain,waitList)
+                            System.err.println("chain recv: $name: ($nmin/$nmax)")
                             thread {
-                                signal(name, n)
+                                signal(name, nmin)
                             }
                             //writer.writeLineX(ret)
                         }
@@ -269,7 +269,7 @@ class Daemon (host : Host) {
     }
 }
 
-fun Socket.chain_send (chain: Chain) : Int {
+fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
     val reader = DataInputStream(this.getInputStream()!!)
     val writer = DataOutputStream(this.getOutputStream()!!)
 
@@ -285,7 +285,8 @@ fun Socket.chain_send (chain: Chain) : Int {
 
     val visited = HashSet<Hash>()
     val toSend  = ArrayDeque<Hash>()
-    var N       = 0
+    var Nmin    = 0
+    var Nmax    = 0
     //println("[send] $maxTime")
 
     // for each local head
@@ -334,16 +335,17 @@ fun Socket.chain_send (chain: Chain) : Int {
             writer.writeLineX("\n")
         }
         val n2_ = reader.readLineX().toInt()    // 7: how many blocks again
-        assert(n2 == n2_)
-        N += n2
+        assert(n2 >= n2_)
+        Nmin += n2_
+        Nmax += n2
     }
     val n1_ = reader.readLineX().toInt()        // 8: how many heads again
     assert(n1 == n1_)
 
-    return N
+    return Pair(Nmin,Nmax)
 }
 
-fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Int {
+fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
     val reader = DataInputStream(this.getInputStream()!!)
     val writer = DataOutputStream(this.getOutputStream()!!)
 
@@ -351,7 +353,8 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Int {
     // - answers if contains each node
     // - receives all
 
-    var N = 0
+    var Nmax = 0
+    var Nmin = 0
     val now = getNow()
     //println("[recv] $now")
 
@@ -372,8 +375,8 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Int {
 
         // receive blocks
         val n2 = reader.readLineX().toInt()    // 5
+        Nmax += n2
         //println("[recv] $n2")
-        N += n2
         xxx@for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock() // 6
             //println("[recv] ${blk.hash}")
@@ -386,9 +389,9 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Int {
 
                 // enqueue noob/late block
                 (
-                    blk.hashable.time <= now-T2H_sync           ||  // late
-                    blk.signature == null                       ||  // no sig
-                    chain.getRep(blk.signature.pubkey,now) <= 0     // no rep
+                    blk.hashable.time <= now-T2H_sync           //||  // late
+                    //blk.signature == null                       ||  // no sig
+                    //chain.getRep(blk.signature.pubkey,now) <= 0     // no rep
                 ) -> {
                     if (chain.backsCheck(blk)) {
                         val waitList = synchronized (waitLists) {
@@ -403,10 +406,17 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Int {
                 }
             }
 
-            chain.blockChain(blk)
+            var inc = 1
+            try {
+                chain.blockChain(blk)
+            } catch (e: Throwable) {
+                System.err.println(e.message)
+                inc = 0
+            }
+            Nmin += inc
         }
-        writer.writeLineX(n2.toString())            // 7
+        writer.writeLineX(Nmin.toString())             // 7
     }
     writer.writeLineX(n1.toString())                // 8
-    return N
+    return Pair(Nmin,Nmax)
 }

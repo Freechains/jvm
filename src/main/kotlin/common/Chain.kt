@@ -13,6 +13,8 @@ import com.goterl.lazycode.lazysodium.interfaces.SecretBox
 import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import java.lang.Integer.max
+import java.lang.Integer.min
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -133,6 +135,13 @@ fun Chain.blockAssert (blk: Block) {
 
     assert(this.backsCheck(blk))
 
+    // checks if unique genesis front
+    val gen = this.getGenesis()
+    if (blk.hashable.backs.contains(gen)) {
+        val b = this.loadBlockFromHash(gen,false)
+        assert(b.fronts.isEmpty() || b.fronts[0]==blk.hash) { "genesis is already referred" }
+    }
+
     // checks if has enough reputation to like
     if (h.like != null) {
         val n = h.like.n
@@ -215,32 +224,52 @@ private fun Chain.decrypt (payload: String) : Pair<Boolean,String> {
 // LIKE
 
 fun Chain.getRep (pub: String, now: Long) : Int {
+    val gen = this.loadBlockFromHash(this.getGenesis(),false).fronts.let {
+        if (it.isEmpty())
+            0
+        else
+            this.loadBlockFromHash(it[0],false).let {
+                when {
+                    (it.signature == null) -> 0
+                    (it.signature.pubkey == pub) -> LK30_max
+                    else -> 0
+                }
+            }
+        }
+
     val b30s = this.traverseFromHeads {
         it.hashable.time >= now - 30*day
     }
-    //println("B30s: ${b30s.toList()}")
+
     val mines = b30s
         .filter { it.signature != null &&
-                it.signature.pubkey == pub }            // all I signed
-    //println("MINES: $mines")
-    val posts = mines
-        .filter { it.hashable.time <= now - 1*day }     // mines older than 1 day
-        .count() * lk
-    //println("POSTS: $posts")
+                it.signature.pubkey == pub }                    // all I signed
+
+    val (pos,neg) = mines                     // mines
+        .filter { it.hashable.like == null }                    // not likes
+        .let {
+            val pos = it
+                .filter { it.hashable.time <= now - 1*day }     // older than 1 day
+                .count() * lk
+            val neg = it
+                .filter { it.hashable.time > now - 1*day }      // newer than 1 day
+                .count() * lk
+            Pair(min(LK30_max,pos),neg)
+        }
+
     val sent = mines
         .filter { it.hashable.like != null }            // my likes to others
         .map { it.hashable.like!!.n }
         .sum()
-    //println("SENT: $sent")
+
     val recv = b30s
         .filter { it.hashable.like != null &&           // others liked me
                 it.hashable.like.type == LikeType.PUBKEY &&
                 it.hashable.like.ref == pub }
         .map { it.hashable.like!!.n }
         .sum()
-    //println("RECV: $recv")
-    val all = posts + recv - sent
-    return all
+
+    return max(gen,pos) - neg + recv - sent
 }
 
 internal fun Chain.traverseFromHeads (
