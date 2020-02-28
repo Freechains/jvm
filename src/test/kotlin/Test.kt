@@ -509,20 +509,24 @@ class Tests {
         val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--time=0","--sign=$PVT1"))
 
         //main_(arrayOf("chain","like","/xxx","1",h1!!,"--time="+(24*hour-1).toString(),"--sign=$PVT1"))
-        assert("25000" == main_(arrayOf("chain","like","get","/xxx",PUB0)))
+        assert("30000" == main_(arrayOf("chain","like","get","/xxx",PUB0)))
         assert("0" == main_(arrayOf("chain","like","get","/xxx",PUB1)))
 
         // give to myself
-        assert("26000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
+        assert("30000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
         main_(arrayOf("chain","like","post","/xxx","1000",h1!!,"--time="+(1*day).toString(),"--sign=$PVT0"))
-        assert("25500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
+        assert("29500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
 
         // give to other
         val h3 = main_(arrayOf("chain","like","post","/xxx","1000",h2!!,"--time="+(1*day).toString(),"--sign=$PVT0"))
-        assert("25000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
-        assert("1000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
+        assert("28500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
+        assert("1500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
 
-        main_(arrayOf("chain","like","post","/xxx","1000",h3!!,"--time="+(1*day).toString(),"--why="+h3.substring(0,9),"--sign=$PVT1"))
-        main_(arrayOf("chain","like","post","/xxx","1000",h3,"--time="+(1*day+1).toString(),"--why="+h3.substring(0,9),"--sign=$PVT1"))
+        val h3_ = h3!!.split(" ")[0]
+        main_(arrayOf("chain","like","post","/xxx","1000",h3_,"--time="+(1*day+0).toString(),"--why="+h3_.substring(0,9),"--sign=$PVT1"))
+        assert("500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
+        main_(arrayOf("chain","like","post","/xxx","500",h3_,"--time="+(1*day+1).toString(),"--why="+h3_.substring(0,9),"--sign=$PVT1"))
+        assert("0" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
+        assert("29250" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
     }
 }

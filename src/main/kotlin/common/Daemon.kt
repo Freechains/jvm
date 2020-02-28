@@ -202,39 +202,49 @@ class Daemon (host : Host) {
                             val sig  = reader.readLineX()
 
                             val refs_ = if (refs == "") emptyArray() else refs.split('\n').toTypedArray()
-                            val like_ =
+                            val likes =
                                 if (refs_.isEmpty()) {
-                                    null
+                                    arrayOf<Like?>(null)
                                 } else {
                                     if (chain.containsBlock(refs_[0])) {
                                         // refs a post
                                         val blk = chain.loadBlockFromHash(refs_[0], false)
-                                        Like(like/2, LikeType.POST, refs_[0])
-                                        Like(like/2, LikeType.POST, blk.signature!!.pubkey)
+                                        arrayOf (
+                                            Like(like/2, LikeType.POST, refs_[0]),
+                                            if (blk.signature == null) null else Like(like/2, LikeType.PUBKEY, blk.signature.pubkey)
+                                        )
                                     } else {
                                         // refs a pubkey
-                                        Like(like, LikeType.PUBKEY, refs_[0])
+                                        arrayOf (
+                                            Like(like, LikeType.PUBKEY, refs_[0])
+                                        )
                                     }
                                 }
 
-                            val blk = chain.blockNew (
-                                sig,
-                                BlockHashable (
-                                    max (
-                                        time.nowToTime(),
-                                        chain.heads.map { chain.loadBlockFromHash(it,false).hashable.time }.max()!!
-                                    ),
-                                    like_,
-                                    cods[0],
-                                    cry,
-                                    pay,
-                                    refs_,
-                                    emptyArray()
+                            val hashes = mutableListOf<Hash>()
+                            for (l in likes) {
+                                val blk = chain.blockNew (
+                                    sig,
+                                    BlockHashable (
+                                        max (
+                                            time.nowToTime(),
+                                            chain.heads.map { chain.loadBlockFromHash(it,false).hashable.time }.max()!!
+                                        ),
+                                        l,
+                                        cods[0],
+                                        cry,
+                                        pay,
+                                        refs_,
+                                        emptyArray()
+                                    )
                                 )
-                            )
+                                hashes.add(blk.hash)
+                            }
 
-                            writer.writeLineX(blk.hash)
-                            System.err.println("chain post: ${blk.hash}")
+                            val ret = hashes.joinToString(" ")
+                            writer.writeLineX(ret)
+                            System.err.println("chain post: $ret")
+
                             thread {
                                 signal(name,1)
                             }

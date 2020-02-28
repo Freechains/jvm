@@ -264,11 +264,12 @@ fun Chain.getRep (pub: String, now: Long) : Int {
 
     val got = b90s
         .filter { it.hashable.like != null &&                   // likes I got
-                it.hashable.like.type == LikeType.PUBKEY &&
-                it.hashable.like.ref == pub }
+                  it.hashable.like.type == LikeType.PUBKEY &&
+                  it.hashable.like.ref == pub }
         .map { it.hashable.like!!.n }
         .sum()
 
+    //println("${max(gen,pos)} - $neg + $got - $gave")
     return max(gen,pos) - neg + got - gave
 }
 
