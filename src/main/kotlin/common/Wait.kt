@@ -26,7 +26,7 @@ class WaitList (cmp: Comparator<in Block>) {
         if (this.nextBlock == null) {
             this.nextBlock = blk
             this.nextTime = now + T2H_waitLists
-        } else if (this.list.size <= N12_waitLists) {
+        } else if (this.list.size <= N20_waitLists) {
             this.list.add(blk)
         }
     }

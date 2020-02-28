@@ -383,13 +383,16 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
 
             when {
                 // refuse block from the future
-                (blk.hashable.time >= now+T30M_future) -> {
+                (blk.hashable.time > now+T30M_future) ->
                     continue@xxx
-                }
+
+                // refuse blocks too old
+                (blk.hashable.time < now-T120_past) ->
+                    continue@xxx
 
                 // enqueue noob/late block
                 (
-                    blk.hashable.time <= now-T2H_sync           //||  // late
+                    blk.hashable.time <= now-T2H_past           //||  // late
                     //blk.signature == null                       ||  // no sig
                     //chain.getRep(blk.signature.pubkey,now) <= 0     // no rep
                 ) -> {

@@ -237,15 +237,15 @@ fun Chain.getRep (pub: String, now: Long) : Int {
             }
         }
 
-    val b30s = this.traverseFromHeads {
-        it.hashable.time >= now - 30*day
+    val b90s = this.traverseFromHeads {
+        it.hashable.time >= now - T90_rep
     }
 
-    val mines = b30s
+    val mines = b90s
         .filter { it.signature != null &&
-                it.signature.pubkey == pub }                    // all I signed
+                  it.signature.pubkey == pub }                    // all I signed
 
-    val (pos,neg) = mines                     // mines
+    val (pos,neg) = mines                                       // mines
         .filter { it.hashable.like == null }                    // not likes
         .let {
             val pos = it
@@ -257,19 +257,19 @@ fun Chain.getRep (pub: String, now: Long) : Int {
             Pair(min(LK30_max,pos),neg)
         }
 
-    val sent = mines
-        .filter { it.hashable.like != null }            // my likes to others
+    val gave = mines
+        .filter { it.hashable.like != null }                    // likes I gave
         .map { it.hashable.like!!.n }
         .sum()
 
-    val recv = b30s
-        .filter { it.hashable.like != null &&           // others liked me
+    val got = b90s
+        .filter { it.hashable.like != null &&                   // likes I got
                 it.hashable.like.type == LikeType.PUBKEY &&
                 it.hashable.like.ref == pub }
         .map { it.hashable.like!!.n }
         .sum()
 
-    return max(gen,pos) - neg + recv - sent
+    return max(gen,pos) - neg + got - gave
 }
 
 internal fun Chain.traverseFromHeads (
