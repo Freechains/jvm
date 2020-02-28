@@ -126,7 +126,7 @@ class Tests {
         val c2 = h.loadChain(c1.name)
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
-        val blk = c2.blockNew("",  H)
+        val blk = c2.blockNew("",  HC)
         val blk2 = c2.loadBlockFromHash(blk.hash,false)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
     }
@@ -173,8 +173,8 @@ class Tests {
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
         val src_chain = src.joinChain("/d3", false, arrayOf("secret","",""))
-        src_chain.blockNew("", H)
-        src_chain.blockNew("", H)
+        src_chain.blockNew("", HC)
+        src_chain.blockNew("", HC)
         thread { Daemon(src).daemon() }
 
         // DESTINY
@@ -200,12 +200,12 @@ class Tests {
         val h = Host_create("/tmp/freechains/tests/graph/")
         val chain = h.joinChain("/", false, arrayOf("secret","",""))
 
-        val ab0 = chain.blockNew("", H.copy(time=1*day))
-        chain.blockNew("", H.copy(time=2*day-1, payload="a1"))
-        val b1  = chain.blockNew("", H.copy(time=2*day,   backs=arrayOf(ab0.hash)))
-        val ab2 = chain.blockNew("", H.copy(time=27*day))
-        chain.blockNew("", H.copy(time=28*day, backs=arrayOf(b1.hash)))
-        chain.blockNew("", H.copy(time=32*day))
+        val ab0 = chain.blockNew("", HC.copy(time=1*day))
+        chain.blockNew("", HC.copy(time=2*day-1, payload="a1"))
+        val b1  = chain.blockNew("", HC.copy(time=2*day,   backs=arrayOf(ab0.hash)))
+        val ab2 = chain.blockNew("", HC.copy(time=27*day))
+        chain.blockNew("", HC.copy(time=28*day, backs=arrayOf(b1.hash)))
+        chain.blockNew("", HC.copy(time=32*day))
 
         /*
                       /-- (a1) --\
@@ -375,7 +375,7 @@ class Tests {
         val host = Host_load("/tmp/freechains/tests/M2/")
 
         val c1 = host.joinChain("/sym", false, arrayOf("64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2","",""))
-        val n1 = c1.blockNew("", H)
+        val n1 = c1.blockNew("", HC)
         c1.blockAssert(n1)
         var ok1 = false
         try {

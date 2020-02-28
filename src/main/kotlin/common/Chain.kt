@@ -78,6 +78,7 @@ fun Chain.blockNew (sig_pvt: String, h: BlockHashable) : Block {
     // non-empty pre-set backs only used in tests
     val backs = if (h.backs.isNotEmpty()) h.backs else this.heads.toTypedArray()
 
+    assert(this.keys[0].isEmpty() || h.encrypted)
     val pay = if (h.encrypted) this.encrypt(h.payload) else h.payload
 
     val h_ = h.copy(payload=pay, backs=backs)
