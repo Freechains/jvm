@@ -402,19 +402,19 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
 
                 // enqueue noob/late block
                 (
-                    blk.hashable.time <= now-T2H_past           //||  // late
-                    //blk.signature == null                       ||  // no sig
-                    //chain.getRep(blk.signature.pubkey,now) <= 0     // no rep
+                    blk.hashable.time <= now-T2H_past           ||  // late
+                    blk.signature == null                       ||  // no sig
+                    chain.getRep(blk.signature.pubkey,now) <= 0     // no rep
                 ) -> {
                     if (chain.backsCheck(blk)) {
                         val waitList = synchronized (waitLists) {
                             waitLists.createGet(chain)
                         }
                         waitList.add(blk,now)
-                    } else {
+                    } //else {
                         // not all backs exist (probably because noob/late as well)
                         // ok: do not inserted in waitList
-                    }
+                    //}
                     continue@xxx
                 }
             }

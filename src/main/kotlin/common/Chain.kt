@@ -226,7 +226,7 @@ private fun Chain.decrypt (payload: String) : Pair<Boolean,String> {
 fun Chain.getRep (pub: String, now: Long) : Int {
     val gen = this.loadBlockFromHash(this.getGenesis(),false).fronts.let {
         if (it.isEmpty())
-            0
+            LK30_max
         else
             this.loadBlockFromHash(it[0],false).let {
                 when {

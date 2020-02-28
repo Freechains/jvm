@@ -2,7 +2,8 @@ package org.freechains.common
 
 import java.time.Instant
 
-const val min  = (1000 * 60).toLong()
+const val seg  = 1000.toLong()
+const val min  = 60*seg
 const val hour = 60*min
 const val day  = 24*hour
 

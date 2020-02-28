@@ -209,10 +209,10 @@ class Tests {
         val chain = h.joinChain("/", false, arrayOf("secret","",""))
 
         val ab0 = chain.blockNew("", H.copy(time=1*day))
-        val a1  = chain.blockNew("", H.copy(time=2*day-1, payload="a1"))
+        chain.blockNew("", H.copy(time=2*day-1, payload="a1"))
         val b1  = chain.blockNew("", H.copy(time=2*day,   backs=arrayOf(ab0.hash)))
         val ab2 = chain.blockNew("", H.copy(time=27*day))
-        val b2  = chain.blockNew("", H.copy(time=28*day, backs=arrayOf(b1.hash)))
+        chain.blockNew("", H.copy(time=28*day, backs=arrayOf(b1.hash)))
         chain.blockNew("", H.copy(time=32*day))
 
         /*
@@ -464,7 +464,7 @@ class Tests {
     }
 
     @Test
-    fun m7_genensis_fork () {
+    fun m7_genesis_fork () {
         a_reset()
 
         main(arrayOf("host","create","/tmp/freechains/tests/M70/"))
@@ -528,5 +528,36 @@ class Tests {
         main_(arrayOf("chain","like","post","/xxx","500",h3_,"--time="+(1*day+1).toString(),"--why="+h3_.substring(0,9),"--sign=$PVT1"))
         assert("0" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
         assert("29250" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
+
+        main_(arrayOf("host","create","/tmp/freechains/tests/M81/","8331"))
+        thread { main_(arrayOf("host","start","/tmp/freechains/tests/M81/")) }
+        Thread.sleep(100)
+        main_(arrayOf(H1,"chain","join","/xxx","pubpvt","rw",PUB0))
+
+        // I'm in the future, old posts will be refused
+        val n1 = main_(arrayOf(H0,"chain","send","/xxx","localhost:8331"))
+        assert(n1=="0 / 10")
+
+        // I'm in the past, only the two first
+        main_(arrayOf(H1,"host","now","0"))
+        val n2 = main_(arrayOf(H0,"chain","send","/xxx","localhost:8331"))
+        assert(n2=="2 / 10")
+
+        // I'm still in the past, only the two first
+        main_(arrayOf(H1,"host","now","${1*day-2*hour}"))
+        val n3 = main_(arrayOf(H0,"chain","send","/xxx","localhost:8331"))
+        assert(n3=="0 / 8")
+
+        // receive all
+        main_(arrayOf(H1,"host","now","${1*day}"))
+        val n4 = main_(arrayOf(H0,"chain","send","/xxx","localhost:8331"))
+        assert(n4=="8 / 8")
+
+        // post w/o reputation
+        assert("0" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
+        main_(arrayOf(H1,"chain","post","/xxx","inline","utf8","no rep","--time=${1*day}","--sign=$PVT1"))
+        val n5 = main_(arrayOf(H1,"chain","send","/xxx","localhost:8330"))
+        println(n5)
+        assert(n5=="0 / 1")
     }
 }
