@@ -486,10 +486,15 @@ class Tests {
         val r01 = main_(arrayOf(H1,"chain","like","get","/",PUB0))
         val r10 = main_(arrayOf(H0,"chain","like","get","/",PUB1))
         val r11 = main_(arrayOf(H1,"chain","like","get","/",PUB1))
-        assert(r00!!.toInt() == 25000)
+        assert(r00!!.toInt() == 29000)
         assert(r01!!.toInt() == 0)
         assert(r10!!.toInt() == 0)
-        assert(r11!!.toInt() == 25000)
+        assert(r11!!.toInt() == 29000)
+
+        val x0 = main_(arrayOf(H0,"--time=${getNow()+1*day}","chain","like","get","/",PUB0))
+        val x1 = main_(arrayOf(H1,"--time=${getNow()+1*day}","chain","like","get","/",PUB1))
+        assert(x0!!.toInt() == 30000)
+        assert(x1!!.toInt() == 30000)
     }
 
     @Test

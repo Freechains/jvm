@@ -20,6 +20,9 @@ freechains host start $FC/8401 &
 sleep 0.5
 freechains --host=localhost:8401 chain join /
 
+freechains --host=localhost:8400 --time=0 chain post / inline utf8 zero
+freechains --host=localhost:8401 --time=0 chain post / inline utf8 zero
+
 freechains --host=localhost:8400 chain post / inline utf8 111
 freechains --host=localhost:8401 chain post / inline utf8 aaa
 
