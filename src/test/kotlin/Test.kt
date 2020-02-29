@@ -597,6 +597,6 @@ class Tests {
         val l3 = main_(arrayOf(H0,"chain","like","get","/xxx",h3))
         val l4 = main_(arrayOf(H0,"chain","like","get","/xxx",h4))
         println("$ln // $l1 // $l2 // $l3 // $l4")
-        assert(ln=="0" && l1=="500" && l2=="500" && l3=="750" && l4=="500")
+        assert(ln=="0" && l1=="500" && l2=="500" && l3=="0" && l4=="500")
     }
 }
