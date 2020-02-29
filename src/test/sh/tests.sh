@@ -7,5 +7,4 @@ do
   ./tests-shared.sh  || exit 1
   ./tests-pubpvt.sh  || exit 1
   ./tests-like.sh    || exit 1
-
 done

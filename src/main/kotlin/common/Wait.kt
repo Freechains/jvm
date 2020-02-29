@@ -9,7 +9,7 @@ fun WaitLists.createGet (chain: Chain) : WaitList {
     if (!this.containsKey(chain)) {
         this[chain] = WaitList(compareBy<Block>{
             it.signature.let {
-                if (it==null) 0 else chain.getRep(it.pubkey, getNow())
+                if (it==null) 0 else chain.getRep(it.pub, getNow())
             }
         }.thenBy {
             it.hash

@@ -134,13 +134,24 @@ class Daemon (host : Host) {
                 }
             }
             "FC chain join" -> {
-                val name    = reader.readLineX().nameCheck()
-                val ro    = reader.readLineX() == "ro"
-                val shared  = reader.readLineX()
-                val public  = reader.readLineX()
-                val private = reader.readLineX()
+                val name= reader.readLineX().nameCheck()
+                val type= reader.readLineX()
+                val crypto = when (type) {
+                    "" -> null
+                    "shared" -> {
+                        val key = reader.readLineX()
+                        Shared(if (key.isEmpty()) null else key)
+                    }
+                    "pubpvt" -> {
+                        val oonly= reader.readLineX().toBoolean()
+                        val pub= reader.readLineX()
+                        val pvt= reader.readLineX()
+                        PubPvt(oonly, pub, if (pvt.isEmpty()) null else pvt)
+                    }
+                    else -> error("bug found")
+                }
                 val chain = synchronized (getLock()) {
-                    local.joinChain(name,ro,arrayOf(shared,public,private))
+                    local.joinChain(name,crypto)
                 }
                 writer.writeLineX(chain.hash)
                 System.err.println("chain join: $name (${chain.hash})")
@@ -178,7 +189,8 @@ class Daemon (host : Host) {
                         "FC chain get" -> {
                             val hash = reader.readLineX()
 
-                            val blk   = chain.loadBlockFromHash(hash,chain.keys[0]!="none")
+                            val dec = chain.isSharedWithKey() || (chain.crypto is PubPvt && chain.crypto.pvt != null)
+                            val blk   = chain.loadBlockFromHash(hash,dec)
                             val json  = blk.toJson()
 
                             assert(json.length <= Int.MAX_VALUE)
@@ -199,13 +211,13 @@ class Daemon (host : Host) {
                             val time = reader.readLineX()
                             val like   = reader.readLineX().toInt()
                             val cod  = reader.readLineX()
-                            val cry = reader.readLineX().toBoolean() or chain.keys[0].isNotEmpty()
+                            val cry = reader.readLineX().toBoolean() or chain.isSharedWithKey()
 
                             val cods = cod.split(' ')
                             val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
 
                             val refs = reader.readLinesX()
-                            val sig  = reader.readLineX()
+                            val sig  = reader.readLineX()   // "" / "chain" / <pvt>
 
                             val refs_ = if (refs == "") emptyArray() else refs.split('\n').toTypedArray()
                             val likes =
@@ -219,7 +231,7 @@ class Daemon (host : Host) {
                                         if (blk.signature == null)
                                             l1
                                         else
-                                            l1.plus(Like(like/2, LikeType.PUBKEY, blk.signature.pubkey))
+                                            l1.plus(Like(like/2, LikeType.PUBKEY, blk.signature.pub))
                                     } else {
                                         // refs a pubkey
                                         arrayOf (
@@ -231,7 +243,7 @@ class Daemon (host : Host) {
                             val hashes = mutableListOf<Hash>()
                             for (l in likes) {
                                 val blk = chain.blockNew (
-                                    sig,    // TODO: check sig or chain, return error
+                                    if (sig.isEmpty()) null else sig,
                                     BlockHashable (
                                         max (
                                             time.nowToTime(),
@@ -400,8 +412,9 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
             //println("[recv] ${blk.hash}")
 
             fun checkRepTime () : Boolean {
+                //println("${chain.crypto is Shared} // ${chain.fromOwner(blk)}")
                 return ! (
-                    chain.keys[0].isNotEmpty()  ||  // shared key, only trusted hosts
+                    chain.crypto is Shared      ||  // shared key, only trusted hosts
                     chain.fromOwner(blk)        ||  // owner sig always pass
                     blk.hashable.like != null   ||  // likes always pass
                     blk.height == 1                 // first block always pass
@@ -412,7 +425,7 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
                 return (
                     blk.hashable.time <= now-T2H_past           ||  // too late
                     blk.signature == null                       ||  // no sig
-                    chain.getRep(blk.signature.pubkey,now) <= 0     // no rep
+                    chain.getRep(blk.signature.pub,now) <= 0     // no rep
                 )
             }
 
@@ -427,7 +440,7 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
                     continue@xxx
 
                 // refuse blocks not signed by owner (if oonly is set)
-                (chain.oonly && !chain.fromOwner(blk)) ->
+                (chain.crypto is PubPvt && chain.crypto.oonly && !chain.fromOwner(blk)) ->
                     continue@xxx
 
                 // enqueue noob/late block

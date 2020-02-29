@@ -20,15 +20,31 @@ import kotlin.collections.ArrayList
 
 // internal methods are private but are used in tests
 
+typealias HKey = String
+
+@Serializable
+sealed class Crypto
+
+@Serializable
+data class Shared (
+    val key : HKey?
+) : Crypto()
+
+@Serializable
+data class PubPvt (
+    val oonly : Boolean,
+    val pub   : HKey,
+    val pvt   : HKey?
+) : Crypto()
+
 @Serializable
 data class Chain (
-    val root  : String,
-    val name  : String,
-    val oonly : Boolean,
-    val keys  : Array<String>   // [shared,public,private]
+    val root   : String,
+    val name   : String,
+    val crypto : Crypto?
 ) {
-    val hash  : String = this.toHash()
-    val heads : ArrayList<Hash> = arrayListOf(this.getGenesis())
+    val hash   : String = this.toHash()
+    val heads  : ArrayList<Hash> = arrayListOf(this.getGenesis())
 }
 
 // TODO: change to contract/constructor assertion
@@ -57,6 +73,10 @@ fun Chain.getGenesis () : Hash {
     return "0_" + this.toHash()
 }
 
+fun Chain.isSharedWithKey () : Boolean {
+    return (this.crypto is Shared && this.crypto.key!=null)
+}
+
 // HASH
 
 val zeros = ByteArray(GenericHash.BYTES)
@@ -65,7 +85,12 @@ private fun String.calcHash () : String {
 }
 
 fun Chain.toHash () : String {
-    return (this.name+this.oonly.toString()+this.keys[1]).calcHash() // no shared/private allows untrusted nodes
+    val crypto = when (this.crypto) {
+        null      -> ""
+        is Shared -> ""     // no key: allows untrusted nodes
+        is PubPvt -> this.crypto.oonly.toString() + this.crypto.pub
+    }
+    return (this.name+crypto).calcHash()
 }
 
 fun BlockHashable.toHash () : Hash {
@@ -74,30 +99,26 @@ fun BlockHashable.toHash () : Hash {
 
 // NODE
 
-fun Chain.blockNew (sig_pvt: String, h: BlockHashable) : Block {
+fun Chain.blockNew (sig_pvt: String?, h: BlockHashable) : Block {
     // non-empty pre-set backs only used in tests
     val backs = if (h.backs.isNotEmpty()) h.backs else this.heads.toTypedArray()
 
-    assert(this.keys[0].isEmpty() || h.encrypted)
+    assert(this.crypto !is Shared || h.encrypted)
     val pay = if (h.encrypted) this.encrypt(h.payload) else h.payload
 
     val h_ = h.copy(payload=pay, backs=backs)
     val hash = h_.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
-    //assert(keys[2].isEmpty() || sig_pvt.isEmpty())
-    val pvt = if (sig_pvt.isEmpty()) this.keys[2] else sig_pvt
-    val signature =
-        if (pvt.isEmpty()) {
-            null
-        } else {
-            val sig = ByteArray(Sign.BYTES)
-            val msg = lazySodium.bytes(hash)
-            val key = Key.fromHexString(pvt).asBytes
-            lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), key)
-            val sig_hash = LazySodium.toHex(sig)
-            Signature(sig_hash, pvt.pvtToPub())
-        }
+    val signature= if (sig_pvt == null) null else {
+        val pvt = if (sig_pvt != "chain") sig_pvt else (this.crypto as PubPvt).pvt!!
+        val sig = ByteArray(Sign.BYTES)
+        val msg = lazySodium.bytes(hash)
+        val key = Key.fromHexString(pvt).asBytes
+        lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), key)
+        val sig_hash = LazySodium.toHex(sig)
+        Signature(sig_hash, pvt.pvtToPub())
+    }
 
     val new = Block(h_, mutableListOf(), signature, hash)
     this.blockChain(new)
@@ -144,7 +165,7 @@ fun Chain.blockAssert (blk: Block) {
     // checks if has enough reputation to like
     if (h.like != null) {
         val n = h.like.n
-        val pub = blk.signature!!.pubkey
+        val pub = blk.signature!!.pub
         assert(this.fromOwner(blk) || n <= this.getRep(pub, h.time)) {
             "not enough reputation"
         }
@@ -154,7 +175,7 @@ fun Chain.blockAssert (blk: Block) {
     if (blk.signature != null) {
         val sig = LazySodium.toBin(blk.signature.hash)
         val msg = lazySodium.bytes(blk.hash)
-        val key = Key.fromHexString(blk.signature.pubkey).asBytes
+        val key = Key.fromHexString(blk.signature.pub).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
     }
 }
@@ -174,55 +195,61 @@ private fun Chain.reheads (blk: Block) {
 // CRYPTO
 
 private fun Chain.encrypt (payload: String) : String {
-    if (this.keys[0].isNotEmpty()) {
-        val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
-        val key = Key.fromHexString(this.keys[0])
-        return LazySodium.toHex(nonce) + lazySodium.cryptoSecretBoxEasy(payload, nonce, key)
-    } else {
-        assert(this.keys[1].isNotEmpty())
-        val dec = payload.toByteArray()
-        val enc = ByteArray(Box.SEALBYTES + dec.size)
-        val key = Key.fromHexString(this.keys[1]).asBytes
-        val key_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
-        assert(lazySodium.convertPublicKeyEd25519ToCurve25519(key_, key))
-        lazySodium.cryptoBoxSeal(enc, dec, dec.size.toLong(), key_)
-        return LazySodium.toHex(enc)
+    return when (this.crypto) {
+        is Shared -> {
+            val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
+            val key = Key.fromHexString(this.crypto.key)
+            LazySodium.toHex(nonce) + lazySodium.cryptoSecretBoxEasy(payload, nonce, key)
+        }
+        is PubPvt -> {
+            val dec = payload.toByteArray()
+            val enc = ByteArray(Box.SEALBYTES + dec.size)
+            val key = Key.fromHexString(this.crypto.pub).asBytes
+            val key_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
+            assert(lazySodium.convertPublicKeyEd25519ToCurve25519(key_, key))
+            lazySodium.cryptoBoxSeal(enc, dec, dec.size.toLong(), key_)
+            LazySodium.toHex(enc)
+        }
+        else -> error("bug found")
     }
 }
 
 private fun Chain.decrypt (payload: String) : Pair<Boolean,String> {
-    if (this.keys[0].isEmpty() && this.keys[2].isEmpty()) {
-        return Pair(false,payload)
-    }
+    return when (this.crypto) {
+        null -> Pair(false,payload)
+        is Shared -> {
+            val idx = SecretBox.NONCEBYTES * 2
+            val pay = lazySodium.cryptoSecretBoxOpenEasy(
+                payload.substring(idx),
+                LazySodium.toBin(payload.substring(0, idx)),
+                Key.fromHexString(this.crypto.key)
+            )
+            Pair(true,pay)
+        }
+        is PubPvt -> {
+            val enc = LazySodium.toBin(payload)
+            val dec = ByteArray(enc.size - Box.SEALBYTES)
 
-    if (this.keys[0].isNotEmpty()) {
-        val idx = SecretBox.NONCEBYTES * 2
-        val pay = lazySodium.cryptoSecretBoxOpenEasy(
-            payload.substring(idx),
-            LazySodium.toBin(payload.substring(0, idx)),
-            Key.fromHexString(this.keys[0])
-        )
-        return Pair(true,pay)
-    } else {
-        val enc = LazySodium.toBin(payload)
-        val dec = ByteArray(enc.size - Box.SEALBYTES)
+            val pub = Key.fromHexString(this.crypto.pub).asBytes
+            val pvt = Key.fromHexString(this.crypto.pvt).asBytes
+            val pub_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
+            val pvt_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_SECRETKEYBYTES)
+            assert(lazySodium.convertPublicKeyEd25519ToCurve25519(pub_,pub))
+            assert(lazySodium.convertSecretKeyEd25519ToCurve25519(pvt_,pvt))
 
-        val pub = Key.fromHexString(this.keys[1]).asBytes
-        val pvt = Key.fromHexString(this.keys[2]).asBytes
-        val pub_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
-        val pvt_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_SECRETKEYBYTES)
-        assert(lazySodium.convertPublicKeyEd25519ToCurve25519(pub_,pub))
-        assert(lazySodium.convertSecretKeyEd25519ToCurve25519(pvt_,pvt))
-
-        assert(lazySodium.cryptoBoxSealOpen(dec, enc, enc.size.toLong(), pub_, pvt_))
-        return Pair(true,dec.toString(Charsets.UTF_8))
+            assert(lazySodium.cryptoBoxSealOpen(dec, enc, enc.size.toLong(), pub_, pvt_))
+            Pair(true,dec.toString(Charsets.UTF_8))
+        }
     }
 }
 
 // LIKE
 
 fun Chain.fromOwner (blk: Block) : Boolean {
-    return (blk.signature!=null && blk.signature.pubkey==this.keys[1])
+    return when (this.crypto) {
+        is PubPvt -> blk.signature!=null && blk.signature.pub==this.crypto.pub
+        else -> false
+    }
 }
 
 fun Chain.getRep (pub: String, now: Long) : Int {
@@ -233,7 +260,7 @@ fun Chain.getRep (pub: String, now: Long) : Int {
             this.loadBlockFromHash(it[0],false).let {
                 when {
                     (it.signature == null) -> 0
-                    (it.signature.pubkey == pub) -> LK30_max
+                    (it.signature.pub == pub) -> LK30_max
                     else -> 0
                 }
             }
@@ -245,7 +272,7 @@ fun Chain.getRep (pub: String, now: Long) : Int {
 
     val mines = b90s
         .filter { it.signature != null &&
-                  it.signature.pubkey == pub }                    // all I signed
+                  it.signature.pub == pub }                    // all I signed
 
     val (pos,neg) = mines                                       // mines
         .filter { it.hashable.like == null }                    // not likes

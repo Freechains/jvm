@@ -20,7 +20,7 @@ Usage:
     freechains [options] host flush
     freechains [options] chain join <chain>
     freechains [options] chain join <chain> shared <shared_key>
-    freechains [options] chain join <chain> pubpvt (rw | ro) <public_key> [<private_key>]
+    freechains [options] chain join <chain> pubpvt [owner-only] <public_key> [<private_key>]
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain>
     freechains [options] chain get <chain> <hash>
@@ -127,10 +127,21 @@ fun main_ (args: Array<String>) : String? {
                 opts["join"] as Boolean -> {
                     writer.writeLineX("FC chain join")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX((opts["ro"] as Boolean? ?: false).toString())
-                    writer.writeLineX(opts["<shared_key>"] as String? ?: "")
-                    writer.writeLineX(opts["<public_key>"] as String? ?: "")
-                    writer.writeLineX(opts["<private_key>"] as String? ?: "")
+                    when {
+                        opts["shared"] as Boolean -> {
+                            writer.writeLineX("shared")
+                            writer.writeLineX(opts["<shared_key>"] as String)
+                        }
+                        opts["pubpvt"] as Boolean -> {
+                            writer.writeLineX("pubpvt")
+                            writer.writeLineX((opts["owner-only"] as Boolean? ?: false).toString())
+                            writer.writeLineX(opts["<public_key>"] as String? ?: "")
+                            writer.writeLineX(opts["<private_key>"] as String? ?: "")
+                        }
+                        else -> {
+                            writer.writeLineX("")
+                        }
+                    }
                     return reader.readLineX()
                 }
                 opts["genesis"] as Boolean -> {

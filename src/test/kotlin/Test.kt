@@ -119,14 +119,14 @@ class Tests {
     fun b1_chain () {
         //a_reset()
         val h = Host_create("/tmp/freechains/tests/local/")
-        val c1 = h.joinChain("/uerj", false, arrayOf("secret","",""))
+        val c1 = h.joinChain("/uerj", Shared("secret"))
         //println("Chain /uerj: ${chain1.toHash()}")
         c1.save()
 
         val c2 = h.loadChain(c1.name)
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
-        val blk = c2.blockNew("",  HC)
+        val blk = c2.blockNew(null, HC)
         val blk2 = c2.loadBlockFromHash(blk.hash,false)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
     }
@@ -134,10 +134,10 @@ class Tests {
     @Test
     fun c1_post () {
         val host = Host_load("/tmp/freechains/tests/local/")
-        val chain = host.joinChain("/", false, arrayOf("","",""))
-        val n1 = chain.blockNew("", H)
-        val n2 = chain.blockNew("", H)
-        val n3 = chain.blockNew("", H)
+        val chain = host.joinChain("/", null)
+        val n1 = chain.blockNew(null,H)
+        val n2 = chain.blockNew(null, H)
+        val n3 = chain.blockNew(null, H)
 
         var ok = false
         try {
@@ -172,14 +172,14 @@ class Tests {
 
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
-        val src_chain = src.joinChain("/d3", false, arrayOf("secret","",""))
-        src_chain.blockNew("", HC)
-        src_chain.blockNew("", HC)
+        val src_chain = src.joinChain("/d3", Shared("secret"))
+        src_chain.blockNew(null, HC)
+        src_chain.blockNew(null, HC)
         thread { Daemon(src).daemon() }
 
         // DESTINY
         val dst = Host_create("/tmp/freechains/tests/dst/", 8331)
-        dst.joinChain("/d3", false, arrayOf("secret","",""))
+        dst.joinChain("/d3", Shared("secret"))
         thread { Daemon(dst).daemon() }
         Thread.sleep(100)
 
@@ -198,14 +198,14 @@ class Tests {
     fun e1_graph () {
         a_reset()
         val h = Host_create("/tmp/freechains/tests/graph/")
-        val chain = h.joinChain("/", false, arrayOf("secret","",""))
+        val chain = h.joinChain("/", Shared("secret"))
 
-        val ab0 = chain.blockNew("", HC.copy(time=1*day))
-        chain.blockNew("", HC.copy(time=2*day-1, payload="a1"))
-        val b1  = chain.blockNew("", HC.copy(time=2*day,   backs=arrayOf(ab0.hash)))
-        val ab2 = chain.blockNew("", HC.copy(time=27*day))
-        chain.blockNew("", HC.copy(time=28*day, backs=arrayOf(b1.hash)))
-        chain.blockNew("", HC.copy(time=32*day))
+        val ab0 = chain.blockNew(null, HC.copy(time=1*day))
+        chain.blockNew(null, HC.copy(time=2*day-1, payload="a1"))
+        val b1  = chain.blockNew(null, HC.copy(time=2*day,   backs=arrayOf(ab0.hash)))
+        val ab2 = chain.blockNew(null, HC.copy(time=27*day))
+        chain.blockNew(null, HC.copy(time=28*day, backs=arrayOf(b1.hash)))
+        chain.blockNew(null, HC.copy(time=32*day))
 
         /*
                       /-- (a1) --\
@@ -243,14 +243,14 @@ class Tests {
         //a_reset()
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
-        val h1_chain = h1.joinChain("/xxx", false, arrayOf("","",""))
-        h1_chain.blockNew("", H)
-        h1_chain.blockNew("", H)
+        val h1_chain = h1.joinChain("/xxx", null)
+        h1_chain.blockNew(null, H)
+        h1_chain.blockNew(null, H)
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
-        val h2_chain = h2.joinChain("/xxx", false, arrayOf("","",""))
-        h2_chain.blockNew("", H)
-        h2_chain.blockNew("", H)
+        val h2_chain = h2.joinChain("/xxx", null)
+        h2_chain.blockNew(null, H)
+        h2_chain.blockNew(null, H)
 
         Thread.sleep(100)
         thread { Daemon(h1).daemon() }
@@ -374,22 +374,22 @@ class Tests {
         //main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
         val host = Host_load("/tmp/freechains/tests/M2/")
 
-        val c1 = host.joinChain("/sym", false, arrayOf("64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2","",""))
-        val n1 = c1.blockNew("", HC)
+        val c1 = host.joinChain("/sym", Shared("64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"))
+        val n1 = c1.blockNew(null, HC)
         c1.blockAssert(n1)
         var ok1 = false
         try {
-            val c = c1.copy(keys=arrayOf("wrong","",""))
+            val c = c1.copy(crypto=Shared("wrong"))
             c.blockAssert(n1)       // now I can post w/ the wrong key
         } catch (e: Throwable) {
             ok1 = true
         }
         assert(!ok1)
 
-        val c2 = host.joinChain("/asy", false, arrayOf("",PUB0,PVT0))
-        val n2 = c2.blockNew("", H)
+        val c2 = host.joinChain("/asy", PubPvt(false,PUB0,PVT0))
+        val n2 = c2.blockNew("chain", H)
         c2.blockAssert(n2)
-        val cx = c2.copy(keys=arrayOf("",PUB0,""))
+        val cx = c2.copy(crypto=PubPvt(false,PUB0,null))
         cx.blockAssert(n2)
     }
 
@@ -398,7 +398,7 @@ class Tests {
         val host = Host_load("/tmp/freechains/tests/M2/")
         val c1 = host.loadChain("/sym")
         //println(c1.root)
-        val n1 = c1.blockNew("",HC.copy(payload="aaa"))
+        val n1 = c1.blockNew(null,HC.copy(payload="aaa"))
         //println(n1.hash)
         val n2 = c1.loadBlockFromHash(n1.hash, true)
         assert(n2.hashable.payload == "aaa")
@@ -428,9 +428,9 @@ class Tests {
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M60/")) }
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M61/")) }
         Thread.sleep(100)
-        main(arrayOf("chain","join","/xxx","pubpvt","rw",PUB0,PVT0))
-        main(arrayOf(H1,"chain","join","/xxx","pubpvt","rw",PUB0))
-        val hash = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--encrypt"))
+        main(arrayOf("chain","join","/xxx","pubpvt",PUB0,PVT0))
+        main(arrayOf(H1,"chain","join","/xxx","pubpvt",PUB0))
+        val hash = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--sign=chain","--encrypt"))
 
         val json = main_(arrayOf("chain","get","/xxx",hash!!))
         val blk = json!!.jsonToBlock()
@@ -487,10 +487,10 @@ class Tests {
         main(arrayOf("host","create","/tmp/freechains/tests/M80/"))
         thread { main(arrayOf("host","start","/tmp/freechains/tests/M80/")) }
         Thread.sleep(100)
-        main(arrayOf("chain","join","/xxx","pubpvt","rw",PUB0,PVT0))
+        main(arrayOf("chain","join","/xxx","pubpvt",PUB0,PVT0))
 
         // first post
-        val h1 = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--time=0"))
+        val h1 = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--time=0","--sign=chain"))
 
         // noob post
         val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--time=0","--sign=$PVT1"))
@@ -519,7 +519,7 @@ class Tests {
         main_(arrayOf("host","create","/tmp/freechains/tests/M81/","8331"))
         thread { main_(arrayOf("host","start","/tmp/freechains/tests/M81/")) }
         Thread.sleep(100)
-        main_(arrayOf(H1,"chain","join","/xxx","pubpvt","rw",PUB0))
+        main_(arrayOf(H1,"chain","join","/xxx","pubpvt",PUB0))
 
         // I'm in the future, old posts will be refused
         val n1 = main_(arrayOf(H0,"chain","send","/xxx","localhost:8331"))

@@ -21,8 +21,8 @@ data class Like (
 
 @Serializable
 data class Signature (
-    val hash   : String,    // signature
-    val pubkey : String     // of pubkey (if "", assumes pub of chain)
+    val hash : String,    // signature
+    val pub  : HKey       // of pubkey (if "", assumes pub of chain)
 )
 
 @Serializable
