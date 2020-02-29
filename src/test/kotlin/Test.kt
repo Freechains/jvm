@@ -20,27 +20,35 @@ import kotlin.concurrent.thread
 
 /*
  *  TODO:
- *                                reps             28-02
- *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 LOC
- *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 KB
+ *                                reps             28-02    29-02
+ *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 LOC
+ *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 KB
  *  - Simulation.kt
  *  - merge master
- *  - HOST
- *    - create receives pvt
- *      - and creates pvt chain RO
- *    - all conns start with pub ends
- *    - all conns log into host chain
+ *  - HOST: "create" receives pub/pvt args
+ *    - creates pvt chain oo (for logs)
+ *    - join reputation system (evaluate continue@xxx)
+ *    - all conns start with pubs from both ends
  *  - reputation system
  *    - lks rewards proportional to childs
- *    - liferea: likes in title
- *  - test --utf8-eof
+ *    - liferea: likes in title // get rep in menu and each post owner
+ *  - TEST
+ *    - --utf8-eof
+ *    - oonly
+ *    - fork w/ double spend (second should go to noob list)
+ *    - old tests
+ *  - REFACTOR
+ *    - join (stop/now/flush), they use connection
  *  - all use cases (chain cfg e usos da industria)
  *  - commands with auth. ip port time to avoid reuse
- *  - testes antigos
  *  - RX Kotlin
  *  - pipes / filtros
- *  - freechains host restart
- *  - --ref=<hash> [post] sets back reference to post
+ *  - CMDS
+ *    - freechains host restart
+ *    - freechains chain remove hash (removes block and fronts)
+ *    - --ref=<hash> [post] sets back reference to post
+ *  - BUGS
+ *    - verify if backs exist/heads
  *  - Future:
  *  - Xfreechains
  *    - chain xtraverse
@@ -202,7 +210,7 @@ class Tests {
 
         val ab0 = chain.blockNew(null, HC.copy(time=1*day))
         chain.blockNew(null, HC.copy(time=2*day-1, payload="a1"))
-        val b1  = chain.blockNew(null, HC.copy(time=2*day,   backs=arrayOf(ab0.hash)))
+        val b1  = chain.blockNew(null, HC.copy(time=2*day, backs=arrayOf(ab0.hash)))
         val ab2 = chain.blockNew(null, HC.copy(time=27*day))
         chain.blockNew(null, HC.copy(time=28*day, backs=arrayOf(b1.hash)))
         chain.blockNew(null, HC.copy(time=32*day))
@@ -432,18 +440,18 @@ class Tests {
         main(arrayOf(H1,"chain","join","/xxx","pubpvt",PUB0))
         val hash = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--sign=chain","--encrypt"))
 
-        val json = main_(arrayOf("chain","get","/xxx",hash!!))
-        val blk = json!!.jsonToBlock()
+        val json = main_(arrayOf("chain","get","/xxx",hash))
+        val blk = json.jsonToBlock()
         assert(blk.hashable.payload == "aaa")
 
         main(arrayOf("chain","send","/xxx","localhost:8331"))
         val json2 = main_(arrayOf(H1,"chain","get","/xxx",hash))
-        val blk2 = json2!!.jsonToBlock()
+        val blk2 = json2.jsonToBlock()
         assert(blk2.hashable.encrypted)
 
         val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--sign=$PVT1"))
-        val j2 = main_(arrayOf("chain","get","/xxx",h2!!))
-        val b2 = j2!!.jsonToBlock()
+        val j2 = main_(arrayOf("chain","get","/xxx",h2))
+        val b2 = j2.jsonToBlock()
         assert(b2.hashable.payload == "bbb")
     }
 
@@ -470,15 +478,15 @@ class Tests {
         val r01 = main_(arrayOf(H1,"chain","like","get","/",PUB0))
         val r10 = main_(arrayOf(H0,"chain","like","get","/",PUB1))
         val r11 = main_(arrayOf(H1,"chain","like","get","/",PUB1))
-        assert(r00!!.toInt() == 29000)
-        assert(r01!!.toInt() == 0)
-        assert(r10!!.toInt() == 0)
-        assert(r11!!.toInt() == 29000)
+        assert(r00.toInt() == 29000)
+        assert(r01.toInt() == 0)
+        assert(r10.toInt() == 0)
+        assert(r11.toInt() == 29000)
 
         val x0 = main_(arrayOf(H0,"--time=${getNow()+1*day}","chain","like","get","/",PUB0))
         val x1 = main_(arrayOf(H1,"--time=${getNow()+1*day}","chain","like","get","/",PUB1))
-        assert(x0!!.toInt() == 30000)
-        assert(x1!!.toInt() == 30000)
+        assert(x0.toInt() == 30000)
+        assert(x1.toInt() == 30000)
     }
 
     @Test
@@ -501,15 +509,15 @@ class Tests {
 
         // give to myself
         assert("30000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
-        main_(arrayOf("chain","like","post","/xxx","1000",h1!!,"--time="+(1*day).toString(),"--sign=$PVT0"))
+        main_(arrayOf("chain","like","post","/xxx","1000",h1,"--time="+(1*day).toString(),"--sign=$PVT0"))
         assert("29500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
 
         // give to other
-        val h3 = main_(arrayOf("chain","like","post","/xxx","1000",h2!!,"--time="+(1*day).toString(),"--sign=$PVT0"))
+        val h3 = main_(arrayOf("chain","like","post","/xxx","1000",h2,"--time="+(1*day).toString(),"--sign=$PVT0"))
         assert("28500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
         assert("1500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
 
-        val h3_ = h3!!.split(" ")[0]
+        val h3_ = h3.split(" ")[0]
         main_(arrayOf("chain","like","post","/xxx","1000",h3_,"--time="+(1*day+0).toString(),"--why="+h3_.substring(0,9),"--sign=$PVT1"))
         assert("500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
         main_(arrayOf("chain","like","post","/xxx","500",h3_,"--time="+(1*day+1).toString(),"--why="+h3_.substring(0,9),"--sign=$PVT1"))
@@ -534,13 +542,13 @@ class Tests {
         main_(arrayOf(H1,"host","now","${2*hour-100}"))
         main_(arrayOf(H1,"host","flush"))
         val hs1 = main_(arrayOf(H1,"chain","heads","/xxx"))
-        assert(hs1!!.substring(0,2) == "1_")
+        assert(hs1.substring(0,2) == "1_")
 
         // now ok
         main_(arrayOf(H1,"host","now","${2*hour+100}"))
         main_(arrayOf(H1,"host","flush"))
         val hs2 = main_(arrayOf(H1,"chain","heads","/xxx"))
-        assert(hs2!!.substring(0,2) == "2_")
+        assert(hs2.substring(0,2) == "2_")
 
         // I'm still in the past, only the two first
         main_(arrayOf(H1,"host","now","${1*day-2*hour}"))
@@ -559,13 +567,13 @@ class Tests {
         assert(n5=="0 / 1")
 
         val hs3 = main_(arrayOf(H0,"chain","heads","/xxx"))
-        assert(hs3!!.substring(0,3) == "10_")
+        assert(hs3.substring(0,3) == "10_")
 
         // flush after 2h
         main_(arrayOf(H0,"host","now","${1*day+2*hour+1*seg}"))
         main_(arrayOf(H0,"host","flush"))
         val hs4 = main_(arrayOf(H0,"chain","heads","/xxx"))
-        assert(hs4!!.substring(0,3) == "11_")
+        assert(hs4.substring(0,3) == "11_")
 
         // new post, no rep
         val h4 = main_(arrayOf(H1,"chain","post","/xxx","inline","utf8","no sig"))
@@ -574,10 +582,10 @@ class Tests {
         main_(arrayOf(H0,"host","now","${1*day+4*hour+2*seg}"))
         main_(arrayOf(H0,"host","flush"))
         val hs5 = main_(arrayOf(H0,"chain","heads","/xxx"))
-        assert(hs5!!.substring(0,3) == "12_")
+        assert(hs5.substring(0,3) == "12_")
 
         // like post w/o pub
-        main_(arrayOf(H1,"chain","like","post","/xxx","1000",h4!!,"--time="+(1*day).toString(),"--sign=$PVT0"))
+        main_(arrayOf(H1,"chain","like","post","/xxx","1000",h4,"--time="+(1*day).toString(),"--sign=$PVT0"))
         val n7 = main_(arrayOf(H1,"chain","send","/xxx","localhost:8330"))
         //println(n7)
         assert(n7=="1 / 1")

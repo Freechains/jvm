@@ -50,13 +50,10 @@ More Information:
 """
 
 fun main (args: Array<String>) {
-    val ret = main_(args)
-    if (ret != null) {
-        output(ret)
-    }
+    output(main_(args))
 }
 
-fun main_ (args: Array<String>) : String? {
+fun main_ (args: Array<String>) : String {
     val opts = Docopt(doc).withVersion("freechains v0.2").parse(args.toMutableList())
 
     Thread.setDefaultUncaughtExceptionHandler { _: Thread?, e: Throwable? ->
@@ -83,7 +80,7 @@ fun main_ (args: Array<String>) : String? {
                     val host = Host_load(dir)
                     System.err.println("host start: $host")
                     Daemon(host).daemon()
-                    return null
+                    return "true"
                 }
                 opts["stop"] as Boolean -> {
                     val (host, port) = optHost()
@@ -161,7 +158,7 @@ fun main_ (args: Array<String>) : String? {
                             ret += hash + "\n"
                         }
                     }
-                    return if (ret.isEmpty()) null else ret
+                    return ret
                 }
                 opts["like"] as Boolean -> {
                     when {
@@ -202,10 +199,8 @@ fun main_ (args: Array<String>) : String? {
                     val json = reader.readAllBytes().toString(Charsets.UTF_8)
                     if (json.isEmpty()) {
                         System.err.println("chain get: not found")
-                        return null
-                    } else {
-                        return json
                     }
+                    return json
                 }
                 // freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
                 opts["post"] as Boolean -> {
@@ -267,15 +262,17 @@ fun main_ (args: Array<String>) : String? {
                     writer.writeLineX("FC crypto create")
                     writer.writeLineX(if (isShared) "shared" else "pubpvt")
                     writer.writeLineX(opts["<passphrase>"] as String)
-                    output(reader.readLineX())         // shared or private key
                     if (isShared) {
-                        return null
+                        return reader.readLineX()       // shared key
+
                     } else {
-                        return reader.readLineX()     // public key
+                        val pvt = reader.readLineX()    // private key
+                        val pub = reader.readLineX()    // public key
+                        return pvt + "\n" + pub
                     }
                 }
             }
         }
     }
-    return null
+    error("bug found")
 }
