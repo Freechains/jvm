@@ -200,9 +200,14 @@ class Daemon (host : Host) {
                         }
                         "FC chain reps" -> {
                             val time = reader.readLineX()
-                            val pub = reader.readLineX()
+                            val ref = reader.readLineX()
 
-                            val likes = chain.getRep(pub, time.nowToTime())
+                            val likes =
+                                if (chain.containsBlock(ref)) {
+                                    chain.getPostRep(ref)
+                                } else {
+                                    chain.getPubRep(ref, time.nowToTime())
+                                }
 
                             writer.writeLineX(likes.toString())
                             System.err.println("chain reps: $likes")
@@ -425,7 +430,7 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
                 return (
                     blk.hashable.time <= now-T2H_past           ||  // too late
                     blk.signature == null                       ||  // no sig
-                    chain.getRep(blk.signature.pub,now) <= 0     // no rep
+                    chain.getPubRep(blk.signature.pub,now) <= 0     // no rep
                 )
             }
 

@@ -17,6 +17,7 @@ import java.lang.Integer.max
 import java.lang.Integer.min
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.math.absoluteValue
 
 // internal methods are private but are used in tests
 
@@ -166,7 +167,7 @@ fun Chain.blockAssert (blk: Block) {
     if (h.like != null) {
         val n = h.like.n
         val pub = blk.signature!!.pub
-        assert(this.fromOwner(blk) || n <= this.getRep(pub, h.time)) {
+        assert(this.fromOwner(blk) || n <= this.getPubRep(pub, h.time)) {
             "not enough reputation"
         }
     }
@@ -252,7 +253,21 @@ fun Chain.fromOwner (blk: Block) : Boolean {
     }
 }
 
-fun Chain.getRep (pub: String, now: Long) : Int {
+fun Chain.getPostRep (hash: String) : Int {
+    val all = this.traverseFromHeads { true }
+
+    val likes = all
+        .filter {
+            it.hashable.like != null &&
+            it.hashable.like.ref == hash
+        }
+        .map { it.hashable.like!!.n }
+        .sum()
+
+    return likes
+}
+
+fun Chain.getPubRep (pub: String, now: Long) : Int {
     val gen = this.loadBlockFromHash(this.getGenesis(),false).fronts.let {
         if (it.isEmpty())
             LK30_max
@@ -264,7 +279,7 @@ fun Chain.getRep (pub: String, now: Long) : Int {
                     else -> 0
                 }
             }
-        }
+    }
 
     val b90s = this.traverseFromHeads {
         it.hashable.time >= now - T90_rep
@@ -272,9 +287,9 @@ fun Chain.getRep (pub: String, now: Long) : Int {
 
     val mines = b90s
         .filter { it.signature != null &&
-                  it.signature.pub == pub }                    // all I signed
+                it.signature.pub == pub }                       // all I signed
 
-    val (pos,neg) = mines                                       // mines
+    val (pos,neg) = mines                             // mines
         .filter { it.hashable.like == null }                    // not likes
         .let {
             val pos = it
@@ -288,13 +303,13 @@ fun Chain.getRep (pub: String, now: Long) : Int {
 
     val gave = mines
         .filter { it.hashable.like != null }                    // likes I gave
-        .map { it.hashable.like!!.n }
+        .map { it.hashable.like!!.n.absoluteValue }
         .sum()
 
     val got = b90s
         .filter { it.hashable.like != null &&                   // likes I got
-                  it.hashable.like.type == LikeType.PUBKEY &&
-                  it.hashable.like.ref == pub }
+                it.hashable.like.type == LikeType.PUBKEY &&
+                it.hashable.like.ref == pub }
         .map { it.hashable.like!!.n }
         .sum()
 

@@ -20,13 +20,13 @@ Usage:
     freechains [options] host flush
     freechains [options] chain join <chain>
     freechains [options] chain join <chain> shared [<shared_key>]
-    freechains [options] chain join <chain> pubpvt [owner-only] <public_key> [<private_key>]
+    freechains [options] chain join <chain> pubpvt [owner-only] <pub> [<pvt>]
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain>
     freechains [options] chain get <chain> <hash>
     freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
-    freechains [options] chain like get <chain> <public_key>
-    freechains [options] chain like post <chain> <integer> (<hash> | <public_key>)
+    freechains [options] chain like get <chain> <hash_or_pub>
+    freechains [options] chain like post <chain> <integer> <hash_or_pub>
     freechains [options] chain listen <chain>
     freechains [options] chain send <chain> <host:port>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
@@ -36,7 +36,7 @@ Options:
     --version              [none]        displays version information
     --host=<addr:port>     [all]         sets address and port to connect [default: localhost:8330]
     --time=<ms>            [post|like]   sets block timestamp [default: now]
-    --sign=<private_key>   [post|like]   signs block with given key
+    --sign=<pvt>           [post|like]   signs block with given key
     --utf8-eof=<word>      [post]        sets word terminator for utf8 post
     --encrypt              [post]        encrypts post with chain's private key (shared is always encrypted)
     --ref=<hash>           [post]        refers to previous post
@@ -132,8 +132,8 @@ fun main_ (args: Array<String>) : String {
                         opts["pubpvt"] as Boolean -> {
                             writer.writeLineX("pubpvt")
                             writer.writeLineX((opts["owner-only"] as Boolean? ?: false).toString())
-                            writer.writeLineX(opts["<public_key>"] as String? ?: "")
-                            writer.writeLineX(opts["<private_key>"] as String? ?: "")
+                            writer.writeLineX(opts["<pub>"] as String? ?: "")
+                            writer.writeLineX(opts["<pvt>"] as String? ?: "")
                         }
                         else -> {
                             writer.writeLineX("")
@@ -166,7 +166,7 @@ fun main_ (args: Array<String>) : String {
                             writer.writeLineX("FC chain reps")
                             writer.writeLineX(opts["<chain>"] as String)
                             writer.writeLineX(opts["--time"] as String)
-                            writer.writeLineX(opts["<public_key>"] as String)
+                            writer.writeLineX(opts["<hash_or_pub>"] as String)
                             val ret = reader.readLineX()
                             System.err.println("chain reps: $ret")
                             return ret
@@ -183,7 +183,7 @@ fun main_ (args: Array<String>) : String {
                             writer.writeLineX((opts["--why"] as String?).let {
                                 if (it == null) "" else it + "\n"
                             })
-                            writer.writeLineX((opts["<hash>"] as String? ?: opts["<public_key>"] as String) + "\n")
+                            writer.writeLineX((opts["<hash_or_pub>"] as String) + "\n")
                             writer.writeLineX(opts["--sign"] as String? ?: "")
 
                             writer.writeLineX("\n")
@@ -195,7 +195,7 @@ fun main_ (args: Array<String>) : String {
                 opts["get"] as Boolean -> {
                     writer.writeLineX("FC chain get")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(opts["<hash>"] as Hash)
+                    writer.writeLineX(opts["<hash_or_pub>"] as Hash)
                     val json = reader.readAllBytes().toString(Charsets.UTF_8)
                     if (json.isEmpty()) {
                         System.err.println("chain get: not found")

@@ -24,7 +24,6 @@ import kotlin.concurrent.thread
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 KB
  *  - Simulation.kt
- *  - merge master
  *  - HOST: "create" receives pub/pvt args
  *    - creates pvt chain oo (for logs)
  *    - join reputation system (evaluate continue@xxx)
@@ -518,11 +517,11 @@ class Tests {
         assert("1500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
 
         val h3_ = h3.split(" ")[0]
-        main_(arrayOf("chain","like","post","/xxx","1000",h3_,"--time="+(1*day+0).toString(),"--why="+h3_.substring(0,9),"--sign=$PVT1"))
+        main_(arrayOf("chain","like","post","/xxx","1000-",h3_,"--time="+(1*day+0).toString(),"--why="+h3_.substring(0,9),"--sign=$PVT1"))
         assert("500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
         main_(arrayOf("chain","like","post","/xxx","500",h3_,"--time="+(1*day+1).toString(),"--why="+h3_.substring(0,9),"--sign=$PVT1"))
         assert("0" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
-        assert("29250" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
+        assert("28250" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
 
         main_(arrayOf("host","create","/tmp/freechains/tests/M81/","8331"))
         thread { main_(arrayOf("host","start","/tmp/freechains/tests/M81/")) }
@@ -562,7 +561,7 @@ class Tests {
 
         // post w/o reputation
         assert("0" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
-        main_(arrayOf(H1,"chain","post","/xxx","inline","utf8","no rep","--time=${1*day}","--sign=$PVT1"))
+        val hn = main_(arrayOf(H1,"chain","post","/xxx","inline","utf8","no rep","--time=${1*day}","--sign=$PVT1"))
         val n5 = main_(arrayOf(H1,"chain","send","/xxx","localhost:8330"))
         assert(n5=="0 / 1")
 
@@ -589,7 +588,15 @@ class Tests {
         val n7 = main_(arrayOf(H1,"chain","send","/xxx","localhost:8330"))
         //println(n7)
         assert(n7=="1 / 1")
-        assert("28750" == main_(arrayOf(H1,"--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
-        assert("28750" == main_(arrayOf(H0,"--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
+        assert("27750" == main_(arrayOf(H1,"--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
+        assert("27750" == main_(arrayOf(H0,"--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
+
+        val ln = main_(arrayOf(H0,"chain","like","get","/xxx",hn))
+        val l1 = main_(arrayOf(H0,"chain","like","get","/xxx",h1))
+        val l2 = main_(arrayOf(H0,"chain","like","get","/xxx",h2))
+        val l3 = main_(arrayOf(H0,"chain","like","get","/xxx",h3))
+        val l4 = main_(arrayOf(H0,"chain","like","get","/xxx",h4))
+        println("$ln // $l1 // $l2 // $l3 // $l4")
+        assert(ln=="0" && l1=="500" && l2=="500" && l3=="750" && l4=="500")
     }
 }
