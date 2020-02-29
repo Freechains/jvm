@@ -178,7 +178,7 @@ class Daemon (host : Host) {
                         "FC chain get" -> {
                             val hash = reader.readLineX()
 
-                            val blk   = chain.loadBlockFromHash(hash,true)
+                            val blk   = chain.loadBlockFromHash(hash,chain.keys[0]!="none")
                             val json  = blk.toJson()
 
                             assert(json.length <= Int.MAX_VALUE)

@@ -69,7 +69,8 @@ freechains --host=localhost:8403 chain get / $h2 > $FC/v32.blk
 echo '"Hello_World"' > $FC/hello.out
 echo '"Bye_World"'   > $FC/bye.out
 touch $FC/empty.out
-jq ".hashable.payload" $FC/8400/chains/blocks/2_*.blk > $FC/enc.out
+jq ".hashable.payload" $FC/8400/chains/blocks/1_*.blk > $FC/enc1.out
+jq ".hashable.payload" $FC/8400/chains/blocks/2_*.blk > $FC/enc2.out
 
 jq ".hashable.payload" $FC/v01.blk > $FC/v01.out
 jq ".hashable.payload" $FC/v02.blk > $FC/v02.out
@@ -81,14 +82,14 @@ jq ".hashable.payload" $FC/v31.blk > $FC/v31.out
 jq ".hashable.payload" $FC/v32.blk > $FC/v32.out
 
 diff $FC/hello.out $FC/v01.out || exit 1
-diff $FC/hello.out $FC/v11.out || exit 1
+diff $FC/empty.out $FC/v11.out || exit 1
 diff $FC/hello.out $FC/v21.out || exit 1
-diff $FC/hello.out $FC/v31.out || exit 1
-exit 0
+diff $FC/enc1.out  $FC/v31.out || exit 1
+
 diff $FC/bye.out   $FC/v02.out || exit 1
 diff $FC/empty.out $FC/v12.out || exit 1
 diff $FC/bye.out   $FC/v22.out || exit 1
-diff $FC/enc.out   $FC/v32.out || exit 1
+diff $FC/enc2.out  $FC/v32.out || exit 1
 
 # stop hosts
 freechains host stop --host=localhost:8400 &
