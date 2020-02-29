@@ -32,7 +32,7 @@ freechains --host=localhost:8402 chain join / shared $k
 freechains host create $FC/8403 8403
 freechains host start $FC/8403 &
 sleep 0.5
-freechains --host=localhost:8403 chain join / shared none
+freechains --host=localhost:8403 chain join / shared
 
 # get genesis block of each host
 g0=`freechains --host=localhost:8400 chain genesis /`

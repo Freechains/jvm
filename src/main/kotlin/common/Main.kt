@@ -19,7 +19,7 @@ Usage:
     freechains [options] host now <time>
     freechains [options] host flush
     freechains [options] chain join <chain>
-    freechains [options] chain join <chain> shared <shared_key>
+    freechains [options] chain join <chain> shared [<shared_key>]
     freechains [options] chain join <chain> pubpvt [owner-only] <public_key> [<private_key>]
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain>
@@ -130,7 +130,7 @@ fun main_ (args: Array<String>) : String? {
                     when {
                         opts["shared"] as Boolean -> {
                             writer.writeLineX("shared")
-                            writer.writeLineX(opts["<shared_key>"] as String)
+                            writer.writeLineX(opts["<shared_key>"] as String? ?: "")
                         }
                         opts["pubpvt"] as Boolean -> {
                             writer.writeLineX("pubpvt")

@@ -39,7 +39,7 @@ g2=`freechains --host=localhost:8402 chain genesis /`
 diff <(echo "$g0") <(echo "$g2") || exit 1
 
 # post to 8400, send to 8401 (fail) 8402 (succees)
-freechains --host=localhost:8400 chain post / inline utf8 Hello_World
+freechains --host=localhost:8400 --sign=chain chain post / inline utf8 Hello_World
 freechains --host=localhost:8400 chain send / localhost:8401  # FAIL
 freechains --host=localhost:8400 chain send / localhost:8402  # SUCCESS
 
@@ -48,7 +48,7 @@ freechains --host=localhost:8400 chain send / localhost:8402  # SUCCESS
 diff $FC/8400/chains/blocks/ $FC/8402/chains/blocks/      || exit 1
 
 # post to 8400, send to 8401 (fail) 8402 (succees, but crypted)
-h=`freechains --host=localhost:8400 chain post / inline utf8 Hello_World --encrypt`
+h=`freechains --host=localhost:8400 --sign=chain chain post / inline utf8 Hello_World --encrypt`
 freechains --host=localhost:8400 chain send / localhost:8401  # FAIL
 freechains --host=localhost:8400 chain send / localhost:8402  # SUCCESS
 
