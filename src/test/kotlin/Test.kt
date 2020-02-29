@@ -29,7 +29,7 @@ import kotlin.concurrent.thread
  *    - creates pvt chain oo (for logs)
  *    - join reputation system (evaluate continue@xxx)
  *    - all conns start with pubs from both ends
- *  - reputation system
+ *  - REPUTATION
  *    - lks rewards proportional to childs
  *    - liferea: likes in title // get rep in menu and each post owner
  *  - TEST
@@ -39,22 +39,22 @@ import kotlin.concurrent.thread
  *    - old tests
  *  - REFACTOR
  *    - join (stop/now/flush), they use connection
- *  - all use cases (chain cfg e usos da industria)
- *  - commands with auth. ip port time to avoid reuse
- *  - RX Kotlin
- *  - pipes / filtros
  *  - CMDS
  *    - freechains host restart
  *    - freechains chain remove hash (removes block and fronts)
  *    - --ref=<hash> [post] sets back reference to post
  *  - BUGS
- *    - verify if backs exist/heads
+ *    - none
+ *  - all use cases (chain cfg e usos da industria)
+ *  - commands with auth. ip port time to avoid reuse
+ *  - RX Kotlin
+ *  - pipes / filtros
  *  - Future:
  *  - Xfreechains
  *    - chain xtraverse
  *  - Android WiFi Direct
  *  - crypto host-to-host
- *  - RPi: cable + router + phones
+ *  - RPi: cable eth + wifi router + phones
  */
 
 val H   = BlockHashable(0, null,"",false, "", emptyArray(), emptyArray())
