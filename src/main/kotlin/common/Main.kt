@@ -223,7 +223,9 @@ fun main_ (args: Array<String>) : String {
                         else -> error("bug found")
                     }
                     writer.writeBytes(payload)
-                    writer.writeLineX("\n")
+                    if (eof.isEmpty()) {
+                        writer.writeLineX("\n")
+                    }
 
                     writer.writeLineX((opts["--ref"] as String?).let {
                         if (it == null) "" else it + "\n"
