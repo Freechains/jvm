@@ -21,7 +21,7 @@ import kotlin.concurrent.thread
 /*
  *  TODO:
  *                                reps             28-02    29-02
- *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 LOC
+ *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1453 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 KB
  *  - Simulation.kt
  *  - HOST: "create" receives pub/pvt args
@@ -39,9 +39,14 @@ import kotlin.concurrent.thread
  *  - REFACTOR
  *    - join (stop/now/flush), they use connection
  *  - CMDS
+ *    - freechains now s/ time (retorna now)
  *    - freechains host restart
  *    - freechains chain remove hash (removes block and fronts)
  *    - --ref=<hash> [post] sets back reference to post
+ *  - QUARANTINE
+ *    - signal remote as soon as local detects the first tine in the chain (to avoid many others in the same chain)
+ *    - limit tines per IP
+ *    - peek, hold, accept, refuse (blacklist)
  *  - BUGS
  *    - none
  *  - all use cases (chain cfg e usos da industria)

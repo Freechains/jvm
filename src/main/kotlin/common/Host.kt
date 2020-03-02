@@ -75,9 +75,9 @@ fun Host_exists (dir: String) : Boolean {
 
 fun Host_create (dir: String, port: Int = 8330) : Host {
     assert(dir.substring(0,1) == "/")
-    val root = fsRoot + "/" + dir
+    val root = fsRoot + dir
     val fs = File(root)
-    assert(!fs.exists()) { "directory already exists" }
+    assert(!fs.exists()) { "directory already exists: " + root }
     fs.mkdirs()
     val host = Host(root, port)
     host.save()

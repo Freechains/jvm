@@ -17,7 +17,6 @@ Usage:
     freechains host start <dir>
     freechains [options] host stop
     freechains [options] host now <time>
-    freechains [options] host flush
     freechains [options] chain join <chain>
     freechains [options] chain join <chain> shared [<shared_key>]
     freechains [options] chain join <chain> pubpvt [owner-only] <pub> [<pvt>]
@@ -100,16 +99,6 @@ fun main_ (args: Array<String>) : String {
                     val now= opts["<time>"] as String
                     writer.writeLineX("FC host now")
                     writer.writeLineX(now)
-                    assert(reader.readLineX() == "true")
-                    socket.close()
-                    return "true"
-                }
-                opts["flush"] as Boolean -> {
-                    val (host, port) = optHost()
-                    val socket = Socket(host, port)
-                    val writer = DataOutputStream(socket.getOutputStream()!!)
-                    val reader = DataInputStream(socket.getInputStream()!!)
-                    writer.writeLineX("FC host flush")
                     assert(reader.readLineX() == "true")
                     socket.close()
                     return "true"

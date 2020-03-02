@@ -352,12 +352,17 @@ fun Chain.save () {
     val dir = File(this.root + this.name + "/blocks/")
     if (!dir.exists()) {
         dir.mkdirs()
+        File(this.root + this.name + "/tines/").mkdirs()
     }
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
 }
 
 fun Chain.saveBlock (blk: Block) {
     File(this.root + this.name + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
+}
+
+fun Chain.saveTine (blk: Block) {
+    File(this.root + this.name + "/tines/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
 
 fun Chain.loadBlockFromHash (hash: Hash, decrypt: Boolean) : Block {

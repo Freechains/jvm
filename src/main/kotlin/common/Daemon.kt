@@ -17,7 +17,6 @@ import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 class Daemon (host : Host) {
-    val waitList : WaitLists = HashMap()
     val listenLists = mutableMapOf<String,MutableSet<DataOutputStream>>()
     val server = ServerSocket(host.port)
     val local = host
@@ -28,12 +27,6 @@ class Daemon (host : Host) {
 
     fun daemon () {
         //System.err.println("host start: $host")
-        thread {
-            while (true) {
-                Thread.sleep(30 * min)
-                f_waitLists()
-            }
-        }
         while (true) {
             try {
                 val remote = server.accept()
@@ -52,19 +45,6 @@ class Daemon (host : Host) {
             } catch (e: SocketException) {
                 assert(e.message == "Socket closed")
                 break
-            }
-        }
-    }
-
-    fun f_waitLists () {
-        val chains = synchronized (waitList) { waitList.keys.toList() }
-        for (chain in chains) {
-            synchronized (getLock(chain)) {
-                val waitList = waitList[chain]!!
-                val nxt = waitList.rem(getNow())
-                if (nxt != null) {
-                    chain.blockChain(nxt)
-                }
             }
         }
     }
@@ -97,14 +77,8 @@ class Daemon (host : Host) {
             "FC host now" -> {
                 val now= reader.readLineX().toLong()
                 NOW = Instant.now().toEpochMilli() - now
-                this.f_waitLists()
                 writer.writeLineX("true")
                 System.err.println("host now: $now")
-            }
-            "FC host flush" -> {
-                this.f_waitLists()
-                writer.writeLineX("true")
-                System.err.println("host flush")
             }
             "FC crypto create" -> {
                 fun pwHash (pwd: ByteArray) : ByteArray {
@@ -284,7 +258,7 @@ class Daemon (host : Host) {
                             writer.writeLineX("$nmin / $nmax")
                         }
                         "FC chain recv" -> {
-                            val (nmin,nmax) = remote.chain_recv(chain,waitList)
+                            val (nmin,nmax) = remote.chain_recv(chain)
                             System.err.println("chain recv: $name: ($nmin/$nmax)")
                             thread {
                                 signal(name, nmin)
@@ -379,7 +353,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
     return Pair(Nmin,Nmax)
 }
 
-fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
+fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
     val reader = DataInputStream(this.getInputStream()!!)
     val writer = DataOutputStream(this.getOutputStream()!!)
 
@@ -451,11 +425,10 @@ fun Socket.chain_recv (chain: Chain, waitLists: WaitLists) : Pair<Int,Int> {
                 // enqueue noob/late block
                 (checkRepTime() && failRepTime()) -> {
                     // enqueue only if backs are ok (otherwise, back is also enqueued)
+                    // TODO: when back was enqueued previously, the host should signal the peer
+                    //  to avoid this situation (it may send many other wrong blocks)
                     if (chain.backsCheck(blk)) {
-                        val waitList = synchronized (waitLists) {
-                            waitLists.createGet(chain)
-                        }
-                        waitList.add(blk,now)
+                        chain.saveTine(blk)
                     }
                     // otherwise just ignore
                     continue@xxx
