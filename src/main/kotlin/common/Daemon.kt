@@ -160,10 +160,12 @@ class Daemon (host : Host) {
                             System.err.println("chain heads: ${chain.heads}")
                         }
                         "FC chain get" -> {
+                            val dir = reader.readLineX()
                             val hash = reader.readLineX()
+                            assert(dir == "blocks" || dir == "tines")
 
                             val dec = chain.isSharedWithKey() || (chain.crypto is PubPvt && chain.crypto.pvt != null)
-                            val blk   = chain.loadBlock(hash,dec)
+                            val blk   = chain.loadBlock(dir,hash,dec)
                             val json  = blk.toJson()
 
                             assert(json.length <= Int.MAX_VALUE)
@@ -176,7 +178,7 @@ class Daemon (host : Host) {
                             val ref = reader.readLineX()
 
                             val likes =
-                                if (chain.containsBlock(ref)) {
+                                if (chain.containsBlock("blocks",ref)) {
                                     chain.getPostRep(ref)
                                 } else {
                                     chain.getPubRep(ref, time.nowToTime())
@@ -192,8 +194,8 @@ class Daemon (host : Host) {
                         }
                         "FC chain accept" -> {
                             val hash = reader.readLineX()
-                            if (chain.containsTine(hash)) {
-                                val tine = chain.loadTine(hash)
+                            if (chain.containsBlock("tines",hash)) {
+                                val tine = chain.loadBlock("tines",hash,false)
                                 chain.blockChain(tine,true)
                                 chain.delTine(tine)
                                 writer.writeLineX("true")
@@ -218,9 +220,9 @@ class Daemon (host : Host) {
                                 if (refs_.isEmpty()) {
                                     arrayOf<Like?>(null)
                                 } else {
-                                    if (chain.containsBlock(refs_[0])) {
+                                    if (chain.containsBlock("blocks",refs_[0])) {
                                         // refs a post
-                                        val blk = chain.loadBlock(refs_[0], false)
+                                        val blk = chain.loadBlock("blocks", refs_[0], false)
                                         val l1 = arrayOf(Like(like/2, LikeType.POST, refs_[0]))
                                         if (blk.signature == null)
                                             l1
@@ -241,7 +243,7 @@ class Daemon (host : Host) {
                                     BlockHashable (
                                         max (
                                             time.nowToTime(),
-                                            chain.heads.map { chain.loadBlock(it,false).hashable.time }.max()!!
+                                            chain.heads.map { chain.loadBlock("blocks",it,false).hashable.time }.max()!!
                                         ),
                                         l,
                                         cods[0],
@@ -325,7 +327,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
             visited.add(hash)
             //println("[send] $hash")
 
-            val blk = chain.loadBlock(hash,false)
+            val blk = chain.loadBlock("blocks", hash,false)
 
             writer.writeLineX(hash)                               // 2: asks if contains hash
             val has = reader.readLineX().toBoolean()    // 3: receives yes or no
@@ -352,7 +354,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
         val n2 = toSend.size
         while (toSend.isNotEmpty()) {
             val hash = toSend.pop()
-            val blk = chain.loadBlock(hash,false)
+            val blk = chain.loadBlock("blocks", hash,false)
             blk.fronts.clear()
             writer.writeBytes(blk.toJson())          // 6
             writer.writeLineX("\n")
@@ -391,7 +393,7 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
             if (hash.isEmpty()) {                   // 4
                 break                               // nothing else to answer
             } else {
-                val has = chain.containsBlock(hash)
+                val has = chain.containsBlock("blocks",hash)
                 writer.writeLineX(has.toString())   // 3: have or not block
             }
         }
@@ -443,7 +445,7 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
                     // TODO: when back was enqueued previously, the host should signal the peer
                     //  to avoid this situation (it may send many other wrong blocks)
                     if (chain.backsCheck(blk)) {
-                        chain.saveTine(blk)
+                        chain.saveBlock("tines",blk)
                     }
                     // otherwise just ignore
                     continue@xxx

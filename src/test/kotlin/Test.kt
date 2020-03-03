@@ -139,7 +139,7 @@ class Tests {
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
         val blk = c2.blockNew(null, HC)
-        val blk2 = c2.loadBlock(blk.hash,false)
+        val blk2 = c2.loadBlock("blocks", blk.hash,false)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
     }
 
@@ -160,12 +160,12 @@ class Tests {
         }
         assert(ok)
 
-        assert(chain.containsBlock(chain.getGenesis()))
+        assert(chain.containsBlock("blocks", chain.getGenesis()))
         //println(n1.toHeightHash())
-        assert(chain.containsBlock(n1.hash))
-        assert(chain.containsBlock(n2.hash))
-        assert(chain.containsBlock(n3.hash))
-        assert(!chain.containsBlock("2_........"))
+        assert(chain.containsBlock("blocks", n1.hash))
+        assert(chain.containsBlock("blocks", n2.hash))
+        assert(chain.containsBlock("blocks", n3.hash))
+        assert(!chain.containsBlock("blocks", "2_........"))
     }
 
     @Test
@@ -237,7 +237,7 @@ class Tests {
 
         fun Chain.getMaxTime () : Long {
             return this.heads
-                .map { this.loadBlock(it,false) }
+                .map { this.loadBlock("blocks", it,false) }
                 .map { it.hashable.time }
                 .max()!!
         }
@@ -412,7 +412,7 @@ class Tests {
         //println(c1.root)
         val n1 = c1.blockNew(null,HC.copy(payload="aaa"))
         //println(n1.hash)
-        val n2 = c1.loadBlock(n1.hash, true)
+        val n2 = c1.loadBlock("blocks", n1.hash, true)
         assert(n2.hashable.payload == "aaa")
         //Thread.sleep(500)
     }

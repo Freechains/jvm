@@ -186,15 +186,21 @@ fun main_ (args: Array<String>) : String {
                     }
                 }
 
-                //freechains [options] chain tine list <chain>
                 //freechains [options] chain tine get <chain> <hash>
-                //freechains [options] chain accept <chain> <hash>    // move de tine/removed/blocks -> blocks heads
                 //freechains [options] chain reject <chain> <hash>    // move de tine/blocks -> removed
                 opts["tine"] as Boolean -> {
                     when {
                         opts["list"] as Boolean -> {
                             writer.writeLineX("FC chain tine list")
                             writer.writeLineX(opts["<chain>"] as String)
+                            val list = reader.readLinesX()
+                            return list
+                        }
+                        opts["get"] as Boolean -> {
+                            writer.writeLineX("FC chain tine get")
+                            writer.writeLineX(opts["<chain>"] as String)
+                            writer.writeLineX("tines")
+                            writer.writeLineX(opts["<hash>"] as String)
                             val list = reader.readLinesX()
                             return list
                         }
@@ -213,6 +219,7 @@ fun main_ (args: Array<String>) : String {
                 opts["get"] as Boolean -> {
                     writer.writeLineX("FC chain get")
                     writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX("blocks")
                     writer.writeLineX(opts["<hash>"] as Hash)
                     val json = reader.readAllBytes().toString(Charsets.UTF_8)
                     if (json.isEmpty()) {

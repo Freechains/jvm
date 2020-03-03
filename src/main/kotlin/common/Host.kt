@@ -48,7 +48,7 @@ fun Host.joinChain (name: String, crypto: Crypto?) : Chain {
         null,
         chain.getGenesis()
     )
-    chain.saveBlock(genesis)
+    chain.saveBlock("blocks",genesis)
     return file.readText().fromJsonToChain()
 }
 
