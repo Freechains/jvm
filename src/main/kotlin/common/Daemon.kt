@@ -13,7 +13,6 @@ import org.freechains.platform.lazySodium
 import java.lang.Long.max
 import java.time.Instant
 import java.util.*
-import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 class Daemon (host : Host) {
@@ -164,7 +163,7 @@ class Daemon (host : Host) {
                             val hash = reader.readLineX()
 
                             val dec = chain.isSharedWithKey() || (chain.crypto is PubPvt && chain.crypto.pvt != null)
-                            val blk   = chain.loadBlockFromHash(hash,dec)
+                            val blk   = chain.loadBlock(hash,dec)
                             val json  = blk.toJson()
 
                             assert(json.length <= Int.MAX_VALUE)
@@ -186,6 +185,21 @@ class Daemon (host : Host) {
                             writer.writeLineX(likes.toString())
                             System.err.println("chain reps: $likes")
                         }
+                        "FC chain tine list" -> {
+                            chain.loadTines()
+                                .forEach { writer.writeLineX(it) }
+                            writer.writeLineX("")
+                        }
+                        "FC chain accept" -> {
+                            val hash = reader.readLineX()
+                            if (chain.containsTine(hash)) {
+                                val tine = chain.loadTine(hash)
+                                chain.blockChain(tine,true)
+                                writer.writeLineX("true")
+                            } else {
+                                writer.writeLineX("false")
+                            }
+                        }
                         "FC chain post" -> {
                             val time = reader.readLineX()
                             val like   = reader.readLineX().toInt()
@@ -205,7 +219,7 @@ class Daemon (host : Host) {
                                 } else {
                                     if (chain.containsBlock(refs_[0])) {
                                         // refs a post
-                                        val blk = chain.loadBlockFromHash(refs_[0], false)
+                                        val blk = chain.loadBlock(refs_[0], false)
                                         val l1 = arrayOf(Like(like/2, LikeType.POST, refs_[0]))
                                         if (blk.signature == null)
                                             l1
@@ -226,7 +240,7 @@ class Daemon (host : Host) {
                                     BlockHashable (
                                         max (
                                             time.nowToTime(),
-                                            chain.heads.map { chain.loadBlockFromHash(it,false).hashable.time }.max()!!
+                                            chain.heads.map { chain.loadBlock(it,false).hashable.time }.max()!!
                                         ),
                                         l,
                                         cods[0],
@@ -310,7 +324,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
             visited.add(hash)
             //println("[send] $hash")
 
-            val blk = chain.loadBlockFromHash(hash,false)
+            val blk = chain.loadBlock(hash,false)
 
             writer.writeLineX(hash)                               // 2: asks if contains hash
             val has = reader.readLineX().toBoolean()    // 3: receives yes or no
@@ -337,7 +351,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
         val n2 = toSend.size
         while (toSend.isNotEmpty()) {
             val hash = toSend.pop()
-            val blk = chain.loadBlockFromHash(hash,false)
+            val blk = chain.loadBlock(hash,false)
             blk.fronts.clear()
             writer.writeBytes(blk.toJson())          // 6
             writer.writeLineX("\n")

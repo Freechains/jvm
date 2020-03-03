@@ -26,6 +26,10 @@ Usage:
     freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
     freechains [options] chain like get <chain> <hash_or_pub>
     freechains [options] chain like post <chain> <integer> <hash_or_pub>
+    freechains [options] chain tine list <chain>
+    freechains [options] chain tine get <chain>
+    freechains [options] chain accept <chain> <hash>
+    freechains [options] chain remove <chain> <hash>
     freechains [options] chain listen <chain>
     freechains [options] chain send <chain> <host:port>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
@@ -181,6 +185,31 @@ fun main_ (args: Array<String>) : String {
                         }
                     }
                 }
+
+                //freechains [options] chain tine list <chain>
+                //freechains [options] chain tine get <chain> <hash>
+                //freechains [options] chain accept <chain> <hash>    // move de tine/removed/blocks -> blocks heads
+                //freechains [options] chain reject <chain> <hash>    // move de tine/blocks -> removed
+                opts["tine"] as Boolean -> {
+                    when {
+                        opts["list"] as Boolean -> {
+                            writer.writeLineX("FC chain tine list")
+                            writer.writeLineX(opts["<chain>"] as String)
+                            val list = reader.readLinesX()
+                            return list
+                        }
+                    }
+                }
+
+                opts["accept"] as Boolean -> {
+                    writer.writeLineX("FC chain accept")
+                    writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX(opts["<hash>"] as String)
+                    val ret = reader.readLineX()
+                    System.err.println("chain accept: $ret")
+                    return ret
+                }
+
                 opts["get"] as Boolean -> {
                     writer.writeLineX("FC chain get")
                     writer.writeLineX(opts["<chain>"] as String)

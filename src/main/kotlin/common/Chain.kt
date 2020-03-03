@@ -142,7 +142,7 @@ fun Chain.backsCheck (blk: Block) : Boolean {
         if (! this.containsBlock(back)) {
             return false
         }
-        val bk = this.loadBlockFromHash(back,false)
+        val bk = this.loadBlock(back,false)
         if (bk.hashable.time > blk.hashable.time) {
             return false
         }
@@ -159,7 +159,7 @@ fun Chain.blockAssert (blk: Block) {
     // checks if unique genesis front
     val gen = this.getGenesis()
     if (blk.hashable.backs.contains(gen)) {
-        val b = this.loadBlockFromHash(gen,false)
+        val b = this.loadBlock(gen,false)
         assert(b.fronts.isEmpty() || b.fronts[0]==blk.hash) { "genesis is already referred" }
     }
 
@@ -185,7 +185,7 @@ private fun Chain.reheads (blk: Block) {
     this.heads.add(blk.hash)
     for (back in blk.hashable.backs) {
         this.heads.remove(back)
-        val bk = this.loadBlockFromHash(back,false)
+        val bk = this.loadBlock(back,false)
         assert(!bk.fronts.contains(blk.hash))
         bk.fronts.add(blk.hash)
         bk.fronts.sort()
@@ -268,11 +268,11 @@ fun Chain.getPostRep (hash: String) : Int {
 }
 
 fun Chain.getPubRep (pub: String, now: Long) : Int {
-    val gen = this.loadBlockFromHash(this.getGenesis(),false).fronts.let {
+    val gen = this.loadBlock(this.getGenesis(),false).fronts.let {
         if (it.isEmpty())
             LK30_max
         else
-            this.loadBlockFromHash(it[0],false).let {
+            this.loadBlock(it[0],false).let {
                 when {
                     (it.signature == null) -> 0
                     (it.signature.pub == pub) -> LK30_max
@@ -331,7 +331,7 @@ internal fun Chain.traverseFromHeads (
 
     while (pending.isNotEmpty()) {
         val hash = pending.removeFirst()
-        val blk = this.loadBlockFromHash(hash,false)
+        val blk = this.loadBlock(hash,false)
         if (!f(blk)) {
             break
         }
@@ -357,15 +357,33 @@ fun Chain.save () {
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
 }
 
-fun Chain.saveBlock (blk: Block) {
-    File(this.root + this.name + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
-}
+// TINE
 
 fun Chain.saveTine (blk: Block) {
     File(this.root + this.name + "/tines/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
 
-fun Chain.loadBlockFromHash (hash: Hash, decrypt: Boolean) : Block {
+fun Chain.loadTines () : List<Hash> {
+    return File(this.root + this.name + "/tines/").list()!!
+        .map { it.removeSuffix(".blk") }
+}
+
+fun Chain.loadTine (hash: Hash) : Block {
+    val blk = File(this.root + this.name + "/tines/" + hash + ".blk").readText().jsonToBlock()
+    return blk
+}
+
+fun Chain.containsTine (hash: Hash) : Boolean {
+    return File(this.root + this.name + "/tines/" + hash + ".blk").exists()
+}
+
+// BLOCK
+
+fun Chain.saveBlock (blk: Block) {
+    File(this.root + this.name + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
+}
+
+fun Chain.loadBlock (hash: Hash, decrypt: Boolean) : Block {
     val blk = File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
     if (!decrypt || !blk.hashable.encrypted) {
         return blk

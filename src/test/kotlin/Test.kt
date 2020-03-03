@@ -21,7 +21,7 @@ import kotlin.concurrent.thread
 /*
  *  TODO:
  *                                reps             28-02    29-02
- *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1453 LOC
+ *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1453/1366 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 KB
  *  - Simulation.kt
  *  - HOST: "create" receives pub/pvt args
@@ -139,7 +139,7 @@ class Tests {
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
         val blk = c2.blockNew(null, HC)
-        val blk2 = c2.loadBlockFromHash(blk.hash,false)
+        val blk2 = c2.loadBlock(blk.hash,false)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
     }
 
@@ -237,7 +237,7 @@ class Tests {
 
         fun Chain.getMaxTime () : Long {
             return this.heads
-                .map { this.loadBlockFromHash(it,false) }
+                .map { this.loadBlock(it,false) }
                 .map { it.hashable.time }
                 .max()!!
         }
@@ -412,7 +412,7 @@ class Tests {
         //println(c1.root)
         val n1 = c1.blockNew(null,HC.copy(payload="aaa"))
         //println(n1.hash)
-        val n2 = c1.loadBlockFromHash(n1.hash, true)
+        val n2 = c1.loadBlock(n1.hash, true)
         assert(n2.hashable.payload == "aaa")
         //Thread.sleep(500)
     }
@@ -453,10 +453,10 @@ class Tests {
         val blk2 = json2.jsonToBlock()
         assert(blk2.hashable.encrypted)
 
-        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--sign=$PVT1"))
+        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbbb","--sign=$PVT1"))
         val j2 = main_(arrayOf("chain","get","/xxx",h2))
         val b2 = j2.jsonToBlock()
-        assert(b2.hashable.payload == "bbb")
+        assert(b2.hashable.payload == "bbbb")
     }
 
     @Test
@@ -505,7 +505,7 @@ class Tests {
         val h1 = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--time=0","--sign=chain"))
 
         // noob post
-        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbb","--time=0","--sign=$PVT1"))
+        val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbba","--time=0","--sign=$PVT1"))
 
         //main_(arrayOf("chain","like","/xxx","1",h1!!,"--time="+(24*hour-1).toString(),"--sign=$PVT1"))
         assert("30000" == main_(arrayOf("chain","like","get","/xxx",PUB0)))
@@ -542,15 +542,23 @@ class Tests {
         val n2 = main_(arrayOf(H0,"chain","send","/xxx","localhost:8331"))
         assert(n2=="1 / 10")
 
+        val tines = main_(arrayOf(H1,"chain","tine","list","/xxx"))
+        val t0 = tines.split("\n").let {
+            assert(it.size == 1)
+            assert(it[0].startsWith("2_"))
+            it[0]
+        }
+
         // still the same
         main_(arrayOf(H1,"host","now","${2*hour-100}"))
-        main_(arrayOf(H1,"host","flush"))
+        //main_(arrayOf(H1,"host","flush"))
         val hs1 = main_(arrayOf(H1,"chain","heads","/xxx"))
         assert(hs1.substring(0,2) == "1_")
 
         // now ok
         main_(arrayOf(H1,"host","now","${2*hour+100}"))
-        main_(arrayOf(H1,"host","flush"))
+        main_(arrayOf(H1,"chain","accept","/xxx",t0))
+        //main_(arrayOf(H1,"host","flush"))
         val hs2 = main_(arrayOf(H1,"chain","heads","/xxx"))
         assert(hs2.substring(0,2) == "2_")
 
@@ -573,9 +581,16 @@ class Tests {
         val hs3 = main_(arrayOf(H0,"chain","heads","/xxx"))
         assert(hs3.substring(0,3) == "10_")
 
+        val t1 = tines.split("\n").let {
+            assert(it.size == 1)
+            assert(it[0].startsWith("11_"))
+            it[0]
+        }
+        main_(arrayOf(H1,"chain","accept","/xxx",t1))
+
         // flush after 2h
         main_(arrayOf(H0,"host","now","${1*day+2*hour+1*seg}"))
-        main_(arrayOf(H0,"host","flush"))
+        //main_(arrayOf(H0,"host","flush"))
         val hs4 = main_(arrayOf(H0,"chain","heads","/xxx"))
         assert(hs4.substring(0,3) == "11_")
 
@@ -584,7 +599,7 @@ class Tests {
         val n6 = main_(arrayOf(H1,"chain","send","/xxx","localhost:8330"))
         assert(n6=="0 / 1")
         main_(arrayOf(H0,"host","now","${1*day+4*hour+2*seg}"))
-        main_(arrayOf(H0,"host","flush"))
+        //main_(arrayOf(H0,"host","flush"))
         val hs5 = main_(arrayOf(H0,"chain","heads","/xxx"))
         assert(hs5.substring(0,3) == "12_")
 
