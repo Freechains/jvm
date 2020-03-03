@@ -195,6 +195,7 @@ class Daemon (host : Host) {
                             if (chain.containsTine(hash)) {
                                 val tine = chain.loadTine(hash)
                                 chain.blockChain(tine,true)
+                                chain.delTine(tine)
                                 writer.writeLineX("true")
                             } else {
                                 writer.writeLineX("false")

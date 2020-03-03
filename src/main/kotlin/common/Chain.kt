@@ -363,6 +363,10 @@ fun Chain.saveTine (blk: Block) {
     File(this.root + this.name + "/tines/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
 
+fun Chain.delTine (blk: Block) {
+    File(this.root + this.name + "/tines/" + blk.hash + ".blk").delete()
+}
+
 fun Chain.loadTines () : List<Hash> {
     return File(this.root + this.name + "/tines/").list()!!
         .map { it.removeSuffix(".blk") }

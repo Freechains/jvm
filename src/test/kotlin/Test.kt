@@ -581,12 +581,13 @@ class Tests {
         val hs3 = main_(arrayOf(H0,"chain","heads","/xxx"))
         assert(hs3.substring(0,3) == "10_")
 
-        val t1 = tines.split("\n").let {
+        val ts1 = main_(arrayOf(H0,"chain","tine","list","/xxx"))
+        val t1 = ts1.split("\n").let {
             assert(it.size == 1)
             assert(it[0].startsWith("11_"))
             it[0]
         }
-        main_(arrayOf(H1,"chain","accept","/xxx",t1))
+        main_(arrayOf(H0,"chain","accept","/xxx",t1))
 
         // flush after 2h
         main_(arrayOf(H0,"host","now","${1*day+2*hour+1*seg}"))
@@ -599,7 +600,15 @@ class Tests {
         val n6 = main_(arrayOf(H1,"chain","send","/xxx","localhost:8330"))
         assert(n6=="0 / 1")
         main_(arrayOf(H0,"host","now","${1*day+4*hour+2*seg}"))
+
         //main_(arrayOf(H0,"host","flush"))
+        val ts2 = main_(arrayOf(H0,"chain","tine","list","/xxx"))
+        val t2 = ts2.split("\n").let {
+            assert(it.size == 1)
+            assert(it[0].startsWith("12_"))
+            it[0]
+        }
+        main_(arrayOf(H0,"chain","accept","/xxx",t2))
         val hs5 = main_(arrayOf(H0,"chain","heads","/xxx"))
         assert(hs5.substring(0,3) == "12_")
 
