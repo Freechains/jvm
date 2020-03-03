@@ -94,13 +94,13 @@ fun Chain.toHash () : String {
     return (this.name+crypto).calcHash()
 }
 
-fun BlockHashable.toHash () : Hash {
+fun BlockImmut.toHash () : Hash {
     return this.backs.backsToHeight().toString() + "_" + this.toJson().calcHash()
 }
 
 // NODE
 
-fun Chain.blockNew (sig_pvt: String?, h: BlockHashable) : Block {
+fun Chain.blockNew (sig_pvt: String?, h: BlockImmut) : Block {
     // non-empty pre-set backs only used in tests
     val backs = if (h.backs.isNotEmpty()) h.backs else this.heads.toTypedArray()
 
@@ -138,12 +138,12 @@ fun Chain.blockChain (blk: Block, asr: Boolean = true) {
 }
 
 fun Chain.backsCheck (blk: Block) : Boolean {
-    for (back in blk.hashable.backs) {
+    for (back in blk.immut.backs) {
         if (! this.containsBlock("blocks",back)) {
             return false
         }
         val bk = this.loadBlock("blocks",back,false)
-        if (bk.hashable.time > blk.hashable.time) {
+        if (bk.immut.time > blk.immut.time) {
             return false
         }
     }
@@ -151,14 +151,14 @@ fun Chain.backsCheck (blk: Block) : Boolean {
 }
 
 fun Chain.blockAssert (blk: Block) {
-    val h = blk.hashable
+    val h = blk.immut
     assert(blk.hash == h.toHash())
 
     assert(this.backsCheck(blk))
 
     // checks if unique genesis front
     val gen = this.getGenesis()
-    if (blk.hashable.backs.contains(gen)) {
+    if (blk.immut.backs.contains(gen)) {
         val b = this.loadBlock("blocks", gen,false)
         assert(b.fronts.isEmpty() || b.fronts[0]==blk.hash) { "genesis is already referred" }
     }
@@ -166,24 +166,24 @@ fun Chain.blockAssert (blk: Block) {
     // checks if has enough reputation to like
     if (h.like != null) {
         val n = h.like.n
-        val pub = blk.signature!!.pub
+        val pub = blk.sign!!.pub
         assert(this.fromOwner(blk) || n <= this.getPubRep(pub, h.time)) {
             "not enough reputation"
         }
     }
 
     // checks if sig.hash/blk.hash/sig.pubkey match
-    if (blk.signature != null) {
-        val sig = LazySodium.toBin(blk.signature.hash)
+    if (blk.sign != null) {
+        val sig = LazySodium.toBin(blk.sign.hash)
         val msg = lazySodium.bytes(blk.hash)
-        val key = Key.fromHexString(blk.signature.pub).asBytes
+        val key = Key.fromHexString(blk.sign.pub).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
     }
 }
 
 private fun Chain.reheads (blk: Block) {
     this.heads.add(blk.hash)
-    for (back in blk.hashable.backs) {
+    for (back in blk.immut.backs) {
         this.heads.remove(back)
         val bk = this.loadBlock("blocks",back,false)
         assert(!bk.fronts.contains(blk.hash))
@@ -248,7 +248,7 @@ private fun Chain.decrypt (payload: String) : Pair<Boolean,String> {
 
 fun Chain.fromOwner (blk: Block) : Boolean {
     return when (this.crypto) {
-        is PubPvt -> blk.signature!=null && blk.signature.pub==this.crypto.pub
+        is PubPvt -> blk.sign!=null && blk.sign.pub==this.crypto.pub
         else -> false
     }
 }
@@ -258,10 +258,10 @@ fun Chain.getPostRep (hash: String) : Int {
 
     val likes = all
         .filter {
-            it.hashable.like != null &&
-            it.hashable.like.ref == hash
+            it.immut.like != null &&
+            it.immut.like.ref == hash
         }
-        .map { it.hashable.like!!.n }
+        .map { it.immut.like!!.n }
         .sum()
 
     return likes
@@ -274,43 +274,43 @@ fun Chain.getPubRep (pub: String, now: Long) : Int {
         else
             this.loadBlock("blocks", it[0],false).let {
                 when {
-                    (it.signature == null) -> 0
-                    (it.signature.pub == pub) -> LK30_max
+                    (it.sign == null) -> 0
+                    (it.sign.pub == pub) -> LK30_max
                     else -> 0
                 }
             }
     }
 
     val b90s = this.traverseFromHeads {
-        it.hashable.time >= now - T90_rep
+        it.immut.time >= now - T90_rep
     }
 
     val mines = b90s
-        .filter { it.signature != null &&
-                it.signature.pub == pub }                       // all I signed
+        .filter { it.sign != null &&
+                it.sign.pub == pub }                       // all I signed
 
     val (pos,neg) = mines                             // mines
-        .filter { it.hashable.like == null }                    // not likes
+        .filter { it.immut.like == null }                    // not likes
         .let {
             val pos = it
-                .filter { it.hashable.time <= now - 1*day }     // older than 1 day
+                .filter { it.immut.time <= now - 1*day }     // older than 1 day
                 .count() * lk
             val neg = it
-                .filter { it.hashable.time > now - 1*day }      // newer than 1 day
+                .filter { it.immut.time > now - 1*day }      // newer than 1 day
                 .count() * lk
             Pair(min(LK30_max,pos),neg)
         }
 
     val gave = mines
-        .filter { it.hashable.like != null }                    // likes I gave
-        .map { it.hashable.like!!.n.absoluteValue }
+        .filter { it.immut.like != null }                    // likes I gave
+        .map { it.immut.like!!.n.absoluteValue }
         .sum()
 
     val got = b90s
-        .filter { it.hashable.like != null &&                   // likes I got
-                it.hashable.like.type == LikeType.PUBKEY &&
-                it.hashable.like.ref == pub }
-        .map { it.hashable.like!!.n }
+        .filter { it.immut.like != null &&                   // likes I got
+                it.immut.like.type == LikeType.PUBKEY &&
+                it.immut.like.ref == pub }
+        .map { it.immut.like!!.n }
         .sum()
 
     //println("${max(gen,pos)} - $neg + $got - $gave")
@@ -335,7 +335,7 @@ internal fun Chain.traverseFromHeads (
         if (!f(blk)) {
             break
         }
-        for (back in blk.hashable.backs) {
+        for (back in blk.immut.backs) {
             if (! visited.contains(back)) {
                 visited.add(back)
                 pending.addLast(back)
@@ -374,15 +374,15 @@ fun Chain.delTine (blk: Block) {
 
 fun Chain.loadBlock (dir: String, hash: Hash, decrypt: Boolean) : Block {
     val blk = File(this.root + this.name + "/" + dir + "/" + hash + ".blk").readText().jsonToBlock()
-    if (!decrypt || !blk.hashable.encrypted) {
+    if (!decrypt || !blk.immut.encrypted) {
         return blk
     }
     val (succ,pay) =
-        if (blk.hashable.encrypted)
-            this.decrypt(blk.hashable.payload)
+        if (blk.immut.encrypted)
+            this.decrypt(blk.immut.payload)
         else
-            Pair(true,blk.hashable.payload)
-    return blk.copy(hashable = blk.hashable.copy(encrypted=!succ, payload=pay))
+            Pair(true,blk.immut.payload)
+    return blk.copy(immut = blk.immut.copy(encrypted=!succ, payload=pay))
 }
 
 fun Chain.containsBlock (dir: String, hash: Hash) : Boolean {

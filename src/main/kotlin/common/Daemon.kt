@@ -224,10 +224,10 @@ class Daemon (host : Host) {
                                         // refs a post
                                         val blk = chain.loadBlock("blocks", refs_[0], false)
                                         val l1 = arrayOf(Like(like/2, LikeType.POST, refs_[0]))
-                                        if (blk.signature == null)
+                                        if (blk.sign == null)
                                             l1
                                         else
-                                            l1.plus(Like(like/2, LikeType.PUBKEY, blk.signature.pub))
+                                            l1.plus(Like(like/2, LikeType.PUBKEY, blk.sign.pub))
                                     } else {
                                         // refs a pubkey
                                         arrayOf (
@@ -240,10 +240,10 @@ class Daemon (host : Host) {
                             for (l in likes) {
                                 val blk = chain.blockNew (
                                     if (sig.isEmpty()) null else sig,
-                                    BlockHashable (
+                                    BlockImmut (
                                         max (
                                             time.nowToTime(),
-                                            chain.heads.map { chain.loadBlock("blocks",it,false).hashable.time }.max()!!
+                                            chain.heads.map { chain.loadBlock("blocks",it,false).immut.time }.max()!!
                                         ),
                                         l,
                                         cods[0],
@@ -339,7 +339,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
             // sends this one and visits children
             toSend.push(hash)
             //println("[send] backs: ${blk.hashable.backs.size}")
-            for (back in blk.hashable.backs) {
+            for (back in blk.immut.backs) {
                 if (! visited.contains(back)) {
                     //println("[send] back: $back")
                     pending.push(back)
@@ -412,27 +412,27 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
                 return ! (
                     chain.crypto is Shared      ||  // shared key, only trusted hosts
                     chain.fromOwner(blk)        ||  // owner sig always pass
-                    blk.hashable.like != null   ||  // likes always pass
-                    blk.height == 1                 // first block always pass
+                    blk.immut.like != null   ||  // likes always pass
+                    blk.immut.height == 1        // first block always pass
                 )
             }
 
             fun failRepTime () : Boolean {
                 return (
-                    blk.hashable.time <= now-T2H_past           ||  // too late
-                    blk.signature == null                       ||  // no sig
-                    chain.getPubRep(blk.signature.pub,now) <= 0     // no rep
+                    blk.immut.time <= now-T2H_past           ||  // too late
+                    blk.sign == null                       ||  // no sig
+                    chain.getPubRep(blk.sign.pub,now) <= 0     // no rep
                 )
             }
 
             //println("${blk.hash} / ${blk.height} / ${blk.hashable.time}")
             when {
                 // refuse block from the future
-                (blk.hashable.time > now+T30M_future) ->
+                (blk.immut.time > now+T30M_future) ->
                     continue@xxx
 
                 // refuse blocks too old
-                (blk.hashable.time < now-T120_past) ->
+                (blk.immut.time < now-T120_past) ->
                     continue@xxx
 
                 // refuse blocks not signed by owner (if oonly is set)

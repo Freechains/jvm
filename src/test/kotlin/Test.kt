@@ -61,7 +61,7 @@ import kotlin.concurrent.thread
  *  - RPi: cable eth + wifi router + phones
  */
 
-val H   = BlockHashable(0, null,"",false, "", emptyArray(), emptyArray())
+val H   = BlockImmut(0, null,"",false, "", emptyArray(), emptyArray())
 val HC  = H.copy(encoding="utf8", encrypted=true)
 val BLK = Block(H,mutableListOf(),null, "")
 
@@ -153,7 +153,7 @@ class Tests {
 
         var ok = false
         try {
-            val n = n3.copy(hashable = n3.hashable.copy(payload="xxx"))
+            val n = n3.copy(immut = n3.immut.copy(payload="xxx"))
             chain.blockAssert(n)
         } catch (e: Throwable) {
             ok = true
@@ -232,21 +232,21 @@ class Tests {
         }
         assert(n == 7)
 
-        val x = chain.traverseFromHeads { it.height>2 }
+        val x = chain.traverseFromHeads { it.immut.height>2 }
         assert(x.size == 3)
 
         fun Chain.getMaxTime () : Long {
             return this.heads
                 .map { this.loadBlock("blocks", it,false) }
-                .map { it.hashable.time }
+                .map { it.immut.time }
                 .max()!!
         }
 
-        val y = chain.traverseFromHeads{ true }.filter { it.hashable.time >= chain.getMaxTime()-30*day }
+        val y = chain.traverseFromHeads{ true }.filter { it.immut.time >= chain.getMaxTime()-30*day }
         //println(y.map { it.hash })
         assert(y.size == 4)
 
-        val z = chain.traverseFromHeads(listOf(ab2.hash), { it.hashable.time>1*day })
+        val z = chain.traverseFromHeads(listOf(ab2.hash), { it.immut.time>1*day })
         assert(z.size == 3)
     }
 
@@ -413,7 +413,7 @@ class Tests {
         val n1 = c1.blockNew(null,HC.copy(payload="aaa"))
         //println(n1.hash)
         val n2 = c1.loadBlock("blocks", n1.hash, true)
-        assert(n2.hashable.payload == "aaa")
+        assert(n2.immut.payload == "aaa")
         //Thread.sleep(500)
     }
 
@@ -446,17 +446,17 @@ class Tests {
 
         val json = main_(arrayOf("chain","get","/xxx",hash))
         val blk = json.jsonToBlock()
-        assert(blk.hashable.payload == "aaa")
+        assert(blk.immut.payload == "aaa")
 
         main(arrayOf("chain","send","/xxx","localhost:8331"))
         val json2 = main_(arrayOf(H1,"chain","get","/xxx",hash))
         val blk2 = json2.jsonToBlock()
-        assert(blk2.hashable.encrypted)
+        assert(blk2.immut.encrypted)
 
         val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbbb","--sign=$PVT1"))
         val j2 = main_(arrayOf("chain","get","/xxx",h2))
         val b2 = j2.jsonToBlock()
-        assert(b2.hashable.payload == "bbbb")
+        assert(b2.immut.payload == "bbbb")
     }
 
     @Test
@@ -609,7 +609,7 @@ class Tests {
             it[0]
         }
         val b2 = main_(arrayOf(H0,"chain","tine","get","/xxx",t2)).jsonToBlock()
-        assert(b2.hashable.payload == "no sig")
+        assert(b2.immut.payload == "no sig")
         main_(arrayOf(H0,"chain","accept","/xxx",t2))
         val hs5 = main_(arrayOf(H0,"chain","heads","/xxx"))
         assert(hs5.substring(0,3) == "12_")

@@ -35,7 +35,7 @@ fun Host.joinChain (name: String, crypto: Crypto?) : Chain {
     assert(!file.exists()) { "chain already exists: $chain"}
     chain.save()
     val genesis = Block (
-        BlockHashable (
+        BlockImmut (
             0,
             null,
             "",

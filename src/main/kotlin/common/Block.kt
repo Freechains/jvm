@@ -26,7 +26,7 @@ data class Signature (
 )
 
 @Serializable
-data class BlockHashable (
+data class BlockImmut (
     val time      : Long,           // TODO: ULong
     val like      : Like?,
     val encoding  : String,         // payload encoding
@@ -34,17 +34,17 @@ data class BlockHashable (
     val payload   : String,
     val refs      : Array<String>,  // post hash or user pubkey
     val backs     : Array<Hash>     // back links (previous blocks)
-)
+) {
+    val height    : Int = this.backs.backsToHeight()
+}
 
 @Serializable
 data class Block (
-    val hashable  : BlockHashable,       // things to hash
-    val fronts    : MutableList<Hash>,   // front links (next blocks)
-    val signature : Signature?,
-    val hash      : Hash                 // hash of hashable
-) {
-    val height    : Int = this.hashable.backs.backsToHeight()
-}
+    val immut  : BlockImmut,        // things to hash
+    val fronts : MutableList<Hash>, // front links (next blocks)
+    val sign   : Signature?,
+    val hash   : Hash               // hash of hashable
+)
 
 fun Array<Hash>.backsToHeight () : Int {
     return when {
@@ -53,10 +53,10 @@ fun Array<Hash>.backsToHeight () : Int {
     }
 }
 
-fun BlockHashable.toJson (): String {
+fun BlockImmut.toJson (): String {
     @UseExperimental(UnstableDefault::class)
     val json = Json(JsonConfiguration(prettyPrint=true))
-    return json.stringify(BlockHashable.serializer(), this)
+    return json.stringify(BlockImmut.serializer(), this)
 }
 
 fun Block.toJson (): String {
