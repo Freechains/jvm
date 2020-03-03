@@ -27,7 +27,7 @@ Usage:
     freechains [options] chain like get <chain> <hash_or_pub>
     freechains [options] chain like post <chain> <integer> <hash_or_pub>
     freechains [options] chain tine list <chain>
-    freechains [options] chain tine get <chain>
+    freechains [options] chain tine get <chain> <hash>
     freechains [options] chain accept <chain> <hash>
     freechains [options] chain remove <chain> <hash>
     freechains [options] chain listen <chain>
@@ -197,12 +197,15 @@ fun main_ (args: Array<String>) : String {
                             return list
                         }
                         opts["get"] as Boolean -> {
-                            writer.writeLineX("FC chain tine get")
+                            writer.writeLineX("FC chain get")
                             writer.writeLineX(opts["<chain>"] as String)
                             writer.writeLineX("tines")
                             writer.writeLineX(opts["<hash>"] as String)
-                            val list = reader.readLinesX()
-                            return list
+                            val json = reader.readAllBytes().toString(Charsets.UTF_8)
+                            if (json.isEmpty()) {
+                                System.err.println("chain get: not found")
+                            }
+                            return json
                         }
                     }
                 }

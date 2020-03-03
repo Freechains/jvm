@@ -608,6 +608,8 @@ class Tests {
             assert(it[0].startsWith("12_"))
             it[0]
         }
+        val b2 = main_(arrayOf(H0,"chain","tine","get","/xxx",t2)).jsonToBlock()
+        assert(b2.hashable.payload == "no sig")
         main_(arrayOf(H0,"chain","accept","/xxx",t2))
         val hs5 = main_(arrayOf(H0,"chain","heads","/xxx"))
         assert(hs5.substring(0,3) == "12_")
