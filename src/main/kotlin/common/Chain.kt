@@ -102,7 +102,12 @@ fun BlockImmut.toHash () : Hash {
 
 fun Chain.blockNew (sig_pvt: String?, h: BlockImmut) : Block {
     // non-empty pre-set backs only used in tests
-    val backs = if (h.backs.isNotEmpty()) h.backs else this.heads.toTypedArray()
+    val backs = if (h.backs.isNotEmpty()) h.backs else
+        this.heads
+            .map    { this.loadBlock("blocks",it,false) }
+            //.filter { it.time <= getNow()-2*hour }
+            .map    { it.hash }
+            .toTypedArray()
 
     assert(this.crypto !is Shared || h.encrypted)
     val pay = if (h.encrypted) this.encrypt(h.payload) else h.payload

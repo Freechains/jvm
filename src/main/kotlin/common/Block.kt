@@ -44,7 +44,9 @@ data class Block (
     val fronts : MutableList<Hash>, // front links (next blocks)
     val sign   : Signature?,
     val hash   : Hash               // hash of hashable
-)
+) {
+    val time   : Long = getNow()    // local time
+}
 
 fun Array<Hash>.backsToHeight () : Int {
     return when {
