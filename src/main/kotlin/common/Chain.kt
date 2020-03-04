@@ -458,11 +458,6 @@ fun Chain.fsSave () {
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
 }
 
-fun Chain.fsLoadTines () : List<Hash> {
-    return File(this.root + this.name + "/tines/").list()!!
-        .map { it.removeSuffix(".blk") }
-}
-
 fun Chain.fsSaveBlock (st: ChainState, blk: Block) {
     File(this.root + this.name + st.toDir() + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
@@ -474,6 +469,11 @@ fun Chain.fsMoveBlock (from: ChainState, to: ChainState, hash: Hash) {
 
 fun Chain.fsRemBlock (state: ChainState, hash: Hash) {
     assert(File(this.root + this.name + state.toDir() + hash + ".blk").delete()) { "tine is not found" }
+}
+
+fun Chain.fsLoadBlocks (state: ChainState) : List<Hash> {
+    return File(this.root + this.name + state.toDir()).list()!!
+        .map { it.removeSuffix(".blk") }
 }
 
 fun Chain.fsLoadBlock (state: ChainState, hash: Hash, decrypt: Boolean) : Block {

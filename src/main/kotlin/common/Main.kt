@@ -25,8 +25,8 @@ Usage:
     freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
     freechains [options] chain like get <chain> <hash_or_pub>
     freechains [options] chain like post <chain> <integer> <hash_or_pub>
-    freechains [options] chain tine list <chain>
-    freechains [options] chain tine get <chain> <hash>
+    freechains [options] chain state list <chain> <state>
+    freechains [options] chain state get <chain> <state> <hash>
     freechains [options] chain accept <chain> <hash>
     freechains [options] chain remove <chain> <hash>
     freechains [options] chain listen <chain>
@@ -185,20 +185,19 @@ fun main_ (args: Array<String>) : String {
                     }
                 }
 
-                //freechains [options] chain tine get <chain> <hash>
-                //freechains [options] chain reject <chain> <hash>    // move de tine/blocks -> removed
-                opts["tine"] as Boolean -> {
+                opts["state"] as Boolean -> {
                     when {
                         opts["list"] as Boolean -> {
-                            writer.writeLineX("FC chain tine list")
+                            writer.writeLineX("FC chain state list")
                             writer.writeLineX(opts["<chain>"] as String)
+                            writer.writeLineX(opts["<state>"] as String)
                             val list = reader.readLinesX()
                             return list
                         }
                         opts["get"] as Boolean -> {
                             writer.writeLineX("FC chain get")
                             writer.writeLineX(opts["<chain>"] as String)
-                            writer.writeLineX("TINE")
+                            writer.writeLineX(opts["<state>"] as String)
                             writer.writeLineX(opts["<hash>"] as String)
                             val json = reader.readAllBytes().toString(Charsets.UTF_8)
                             if (json.isEmpty()) {

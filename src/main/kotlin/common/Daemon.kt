@@ -186,8 +186,9 @@ class Daemon (host : Host) {
                             writer.writeLineX(likes.toString())
                             System.err.println("chain reps: $likes")
                         }
-                        "FC chain tine list" -> {
-                            chain.fsLoadTines()
+                        "FC chain state list" -> {
+                            val state = reader.readLineX().toChainState()
+                            chain.fsLoadBlocks(state)
                                 .forEach { writer.writeLineX(it) }
                             writer.writeLineX("")
                         }
