@@ -121,7 +121,8 @@ fun Chain.blockNew (sig_pvt: String?, imm: BlockImmut, acc: Boolean=false) : Blo
         Signature(sig_hash, pvt.pvtToPub())
     }
 
-    val new = Block(h_, mutableListOf(), signature, (acc || h_.height==1), hash)
+    val new = Block(h_, mutableListOf(), signature, acc, hash)
+    this.blockAssert(new)
     this.blockChain(new)
     return new
 }
@@ -155,8 +156,11 @@ fun Chain.getHeads (imm: BlockImmut) : Array<String> {
 
 fun Chain.isConsolidated (blk: Block) : Boolean {
     return when {
-        blk.accepted                        -> true
-        blk.time <= getNow() - 2*hour       -> true     // old enough
+        blk.immut.height <= 1               -> true     // first two blocks
+        blk.accepted                        -> true     // manually accepted
+        blk.time <= getNow() - T2H_past     -> true     // old enough (local time)
+        this.crypto is Shared               -> true     // shared key, only trusted hosts
+        this.fromOwner(blk)                 -> true     // owner signature
         else -> blk.immut.like.let {
             when {
                 (it == null)                -> false    // not a like
@@ -168,10 +172,7 @@ fun Chain.isConsolidated (blk: Block) : Boolean {
     }
 }
 
-fun Chain.blockChain (blk: Block, asr: Boolean = true) {
-    if (asr) {
-        this.blockAssert(blk)       // skip for testing purposes
-    }
+fun Chain.blockChain (blk: Block) {
     this.saveBlock("blocks",blk)
     this.heads.add(blk.hash)
     this.reBacksFronts(blk)
@@ -235,29 +236,35 @@ fun Chain.backsCheck (blk: Block) : Boolean {
 }
 
 fun Chain.blockAssert (blk: Block) {
-    val h = blk.immut
-    assert(blk.hash == h.toHash())
+    val imm = blk.immut
+    assert(blk.hash == imm.toHash())        // hash matches immut
+    assert(this.backsCheck(blk))            // backs exist and are older
 
-    assert(this.backsCheck(blk))
+    val now = getNow()
+    assert (
+        imm.time <= now+T30M_future &&      // not from the future
+        imm.time >= now-T120_past           // not too old
+    )
 
-    // checks if unique genesis front
-    val gen = this.getGenesis()
+    if (this.crypto is PubPvt && this.crypto.oonly) {
+        assert(this.fromOwner(blk))         // signed by owner (if oonly is set)
+    }
+
+    val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
     if (blk.immut.backs.contains(gen)) {
         val b = this.loadBlock("blocks", gen,false)
         assert(b.fronts.isEmpty() || b.fronts[0]==blk.hash) { "genesis is already referred" }
     }
 
-    // checks if has enough reputation to like
-    if (h.like != null) {
-        val n = h.like.n
+    if (imm.like != null) {                 // like has reputation
+        val n = imm.like.n
         val pub = blk.sign!!.pub
-        assert(this.fromOwner(blk) || n <= this.getPubRep(pub, h.time)) {
+        assert(this.fromOwner(blk) || n <= this.getPubRep(pub, imm.time)) {
             "not enough reputation"
         }
     }
 
-    // checks if sig.hash/blk.hash/sig.pubkey match
-    if (blk.sign != null) {
+    if (blk.sign != null) {                 // sig.hash/blk.hash/sig.pubkey all match
         val sig = LazySodium.toBin(blk.sign.hash)
         val msg = lazySodium.bytes(blk.hash)
         val key = Key.fromHexString(blk.sign.pub).asBytes
@@ -359,16 +366,16 @@ fun Chain.getPubRep (pub: String, now: Long) : Int {
 
     val mines = b90s
         .filter { it.sign != null &&
-                it.sign.pub == pub }                       // all I signed
+                it.sign.pub == pub }                          // all I signed
 
-    val (pos,neg) = mines                             // mines
+    val (pos,neg) = mines                          // mines
         .filter { it.immut.like == null }                    // not likes
         .let {
             val pos = it
-                .filter { it.immut.time <= now - 1*day }     // older than 1 day
+                .filter { it.immut.time <= now - T1D_rep }   // older than 1 day
                 .count() * lk
             val neg = it
-                .filter { it.immut.time > now - 1*day }      // newer than 1 day
+                .filter { it.immut.time > now - T1D_rep }    // newer than 1 day
                 .count() * lk
             Pair(min(LK30_max,pos),neg)
         }
@@ -386,7 +393,7 @@ fun Chain.getPubRep (pub: String, now: Long) : Int {
         .sum()
 
     //println("${max(gen,pos)} - $neg + $got - $gave")
-    return max(gen,pos) - neg + got - gave
+    return max(0, max(gen,pos) - neg + got - gave)
 }
 
 internal fun Chain.traverseFromHeads (

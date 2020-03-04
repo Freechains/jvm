@@ -86,7 +86,7 @@ $ freechains chain get /chat 0_A80B5390F7CF66A8781F42AEB68912F2745FC026A71885D7A
 }
 $ freechains chain get /chat 1_1D5D2B146B49AF22F7E738778F08E678D48C6DAAF84AF4128A17D058B6F0D852
 {
-    "hashable": {
+    "immut": {
         ...
         "payload": "Hello World!",
         "backs": [

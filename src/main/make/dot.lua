@@ -38,7 +38,7 @@ function go (hash)
 
     local blk = json.decode(assert(io.open(DIR..'/blocks/'..hash..'.blk')):read('*a'))
 
-    local h   = blk.hashable
+    local h   = blk.immut
     local ref = sub(h.refs[1] or '')
     local t   = math.floor(blk.time/3600000)
     local lik = (type(h.like)=='table' and h.like.n) or '---'

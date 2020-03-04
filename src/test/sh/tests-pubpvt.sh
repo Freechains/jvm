@@ -53,9 +53,9 @@ freechains --host=localhost:8400 chain send / localhost:8401  # FAIL
 freechains --host=localhost:8400 chain send / localhost:8402  # SUCCESS
 
 freechains --host=localhost:8400 chain get / $h > $FC/dec.blk
-diff <(jq ".hashable.payload" $FC/dec.blk) <(echo '"Hello_World"') || exit 1
+diff <(jq ".immut.payload" $FC/dec.blk) <(echo '"Hello_World"') || exit 1
 freechains --host=localhost:8402 chain get / $h > $FC/enc.blk
-diff <(jq ".hashable.encrypted" $FC/enc.blk) <(echo 'true') || exit 1
+diff <(jq ".immut.encrypted" $FC/enc.blk) <(echo 'true') || exit 1
 
 # stop hosts
 freechains host stop --host=localhost:8400 &

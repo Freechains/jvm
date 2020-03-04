@@ -15,6 +15,7 @@ import org.junit.jupiter.api.MethodOrderer.Alphanumeric
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestMethodOrder
 import java.io.File
+import java.time.Instant
 import java.util.*
 import kotlin.concurrent.thread
 
@@ -37,19 +38,23 @@ import kotlin.concurrent.thread
  *    - fork w/ double spend (second should go to noob list)
  *    - old tests
  *  - REFACTOR
- *    - join (stop/now/flush), they use connection
+ *    - join (stop/now), they use connection
  *  - CMDS
  *    - freechains now s/ time (retorna now)
  *    - freechains host restart
- *    - freechains chain remove hash (removes block and fronts)
- *    - --ref=<hash> [post] sets back reference to post
+ *    - --ref=<hash> [post] sets back reference to post (currently only auto w/ likes)
  *  - QUARANTINE
  *    - signal remote as soon as local detects the first tine in the chain (to avoid many others in the same chain)
  *    - limit tines per IP
- *    - peek, hold, accept, refuse (blacklist)
  *  - BUGS
  *    - none
+ *  - VERSIONS
+ *    - jvm,android,lua
+ *    - remove jar from repo, use github releases
+ *  - LIFEREA
+ *    - autochain, first post introducing itself (ID/photo?)
  *  - all use cases (chain cfg e usos da industria)
+ *    - stack overflow
  *  - commands with auth. ip port time to avoid reuse
  *  - RX Kotlin
  *  - pipes / filtros
@@ -61,6 +66,9 @@ import kotlin.concurrent.thread
  *  - RPi: cable eth + wifi router + phones
  */
 
+fun BlockImmut.now (t: Long = getNow()) : BlockImmut {
+    return this.copy(time = t)
+}
 val H   = BlockImmut(0, null,"",false, "", emptyArray(), emptyArray())
 val HC  = H.copy(encoding="utf8", encrypted=true)
 
@@ -137,7 +145,7 @@ class Tests {
         val c2 = h.loadChain(c1.name)
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
-        val blk = c2.blockNew(null, HC)
+        val blk = c2.blockNew(null, HC.now())
         val blk2 = c2.loadBlock("blocks", blk.hash, false)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
     }
@@ -146,9 +154,9 @@ class Tests {
     fun c1_post() {
         val host = Host_load("/tmp/freechains/tests/local/")
         val chain = host.joinChain("/", null)
-        val n1 = chain.blockNew(null, H, true)
-        val n2 = chain.blockNew(null, H, true)
-        val n3 = chain.blockNew(null, H)
+        val n1 = chain.blockNew(null, H.now(), true)
+        val n2 = chain.blockNew(null, H.now(), true)
+        val n3 = chain.blockNew(null, H.now())
 
         var ok = false
         try {
@@ -184,8 +192,8 @@ class Tests {
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
         val src_chain = src.joinChain("/d3", Shared("secret"))
-        src_chain.blockNew(null, HC, true)
-        src_chain.blockNew(null, HC, true)
+        src_chain.blockNew(null, HC.now(), true)
+        src_chain.blockNew(null, HC.now(), true)
         thread { Daemon(src).daemon() }
 
         // DESTINY
@@ -211,12 +219,17 @@ class Tests {
         val h = Host_create("/tmp/freechains/tests/graph/")
         val chain = h.joinChain("/", Shared("secret"))
 
-        val ab0 = chain.blockNew(null, HC.copy(time = 1 * day), true)
-        chain.blockNew(null, HC.copy(time = 2 * day - 1, payload = "a1"), true)
-        val b1 = chain.blockNew(null, HC.copy(time = 2 * day, backs = arrayOf(ab0.hash)), true)
-        val ab2 = chain.blockNew(null, HC.copy(time = 27 * day), true)
-        chain.blockNew(null, HC.copy(time = 28 * day, backs = arrayOf(b1.hash)), true)
-        chain.blockNew(null, HC.copy(time = 32 * day), true)
+        setNow(1*day)
+        val ab0 = chain.blockNew(null, HC.now(1*day), true)
+        setNow(2*day)
+        chain.blockNew(null, HC.now(2*day-1).copy(payload = "a1"), true)
+        val b1 = chain.blockNew(null, HC.now().copy(backs = arrayOf(ab0.hash)), true)
+        setNow(27*day)
+        val ab2 = chain.blockNew(null, HC.now(), true)
+        setNow(28*day)
+        chain.blockNew(null, HC.now().copy(backs = arrayOf(b1.hash)), true)
+        setNow(32*day)
+        chain.blockNew(null, HC.now(), true)
 
         /*
                       /-- (a1) --\
@@ -520,9 +533,13 @@ class Tests {
         Thread.sleep(100)
         main(arrayOf("chain", "join", "/xxx", "pubpvt", PUB0, PVT0))
 
+        main_(arrayOf(H0, "host", "now", "0"))
+
         // first post
         val h1 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", "--time=0", "--sign=chain"))
         main_(arrayOf(H0, "chain", "accept", "/xxx", h1))
+
+        main_(arrayOf(H0, "host", "now", (1*day).toString()))
 
         // noob post
         val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "bbba", "--time=0", "--sign=$PVT1"))
@@ -530,7 +547,7 @@ class Tests {
 
         //main_(arrayOf("chain","like","/xxx","1",h1!!,"--time="+(24*hour-1).toString(),"--sign=$PVT1"))
         assert("30000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
-        assert("0" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+        assert("1000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
         // give to myself
         assert("30000" == main_(arrayOf("--time=" + (1 * day + 1).toString(), "chain", "like", "get", "/xxx", PUB0)))
@@ -590,6 +607,7 @@ class Tests {
         main_(arrayOf(H1, "chain", "join", "/xxx", "pubpvt", PUB0))
 
         // I'm in the future, old posts will be refused
+        main_(arrayOf(H1, "host", "now", Instant.now().toEpochMilli().toString()))
         val n1 = main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331"))
         assert(n1 == "0 / 10")
 

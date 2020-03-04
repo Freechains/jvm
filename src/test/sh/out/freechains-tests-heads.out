@@ -1,5 +1,5 @@
 {
-    "hashable": {
+    "immut": {
         "time": 0,
         "encoding": "utf8",
         "payload": "Hello_World",

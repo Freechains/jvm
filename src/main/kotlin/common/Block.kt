@@ -44,7 +44,7 @@ data class Block (
     val fronts   : MutableList<Hash>,  // front links (next blocks)
     val sign     : Signature?,
     val accepted : Boolean,
-    val hash     : Hash               // hash of hashable
+    val hash     : Hash               // hash of immut
 ) {
     val time     : Long = getNow()     // local time
 }

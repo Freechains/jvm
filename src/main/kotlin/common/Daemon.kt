@@ -75,7 +75,7 @@ class Daemon (host : Host) {
             }
             "FC host now" -> {
                 val now= reader.readLineX().toLong()
-                NOW = Instant.now().toEpochMilli() - now
+                setNow(now)
                 writer.writeLineX("true")
                 System.err.println("host now: $now")
             }
@@ -197,13 +197,13 @@ class Daemon (host : Host) {
                             when {
                                 (chain.containsBlock("rems",hash)) -> {
                                     val rem = chain.loadBlock("rems", hash, false)
-                                    chain.blockChain(rem, true)
+                                    chain.blockChain(rem)
                                     chain.remBlock("rems", rem.hash)
                                     writer.writeLineX("true")
                                 }
                                 (chain.containsBlock("tines",hash)) -> {
                                     val tine = chain.loadBlock("tines", hash, false)
-                                    chain.blockChain(tine, true)
+                                    chain.blockChain(tine)
                                     chain.remBlock("tines", tine.hash)
                                     writer.writeLineX("true")
                                 }
@@ -432,62 +432,41 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
 
         xxx@for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock().copy(accepted = false) // 6
-            //println("[recv] ${blk.hash}")
 
-            fun checkRepTime () : Boolean {
-                //println("${chain.crypto is Shared} // ${chain.fromOwner(blk)}")
-                return ! (
-                    blk.immut.height == 1       ||  // first block always pass
-                    chain.crypto is Shared      ||  // shared key, only trusted hosts
-                    chain.fromOwner(blk)        ||  // owner sig always pass
-                    chain.isConsolidated(blk)       // like to consolidated block
-                )
+            try {
+                chain.blockAssert(blk)
+            } catch (e: Throwable) {
+                continue
             }
 
-            fun failRepTime () : Boolean {
-                return (
+            //println("[recv] ${blk.hash}")
+
+            if (
+                !chain.isConsolidated(blk) &&
+                (
                     blk.immut.time <= now-T2H_past          ||  // too late
                     blk.sign == null                        ||  // no sig
                     chain.getPubRep(blk.sign.pub,now) <= 0      // no rep
                 )
-            }
-
-            when {
-                // refuse block from the future
-                (blk.immut.time > now+T30M_future) -> {
-                    continue@xxx
-                }
-
-                // refuse blocks too old
-                (blk.immut.time < now-T120_past) -> {
-                    continue@xxx
-                }
-
-                // refuse blocks not signed by owner (if oonly is set)
-                (chain.crypto is PubPvt && chain.crypto.oonly && !chain.fromOwner(blk)) ->
-                    continue@xxx
-
+            ) {
                 // quarentine noob/late block
-                (checkRepTime() && failRepTime()) -> {
-                    // enqueue only if backs are ok (otherwise, back is also enqueued)
-                    // TODO: when back was enqueued previously, the host should signal the peer
-                    //  to avoid this situation (it may send many other wrong blocks)
-                    if (chain.backsCheck(blk)) {
-                        chain.saveBlock("tines",blk)
-                    }
-                    // otherwise just ignore
-                    continue@xxx
+                // enqueue only if backs are ok (otherwise, back is also enqueued)
+                // TODO: when back was enqueued previously, the host should signal the peer
+                //  to avoid this situation (it may send many other wrong blocks)
+                if (chain.backsCheck(blk)) {
+                    chain.saveBlock("tines", blk)
                 }
+                // otherwise just ignore
+            } else {
+                var inc = 1
+                try {
+                    chain.blockChain(blk)
+                } catch (e: Throwable) {
+                    System.err.println(e.message)
+                    inc = 0
+                }
+                Nmin += inc
             }
-
-            var inc = 1
-            try {
-                chain.blockChain(blk)
-            } catch (e: Throwable) {
-                System.err.println(e.message)
-                inc = 0
-            }
-            Nmin += inc
         }
         writer.writeLineX(Nmin.toString())             // 7
     }
