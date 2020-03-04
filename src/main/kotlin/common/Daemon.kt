@@ -334,32 +334,27 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
         // for each head path of blocks
         while (pending.isNotEmpty()) {
             val hash = pending.pop()
+            if (visited.contains(hash)) {
+                continue
+            }
             visited.add(hash)
-            //println("[send] $hash")
 
             val blk = chain.loadBlock("blocks", hash,false)
 
             writer.writeLineX(hash)                               // 2: asks if contains hash
             val has = reader.readLineX().toBoolean()    // 3: receives yes or no
             if (has) {
-                //println("[send] has: $hash")
                 continue                             // already has: finishes subpath
             }
 
             // sends this one and visits children
             toSend.push(hash)
-            //println("[send] backs: ${blk.hashable.backs.size}")
             for (back in blk.immut.backs) {
-                if (! visited.contains(back)) {
-                    //println("[send] back: $back")
-                    pending.push(back)
-                }
+                pending.push(back)
             }
         }
 
-        //println("[send]")
         writer.writeLineX("")                     // 4: will start sending nodes
-        //println("[send] ${toSend.size.toString()}")
         writer.writeLineX(toSend.size.toString())    // 5: how many
         val n2 = toSend.size
         while (toSend.isNotEmpty()) {
