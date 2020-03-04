@@ -39,7 +39,7 @@ data class PubPvt (
 ) : Crypto()
 
 enum class ChainState {
-    BLOCK, TINE, REM
+    WANT, BLOCK, TINE, REM
 }
 
 fun ChainState.toDir () : String {
@@ -47,11 +47,13 @@ fun ChainState.toDir () : String {
         ChainState.BLOCK -> "/blocks/"
         ChainState.TINE  -> "/tines/"
         ChainState.REM   -> "/rems/"
+        else -> error("bug found: unexpected ChainState.WANT")
     }
 }
 
 fun String.toChainState () : ChainState {
     return when (this) {
+        "want"  -> ChainState.WANT
         "block" -> ChainState.BLOCK
         "tine"  -> ChainState.TINE
         "rem"   -> ChainState.REM

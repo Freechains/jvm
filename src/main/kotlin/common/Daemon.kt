@@ -363,9 +363,9 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
 
             val blk = chain.fsLoadBlock(ChainState.BLOCK, hash,false)
 
-            writer.writeLineX(hash)                               // 2: asks if contains hash
-            val has = reader.readLineX().toBoolean()    // 3: receives yes or no
-            if (has) {
+            writer.writeLineX(hash)                                     // 2: asks if contains hash
+            val state = reader.readLineX().toChainState()   // 3: receives yes or no
+            if (state != ChainState.WANT) {
                 continue                             // already has: finishes subpath
             }
 
@@ -420,8 +420,13 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
             if (hash.isEmpty()) {                   // 4
                 break                               // nothing else to answer
             } else {
-                val has = chain.fsExistsBlock(ChainState.BLOCK,hash)
-                writer.writeLineX(has.toString())   // 3: have or not block
+                val state = when {
+                    chain.fsExistsBlock(ChainState.BLOCK, hash) -> "block"
+                    chain.fsExistsBlock(ChainState.TINE,  hash) -> "tine"
+                    chain.fsExistsBlock(ChainState.REM,   hash) -> "rem"
+                    else                                        -> "want"
+                }
+                writer.writeLineX(state)   // 3: have or not block
             }
         }
 
