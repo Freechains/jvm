@@ -814,4 +814,28 @@ class Tests {
         val h5 = main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h5"))
         assert(h5.startsWith("4_"))
     }
+    @Test
+    fun m11_send_after_tine() {
+        a_reset()
+
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M100/"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M100/")) }
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M101/", "8331"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M101/")) }
+        Thread.sleep(100)
+        main(arrayOf(H0, "chain", "join", "/"))
+        main(arrayOf(H1, "chain", "join", "/"))
+
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1"))
+        val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2"))
+        main_(arrayOf(H0, "chain", "accept", "/", h2))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3"))
+
+        // h0 -> h1 -> h2 -> h3
+        // h0 -> h1 -> h2 (t) -> h3 (x)
+
+        main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+
+        // this all to test an assertion
+    }
 }

@@ -408,7 +408,6 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
     var Nmax = 0
     var Nmin = 0
     val now = getNow()
-    //println("[recv] $now")
 
     // for each remote head
     val n1 = reader.readLineX().toInt()        // 1
@@ -433,7 +432,6 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
         // receive blocks
         val n2 = reader.readLineX().toInt()    // 5
         Nmax += n2
-        //println("[recv] $n2")
 
         xxx@for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock().copy(accepted = false) // 6
@@ -444,8 +442,6 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
                 continue
             }
 
-            //println("[recv] ${blk.hash}")
-
             if (
                 !chain.isAccepted(blk) &&
                 (
@@ -455,14 +451,10 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
                 )
             ) {
                 // quarentine noob/late block
-                // enqueue only if backs are ok (otherwise, back is also enqueued)
-                // TODO: when back was enqueued previously, the host should signal the peer
-                //  to avoid this situation (it may send many other wrong blocks)
-                if (chain.backsCheck(blk)) {
-                    chain.fsSaveBlock(ChainState.TINE, blk)
-                }
-                // otherwise just ignore
+                assert(chain.backsCheck(blk))
+                chain.fsSaveBlock(ChainState.TINE, blk)
             } else {
+                // chain block
                 var inc = 1
                 try {
                     chain.blockChain(blk)
