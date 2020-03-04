@@ -11,7 +11,6 @@ import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 import java.lang.Long.max
-import java.time.Instant
 import java.util.*
 import kotlin.collections.HashSet
 
@@ -160,12 +159,12 @@ class Daemon (host : Host) {
                             System.err.println("chain heads: ${chain.heads}")
                         }
                         "FC chain get" -> {
-                            val dir = reader.readLineX()
+                            val state = reader.readLineX().toChainState()
                             val hash = reader.readLineX()
-                            assert(dir == "blocks" || dir == "tines")
+                            assert(state == ChainState.BLOCK || state == ChainState.TINE)
 
                             val dec = chain.isSharedWithKey() || (chain.crypto is PubPvt && chain.crypto.pvt != null)
-                            val blk   = chain.loadBlock(dir,hash,dec)
+                            val blk   = chain.loadBlock(state,hash,dec)
                             val json  = blk.toJson()
 
                             assert(json.length <= Int.MAX_VALUE)
@@ -195,21 +194,21 @@ class Daemon (host : Host) {
                         "FC chain accept" -> {
                             val hash = reader.readLineX()
                             when {
-                                (chain.containsBlock("rems",hash)) -> {
-                                    val rem = chain.loadBlock("rems", hash, false)
+                                (chain.containsBlock(ChainState.REM,hash)) -> {
+                                    val rem = chain.loadBlock(ChainState.REM, hash, false)
                                     chain.blockChain(rem)
-                                    chain.remBlock("rems", rem.hash)
+                                    chain.remBlock(ChainState.REM, rem.hash)
                                     writer.writeLineX("true")
                                 }
-                                (chain.containsBlock("tines",hash)) -> {
-                                    val tine = chain.loadBlock("tines", hash, false)
+                                (chain.containsBlock(ChainState.TINE,hash)) -> {
+                                    val tine = chain.loadBlock(ChainState.TINE, hash, false)
                                     chain.blockChain(tine)
-                                    chain.remBlock("tines", tine.hash)
+                                    chain.remBlock(ChainState.TINE, tine.hash)
                                     writer.writeLineX("true")
                                 }
-                                (chain.containsBlock("blocks",hash)) -> {
-                                    val blk = chain.loadBlock("blocks", hash, false)
-                                    chain.saveBlock("blocks",blk.copy(accepted = true))
+                                (chain.containsBlock(ChainState.BLOCK,hash)) -> {
+                                    val blk = chain.loadBlock(ChainState.BLOCK, hash, false)
+                                    chain.saveBlock(ChainState.BLOCK,blk.copy(accepted = true))
                                     writer.writeLineX("true")
                                 }
                                 else  -> {
@@ -220,12 +219,12 @@ class Daemon (host : Host) {
                         "FC chain remove" -> {
                             val hash = reader.readLineX()
                             when {
-                                (chain.containsBlock("blocks",hash)) -> {
+                                (chain.containsBlock(ChainState.BLOCK,hash)) -> {
                                     chain.blockRemove(hash)
                                     writer.writeLineX("true")
                                 }
-                                (chain.containsBlock("tines",hash)) -> {
-                                    chain.moveBlock("tines", "rems", hash)
+                                (chain.containsBlock(ChainState.TINE,hash)) -> {
+                                    chain.moveBlock(ChainState.TINE, ChainState.REM, hash)
                                     writer.writeLineX("true")
                                 }
                                 else -> {
@@ -252,7 +251,7 @@ class Daemon (host : Host) {
                                 } else {
                                     if (refs_[0].hashIsBlock()) {
                                         // refs a post
-                                        val blk = chain.loadBlock("blocks", refs_[0], false)
+                                        val blk = chain.loadBlock(ChainState.BLOCK, refs_[0], false)
                                         val l1 = arrayOf(Like(like/2, LikeType.POST, refs_[0]))
                                         if (blk.sign == null)
                                             l1
@@ -273,7 +272,7 @@ class Daemon (host : Host) {
                                     BlockImmut (
                                         max (
                                             time.nowToTime(),
-                                            chain.heads.map { chain.loadBlock("blocks",it,false).immut.time }.max()!!
+                                            chain.heads.map { chain.loadBlock(ChainState.BLOCK,it,false).immut.time }.max()!!
                                                 // TODO: +1 prevents something that happened after to occur simultaneously (also, problem with TODO???)
                                         ),
                                         l,
@@ -361,7 +360,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
             }
             visited.add(hash)
 
-            val blk = chain.loadBlock("blocks", hash,false)
+            val blk = chain.loadBlock(ChainState.BLOCK, hash,false)
 
             writer.writeLineX(hash)                               // 2: asks if contains hash
             val has = reader.readLineX().toBoolean()    // 3: receives yes or no
@@ -381,7 +380,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
         val n2 = toSend.size
         while (toSend.isNotEmpty()) {
             val hash = toSend.pop()
-            val blk = chain.loadBlock("blocks", hash,false)
+            val blk = chain.loadBlock(ChainState.BLOCK, hash,false)
             blk.fronts.clear()
             writer.writeBytes(blk.toJson())          // 6
             writer.writeLineX("\n")
@@ -420,7 +419,7 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
             if (hash.isEmpty()) {                   // 4
                 break                               // nothing else to answer
             } else {
-                val has = chain.containsBlock("blocks",hash)
+                val has = chain.containsBlock(ChainState.BLOCK,hash)
                 writer.writeLineX(has.toString())   // 3: have or not block
             }
         }
@@ -454,7 +453,7 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
                 // TODO: when back was enqueued previously, the host should signal the peer
                 //  to avoid this situation (it may send many other wrong blocks)
                 if (chain.backsCheck(blk)) {
-                    chain.saveBlock("tines", blk)
+                    chain.saveBlock(ChainState.TINE, blk)
                 }
                 // otherwise just ignore
             } else {

@@ -7,7 +7,6 @@ import java.io.File
 import java.net.Socket
 import java.util.Base64
 import kotlin.io.println as output
-import kotlin.io.println as println
 
 val doc = """
 freechains
@@ -199,7 +198,7 @@ fun main_ (args: Array<String>) : String {
                         opts["get"] as Boolean -> {
                             writer.writeLineX("FC chain get")
                             writer.writeLineX(opts["<chain>"] as String)
-                            writer.writeLineX("tines")
+                            writer.writeLineX("TINE")
                             writer.writeLineX(opts["<hash>"] as String)
                             val json = reader.readAllBytes().toString(Charsets.UTF_8)
                             if (json.isEmpty()) {
@@ -230,7 +229,7 @@ fun main_ (args: Array<String>) : String {
                 opts["get"] as Boolean -> {
                     writer.writeLineX("FC chain get")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX("blocks")
+                    writer.writeLineX("BLOCK")
                     writer.writeLineX(opts["<hash>"] as Hash)
                     val json = reader.readAllBytes().toString(Charsets.UTF_8)
                     if (json.isEmpty()) {
