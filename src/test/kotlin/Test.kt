@@ -63,7 +63,6 @@ import kotlin.concurrent.thread
 
 val H   = BlockImmut(0, null,"",false, "", emptyArray(), emptyArray())
 val HC  = H.copy(encoding="utf8", encrypted=true)
-val BLK = Block(H,mutableListOf(),null, "")
 
 const val PVT0 = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
 const val PUB0 = "3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
@@ -147,8 +146,8 @@ class Tests {
     fun c1_post () {
         val host = Host_load("/tmp/freechains/tests/local/")
         val chain = host.joinChain("/", null)
-        val n1 = chain.blockNew(null,H)
-        val n2 = chain.blockNew(null, H)
+        val n1 = chain.blockNew(null, H,true)
+        val n2 = chain.blockNew(null, H,true)
         val n3 = chain.blockNew(null, H)
 
         var ok = false
@@ -185,8 +184,8 @@ class Tests {
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
         val src_chain = src.joinChain("/d3", Shared("secret"))
-        src_chain.blockNew(null, HC)
-        src_chain.blockNew(null, HC)
+        src_chain.blockNew(null, HC, true)
+        src_chain.blockNew(null, HC, true)
         thread { Daemon(src).daemon() }
 
         // DESTINY
@@ -212,12 +211,12 @@ class Tests {
         val h = Host_create("/tmp/freechains/tests/graph/")
         val chain = h.joinChain("/", Shared("secret"))
 
-        val ab0 = chain.blockNew(null, HC.copy(time=1*day))
-        chain.blockNew(null, HC.copy(time=2*day-1, payload="a1"))
-        val b1  = chain.blockNew(null, HC.copy(time=2*day, backs=arrayOf(ab0.hash)))
-        val ab2 = chain.blockNew(null, HC.copy(time=27*day))
-        chain.blockNew(null, HC.copy(time=28*day, backs=arrayOf(b1.hash)))
-        chain.blockNew(null, HC.copy(time=32*day))
+        val ab0 = chain.blockNew(null, HC.copy(time=1*day), true)
+        chain.blockNew(null, HC.copy(time=2*day-1, payload="a1"), true)
+        val b1  = chain.blockNew(null, HC.copy(time=2*day, backs=arrayOf(ab0.hash)), true)
+        val ab2 = chain.blockNew(null, HC.copy(time=27*day), true)
+        chain.blockNew(null, HC.copy(time=28*day, backs=arrayOf(b1.hash)), true)
+        chain.blockNew(null, HC.copy(time=32*day), true)
 
         /*
                       /-- (a1) --\
@@ -256,13 +255,13 @@ class Tests {
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
         val h1_chain = h1.joinChain("/xxx", null)
-        h1_chain.blockNew(null, H)
-        h1_chain.blockNew(null, H)
+        h1_chain.blockNew(null, H, true)
+        h1_chain.blockNew(null, H, true)
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
         val h2_chain = h2.joinChain("/xxx", null)
-        h2_chain.blockNew(null, H)
-        h2_chain.blockNew(null, H)
+        h2_chain.blockNew(null, H, true)
+        h2_chain.blockNew(null, H, true)
 
         Thread.sleep(100)
         thread { Daemon(h1).daemon() }
@@ -280,7 +279,7 @@ class Tests {
 
     @Test
     fun m1_args () {
-        //a_reset()
+        a_reset()
         main(arrayOf("host","create","/tmp/freechains/tests/M1/"))
         thread {
             main(arrayOf("host","start","/tmp/freechains/tests/M1/"))
@@ -291,7 +290,8 @@ class Tests {
         main(arrayOf("chain","genesis","/xxx"))
         main(arrayOf("chain","heads","/xxx"))
 
-        main(arrayOf("chain","post","/xxx","inline","utf8","aaa"))
+        val h1 = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa"))
+        main(arrayOf("chain","accept","/xxx",h1))
         main(arrayOf("chain","post","/xxx","file","utf8","/tmp/freechains/tests/M1/host"))
 
         main(arrayOf("chain","genesis","/xxx"))
@@ -503,23 +503,25 @@ class Tests {
 
         // first post
         val h1 = main_(arrayOf("chain","post","/xxx","inline","utf8","aaa","--time=0","--sign=chain"))
+        main_(arrayOf(H0,"chain","accept","/xxx",h1))
 
         // noob post
         val h2 = main_(arrayOf("chain","post","/xxx","inline","utf8","bbba","--time=0","--sign=$PVT1"))
+        main_(arrayOf(H0,"chain","accept","/xxx",h2))
 
         //main_(arrayOf("chain","like","/xxx","1",h1!!,"--time="+(24*hour-1).toString(),"--sign=$PVT1"))
         assert("30000" == main_(arrayOf("chain","like","get","/xxx",PUB0)))
         assert("0" == main_(arrayOf("chain","like","get","/xxx",PUB1)))
 
         // give to myself
-        assert("30000" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
+        assert("30000" == main_(arrayOf("--time="+(1*day+1).toString(),"chain","like","get","/xxx",PUB0)))
         main_(arrayOf("chain","like","post","/xxx","1000",h1,"--time="+(1*day).toString(),"--sign=$PVT0"))
-        assert("29500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
+        assert("29500" == main_(arrayOf("--time="+(1*day+1).toString(),"chain","like","get","/xxx",PUB0)))
 
         // give to other
-        val h3 = main_(arrayOf("chain","like","post","/xxx","1000",h2,"--time="+(1*day).toString(),"--sign=$PVT0"))
-        assert("28500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB0)))
-        assert("1500" == main_(arrayOf("--time="+(1*day).toString(),"chain","like","get","/xxx",PUB1)))
+        val h3 = main_(arrayOf("chain","like","post","/xxx","1000",h2,"--time="+(1*day+1).toString(),"--sign=$PVT0"))
+        assert("28500" == main_(arrayOf("--time="+(1*day+1).toString(),"chain","like","get","/xxx",PUB0)))
+        assert("1500" == main_(arrayOf("--time="+(1*day+1).toString(),"chain","like","get","/xxx",PUB1)))
 
         val h3_ = h3.split(" ")[0]
         main_(arrayOf("chain","like","post","/xxx","1000-",h3_,"--time="+(1*day+0).toString(),"--why="+h3_.substring(0,9),"--sign=$PVT1"))
@@ -540,10 +542,10 @@ class Tests {
         // I'm in the past, only the first, second has no reputation
         main_(arrayOf(H1,"host","now","0"))
         val n2 = main_(arrayOf(H0,"chain","send","/xxx","localhost:8331"))
-        assert(n2=="1 / 10")
+        assert(n2=="1 / 10") { n2 }
 
-        val tines = main_(arrayOf(H1,"chain","tine","list","/xxx"))
-        val t0 = tines.split("\n").let {
+        val ts0 = main_(arrayOf(H1,"chain","tine","list","/xxx"))
+        val t0 = ts0.split("\n").let {
             assert(it.size == 1)
             assert(it[0].startsWith("2_"))
             it[0]
@@ -581,13 +583,13 @@ class Tests {
         val hs3 = main_(arrayOf(H0,"chain","heads","/xxx"))
         assert(hs3.substring(0,3) == "10_")
 
-        val ts1 = main_(arrayOf(H0,"chain","tine","list","/xxx"))
-        val t1 = ts1.split("\n").let {
+        val ts11 = main_(arrayOf(H0,"chain","tine","list","/xxx"))
+        val t11 = ts11.split("\n").let {
             assert(it.size == 1)
             assert(it[0].startsWith("11_"))
             it[0]
         }
-        main_(arrayOf(H0,"chain","accept","/xxx",t1))
+        main_(arrayOf(H0,"chain","accept","/xxx",t11))
 
         // flush after 2h
         main_(arrayOf(H0,"host","now","${1*day+2*hour+1*seg}"))

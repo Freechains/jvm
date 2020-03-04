@@ -40,12 +40,13 @@ data class BlockImmut (
 
 @Serializable
 data class Block (
-    val immut  : BlockImmut,        // things to hash
-    val fronts : MutableList<Hash>, // front links (next blocks)
-    val sign   : Signature?,
-    val hash   : Hash               // hash of hashable
+    val immut    : BlockImmut,         // things to hash
+    val fronts   : MutableList<Hash>,  // front links (next blocks)
+    val sign     : Signature?,
+    val accepted : Boolean,
+    val hash     : Hash               // hash of hashable
 ) {
-    val time   : Long = getNow()    // local time
+    val time     : Long = getNow()     // local time
 }
 
 fun Array<Hash>.backsToHeight () : Int {
@@ -76,4 +77,8 @@ fun String.jsonToBlock (): Block {
 private fun Hash.toHeight () : Int {
     val (height,_) = this.split("_")
     return height.toInt()
+}
+
+fun Hash.hashIsBlock () : Boolean {
+    return this.contains('_')   // otherwise is pubkey
 }

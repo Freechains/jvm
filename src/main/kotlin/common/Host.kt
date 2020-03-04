@@ -46,6 +46,7 @@ fun Host.joinChain (name: String, crypto: Crypto?) : Chain {
         ),
         mutableListOf(),
         null,
+        true,
         chain.getGenesis()
     )
     chain.saveBlock("blocks",genesis)

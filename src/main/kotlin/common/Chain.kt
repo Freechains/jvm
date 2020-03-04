@@ -100,19 +100,14 @@ fun BlockImmut.toHash () : Hash {
 
 // NODE
 
-fun Chain.blockNew (sig_pvt: String?, h: BlockImmut) : Block {
+fun Chain.blockNew (sig_pvt: String?, imm: BlockImmut, acc: Boolean=false) : Block {
     // non-empty pre-set backs only used in tests
-    val backs = if (h.backs.isNotEmpty()) h.backs else
-        this.heads
-            .map    { this.loadBlock("blocks",it,false) }
-            //.filter { it.time <= getNow()-2*hour }
-            .map    { it.hash }
-            .toTypedArray()
+    val backs = if (imm.backs.isNotEmpty()) imm.backs else this.getHeads(imm)
 
-    assert(this.crypto !is Shared || h.encrypted)
-    val pay = if (h.encrypted) this.encrypt(h.payload) else h.payload
+    assert(this.crypto !is Shared || imm.encrypted)
+    val pay = if (imm.encrypted) this.encrypt(imm.payload) else imm.payload
 
-    val h_ = h.copy(payload=pay, backs=backs)
+    val h_ = imm.copy(payload=pay, backs=backs)
     val hash = h_.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
@@ -126,12 +121,52 @@ fun Chain.blockNew (sig_pvt: String?, h: BlockImmut) : Block {
         Signature(sig_hash, pvt.pvtToPub())
     }
 
-    val new = Block(h_, mutableListOf(), signature, hash)
+    val new = Block(h_, mutableListOf(), signature, (acc || h_.height==1), hash)
     this.blockChain(new)
     return new
 }
 
+fun Chain.getHeads (imm: BlockImmut) : Array<String> {
+    // a like must point back to post, this way,
+    // if the post is removed, so is the like
+    val liked =
+        if (imm.like != null && imm.like.ref.hashIsBlock()) {
+            val ref = this.loadBlock("blocks", imm.like.ref,false)
+            if (!this.isConsolidated(ref)) {
+                return arrayOf(ref.hash)    // liked still to be consolidated, point only to it
+            }
+            setOf<Hash>(ref.hash)           // liked consolidated, point to it and other heads
+        } else {
+            emptySet()                      // not a like, point only to heads
+        }
+
+    fun dns (hash: Hash) : List<Hash> {
+        return this.loadBlock("blocks",hash,false).let {
+            if (this.isConsolidated(it))
+                arrayListOf<Hash>(it.hash)
+            else
+                it.immut.backs.map(::dns).flatten()
+        }
+    }
+    return (liked + this.heads.toList().map(::dns).flatten().toSet()).toTypedArray()
+}
+
 // CHAIN BLOCK
+
+fun Chain.isConsolidated (blk: Block) : Boolean {
+    return when {
+        blk.accepted                        -> true
+        blk.time <= getNow() - 2 * hour     -> true
+        else -> blk.immut.like.let {
+            when {
+                (it == null)                -> false    // not a like
+                (! it.ref.hashIsBlock())    -> true     // like to pubkey
+                else ->                                 // like to block, only if consolidated
+                    this.isConsolidated(this.loadBlock("blocks",it.ref,false))
+            }
+        }
+    }
+}
 
 fun Chain.blockChain (blk: Block, asr: Boolean = true) {
     if (asr) {
@@ -191,7 +226,7 @@ private fun Chain.reheads (blk: Block) {
     for (back in blk.immut.backs) {
         this.heads.remove(back)
         val bk = this.loadBlock("blocks",back,false)
-        assert(!bk.fronts.contains(blk.hash))
+        assert(!bk.fronts.contains(blk.hash)) { bk.hash + " -> " + blk.hash }
         bk.fronts.add(blk.hash)
         bk.fronts.sort()
         this.saveBlock("blocks",bk)

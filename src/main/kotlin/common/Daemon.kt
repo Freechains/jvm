@@ -178,7 +178,7 @@ class Daemon (host : Host) {
                             val ref = reader.readLineX()
 
                             val likes =
-                                if (chain.containsBlock("blocks",ref)) {
+                                if (ref.hashIsBlock()) {
                                     chain.getPostRep(ref)
                                 } else {
                                     chain.getPubRep(ref, time.nowToTime())
@@ -194,13 +194,21 @@ class Daemon (host : Host) {
                         }
                         "FC chain accept" -> {
                             val hash = reader.readLineX()
-                            if (chain.containsBlock("tines",hash)) {
-                                val tine = chain.loadBlock("tines",hash,false)
-                                chain.blockChain(tine,true)
-                                chain.delTine(tine)
-                                writer.writeLineX("true")
-                            } else {
-                                writer.writeLineX("false")
+                            when {
+                                (chain.containsBlock("tines",hash)) -> {
+                                    val tine = chain.loadBlock("tines", hash, false)
+                                    chain.blockChain(tine, true)
+                                    chain.delTine(tine)
+                                    writer.writeLineX("true")
+                                }
+                                (chain.containsBlock("blocks",hash)) -> {
+                                    val blk = chain.loadBlock("blocks", hash, false)
+                                    chain.saveBlock("blocks",blk.copy(accepted = true))
+                                    writer.writeLineX("true")
+                                }
+                                else  -> {
+                                    writer.writeLineX("false")
+                                }
                             }
                         }
                         "FC chain post" -> {
@@ -220,7 +228,7 @@ class Daemon (host : Host) {
                                 if (refs_.isEmpty()) {
                                     arrayOf<Like?>(null)
                                 } else {
-                                    if (chain.containsBlock("blocks",refs_[0])) {
+                                    if (refs_[0].hashIsBlock()) {
                                         // refs a post
                                         val blk = chain.loadBlock("blocks", refs_[0], false)
                                         val l1 = arrayOf(Like(like/2, LikeType.POST, refs_[0]))
@@ -244,6 +252,7 @@ class Daemon (host : Host) {
                                         max (
                                             time.nowToTime(),
                                             chain.heads.map { chain.loadBlock("blocks",it,false).immut.time }.max()!!
+                                                // TODO: +1 prevents something that happened after to occur simultaneously (also, problem with TODO???)
                                         ),
                                         l,
                                         cods[0],
@@ -255,6 +264,7 @@ class Daemon (host : Host) {
                                 )
                                 hashes.add(blk.hash)
                             }
+                            println("post: $hashes")
 
                             val ret = hashes.joinToString(" ")
                             writer.writeLineX(ret)
@@ -404,53 +414,60 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
         //println("[recv] $n2")
 
         xxx@for (j in 1..n2) {
-            val blk = reader.readLinesX().jsonToBlock() // 6
+            val blk = reader.readLinesX().jsonToBlock().copy(accepted = false) // 6
             //println("[recv] ${blk.hash}")
 
             fun checkRepTime () : Boolean {
                 //println("${chain.crypto is Shared} // ${chain.fromOwner(blk)}")
                 return ! (
+                    blk.immut.height == 1       ||  // first block always pass
                     chain.crypto is Shared      ||  // shared key, only trusted hosts
                     chain.fromOwner(blk)        ||  // owner sig always pass
-                    blk.immut.like != null   ||  // likes always pass
-                    blk.immut.height == 1        // first block always pass
+                    chain.isConsolidated(blk)       // like to consolidated block
                 )
             }
 
             fun failRepTime () : Boolean {
                 return (
-                    blk.immut.time <= now-T2H_past           ||  // too late
-                    blk.sign == null                       ||  // no sig
-                    chain.getPubRep(blk.sign.pub,now) <= 0     // no rep
+                    blk.immut.time <= now-T2H_past          ||  // too late
+                    blk.sign == null                        ||  // no sig
+                    chain.getPubRep(blk.sign.pub,now) <= 0      // no rep
                 )
             }
 
             //println("${blk.hash} / ${blk.height} / ${blk.hashable.time}")
             when {
                 // refuse block from the future
-                (blk.immut.time > now+T30M_future) ->
+                (blk.immut.time > now+T30M_future) -> {
+                    println("fut ${blk.hash}")
                     continue@xxx
+                }
 
                 // refuse blocks too old
-                (blk.immut.time < now-T120_past) ->
+                (blk.immut.time < now-T120_past) -> {
+                    println("old ${blk.hash}")
                     continue@xxx
+                }
 
                 // refuse blocks not signed by owner (if oonly is set)
                 (chain.crypto is PubPvt && chain.crypto.oonly && !chain.fromOwner(blk)) ->
                     continue@xxx
 
-                // enqueue noob/late block
+                // quarentine noob/late block
                 (checkRepTime() && failRepTime()) -> {
+                    println("fail ${blk.hash}")
                     // enqueue only if backs are ok (otherwise, back is also enqueued)
                     // TODO: when back was enqueued previously, the host should signal the peer
                     //  to avoid this situation (it may send many other wrong blocks)
                     if (chain.backsCheck(blk)) {
+                        println("tine ${blk.hash}")
                         chain.saveBlock("tines",blk)
                     }
                     // otherwise just ignore
                     continue@xxx
                 }
             }
+            println("pass ${blk.hash}")
 
             var inc = 1
             try {
