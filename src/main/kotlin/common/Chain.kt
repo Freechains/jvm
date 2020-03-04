@@ -153,7 +153,7 @@ fun Chain.getHeads (imm: BlockImmut) : Array<String> {
     // if the post is removed, so is the like
     val liked =
         if (imm.like != null && imm.like.ref.hashIsBlock()) {
-            val ref = this.loadBlock(ChainState.BLOCK, imm.like.ref,false)
+            val ref = this.fsLoadBlock(ChainState.BLOCK, imm.like.ref,false)
             if (!this.isConsolidated(ref)) {
                 return arrayOf(ref.hash)    // liked still to be consolidated, point only to it
             }
@@ -163,7 +163,7 @@ fun Chain.getHeads (imm: BlockImmut) : Array<String> {
         }
 
     fun dns (hash: Hash) : List<Hash> {
-        return this.loadBlock(ChainState.BLOCK,hash,false).let {
+        return this.fsLoadBlock(ChainState.BLOCK,hash,false).let {
             if (this.isConsolidated(it))
                 arrayListOf<Hash>(it.hash)
             else
@@ -187,33 +187,33 @@ fun Chain.isConsolidated (blk: Block) : Boolean {
                 (it == null)                -> false    // not a like
                 (! it.ref.hashIsBlock())    -> true     // like to pubkey
                 else ->                                 // like to block, only if consolidated
-                    this.isConsolidated(this.loadBlock(ChainState.BLOCK,it.ref,false))
+                    this.isConsolidated(this.fsLoadBlock(ChainState.BLOCK,it.ref,false))
             }
         }
     }
 }
 
 fun Chain.blockChain (blk: Block) {
-    this.saveBlock(ChainState.BLOCK,blk)
+    this.fsSaveBlock(ChainState.BLOCK,blk)
     this.heads.add(blk.hash)
     this.reBacksFronts(blk)
-    this.save()
+    this.fsSave()
 }
 
 private fun Chain.reBacksFronts (blk: Block) {
     blk.immut.backs.forEach {
         this.heads.remove(it)
-        this.loadBlock(ChainState.BLOCK,it,false).let {
+        this.fsLoadBlock(ChainState.BLOCK,it,false).let {
             assert(!it.fronts.contains(blk.hash)) { it.hash + " -> " + blk.hash }
             it.fronts.add(blk.hash)
             it.fronts.sort()
-            this.saveBlock(ChainState.BLOCK,it)
+            this.fsSaveBlock(ChainState.BLOCK,it)
         }
     }
 }
 
 fun Chain.blockRemove (hash: Hash) {
-    val blk = this.loadBlock(ChainState.BLOCK, hash, false)
+    val blk = this.fsLoadBlock(ChainState.BLOCK, hash, false)
 
     // remove all my fronts as well
     blk.fronts.forEach {
@@ -231,24 +231,24 @@ fun Chain.blockRemove (hash: Hash) {
 
     // refronts: remove myself as front of all my backs
     blk.immut.backs.forEach {
-        this.loadBlock(ChainState.BLOCK, it, false).let {
+        this.fsLoadBlock(ChainState.BLOCK, it, false).let {
             it.fronts.remove(hash)
-            this.saveBlock(ChainState.BLOCK, it)
+            this.fsSaveBlock(ChainState.BLOCK, it)
         }
     }
 
     blk.fronts.clear()
-    this.saveBlock(ChainState.REM, blk)
-    this.remBlock(ChainState.BLOCK, blk.hash)
-    this.save()
+    this.fsSaveBlock(ChainState.REM, blk)
+    this.fsRemBlock(ChainState.BLOCK, blk.hash)
+    this.fsSave()
 }
 
 fun Chain.backsCheck (blk: Block) : Boolean {
     for (back in blk.immut.backs) {
-        if (! this.containsBlock(ChainState.BLOCK,back)) {
+        if (! this.fsExistsBlock(ChainState.BLOCK,back)) {
             return false    // all backs must exist
         }
-        val bk = this.loadBlock(ChainState.BLOCK,back,false)
+        val bk = this.fsLoadBlock(ChainState.BLOCK,back,false)
         if (bk.immut.time > blk.immut.time) {
             return false    // all backs must be older
         }
@@ -273,7 +273,7 @@ fun Chain.blockAssert (blk: Block) {
 
     val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
     if (blk.immut.backs.contains(gen)) {
-        val b = this.loadBlock(ChainState.BLOCK, gen,false)
+        val b = this.fsLoadBlock(ChainState.BLOCK, gen,false)
         assert(b.fronts.isEmpty() || b.fronts[0]==blk.hash) { "genesis is already referred" }
     }
 
@@ -368,11 +368,11 @@ fun Chain.getPostRep (hash: String) : Int {
 }
 
 fun Chain.getPubRep (pub: String, now: Long) : Int {
-    val gen = this.loadBlock(ChainState.BLOCK, this.getGenesis(),false).fronts.let {
+    val gen = this.fsLoadBlock(ChainState.BLOCK, this.getGenesis(),false).fronts.let {
         if (it.isEmpty())
             LK30_max
         else
-            this.loadBlock(ChainState.BLOCK, it[0],false).let {
+            this.fsLoadBlock(ChainState.BLOCK, it[0],false).let {
                 when {
                     (it.sign == null) -> 0
                     (it.sign.pub == pub) -> LK30_max
@@ -431,7 +431,7 @@ internal fun Chain.traverseFromHeads (
 
     while (pending.isNotEmpty()) {
         val hash = pending.removeFirst()
-        val blk = this.loadBlock(ChainState.BLOCK, hash,false)
+        val blk = this.fsLoadBlock(ChainState.BLOCK, hash,false)
         if (!f(blk)) {
             break
         }
@@ -448,7 +448,7 @@ internal fun Chain.traverseFromHeads (
 
 // FILE SYSTEM
 
-fun Chain.save () {
+fun Chain.fsSave () {
     val dir = File(this.root + this.name + "/blocks/")
     if (!dir.exists()) {
         dir.mkdirs()
@@ -458,27 +458,25 @@ fun Chain.save () {
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
 }
 
-// BLOCK
-
-fun Chain.loadTines () : List<Hash> {
+fun Chain.fsLoadTines () : List<Hash> {
     return File(this.root + this.name + "/tines/").list()!!
         .map { it.removeSuffix(".blk") }
 }
 
-fun Chain.saveBlock (st: ChainState, blk: Block) {
+fun Chain.fsSaveBlock (st: ChainState, blk: Block) {
     File(this.root + this.name + st.toDir() + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
 
-fun Chain.moveBlock (from: ChainState, to: ChainState, hash: Hash) {
+fun Chain.fsMoveBlock (from: ChainState, to: ChainState, hash: Hash) {
     File(this.root + this.name + "/" + from.toDir() + "/" + hash + ".blk")
         .renameTo(File(this.root + this.name + "/" + to.toDir() + "/" + hash + ".blk"))
 }
 
-fun Chain.remBlock (state: ChainState, hash: Hash) {
+fun Chain.fsRemBlock (state: ChainState, hash: Hash) {
     assert(File(this.root + this.name + state.toDir() + hash + ".blk").delete()) { "tine is not found" }
 }
 
-fun Chain.loadBlock (state: ChainState, hash: Hash, decrypt: Boolean) : Block {
+fun Chain.fsLoadBlock (state: ChainState, hash: Hash, decrypt: Boolean) : Block {
     val blk = File(this.root + this.name + state.toDir() + hash + ".blk").readText().jsonToBlock()
     if (!decrypt || !blk.immut.encrypted) {
         return blk
@@ -491,7 +489,7 @@ fun Chain.loadBlock (state: ChainState, hash: Hash, decrypt: Boolean) : Block {
     return blk.copy(immut = blk.immut.copy(encrypted=!succ, payload=pay))
 }
 
-fun Chain.containsBlock (state: ChainState, hash: Hash) : Boolean {
+fun Chain.fsExistsBlock (state: ChainState, hash: Hash) : Boolean {
     if (this.hash == hash) {
         return true
     } else {

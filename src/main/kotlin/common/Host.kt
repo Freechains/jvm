@@ -33,7 +33,7 @@ fun Host.joinChain (name: String, crypto: Crypto?) : Chain {
     val chain = Chain(this.root+"/chains/", name, crypto)
     val file = File(chain.root + chain.name + "/" + "chain")
     assert(!file.exists()) { "chain already exists: $chain"}
-    chain.save()
+    chain.fsSave()
     val genesis = Block (
         BlockImmut (
             0,
@@ -49,7 +49,7 @@ fun Host.joinChain (name: String, crypto: Crypto?) : Chain {
         true,
         chain.getGenesis()
     )
-    chain.saveBlock(ChainState.BLOCK,genesis)
+    chain.fsSaveBlock(ChainState.BLOCK,genesis)
     return file.readText().fromJsonToChain()
 }
 
@@ -60,7 +60,7 @@ fun Host.loadChain (name: String) : Chain {
 
 // FILE SYSTEM
 
-fun Host.save () {
+fun Host.fsSave () {
     File(this.root + "/host").writeText(this.toJson()+"\n")
 }
 
@@ -81,7 +81,7 @@ fun Host_create (dir: String, port: Int = 8330) : Host {
     assert(!fs.exists()) { "directory already exists: " + root }
     fs.mkdirs()
     val host = Host(root, port)
-    host.save()
+    host.fsSave()
     return host
 }
 

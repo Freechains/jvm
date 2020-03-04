@@ -140,13 +140,13 @@ class Tests {
         val h = Host_create("/tmp/freechains/tests/local/")
         val c1 = h.joinChain("/uerj", Shared("secret"))
         //println("Chain /uerj: ${chain1.toHash()}")
-        c1.save()
+        c1.fsSave()
 
         val c2 = h.loadChain(c1.name)
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
         val blk = c2.blockNew(null, HC.now())
-        val blk2 = c2.loadBlock(ChainState.BLOCK, blk.hash, false)
+        val blk2 = c2.fsLoadBlock(ChainState.BLOCK, blk.hash, false)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
     }
 
@@ -167,12 +167,12 @@ class Tests {
         }
         assert(ok)
 
-        assert(chain.containsBlock(ChainState.BLOCK, chain.getGenesis()))
+        assert(chain.fsExistsBlock(ChainState.BLOCK, chain.getGenesis()))
         //println(n1.toHeightHash())
-        assert(chain.containsBlock(ChainState.BLOCK, n1.hash))
-        assert(chain.containsBlock(ChainState.BLOCK, n2.hash))
-        assert(chain.containsBlock(ChainState.BLOCK, n3.hash))
-        assert(!chain.containsBlock(ChainState.BLOCK, "2_........"))
+        assert(chain.fsExistsBlock(ChainState.BLOCK, n1.hash))
+        assert(chain.fsExistsBlock(ChainState.BLOCK, n2.hash))
+        assert(chain.fsExistsBlock(ChainState.BLOCK, n3.hash))
+        assert(!chain.fsExistsBlock(ChainState.BLOCK, "2_........"))
     }
 
     @Test
@@ -249,7 +249,7 @@ class Tests {
 
         fun Chain.getMaxTime(): Long {
             return this.heads
-                .map { this.loadBlock(ChainState.BLOCK, it, false) }
+                .map { this.fsLoadBlock(ChainState.BLOCK, it, false) }
                 .map { it.immut.time }
                 .max()!!
         }
@@ -427,7 +427,7 @@ class Tests {
         //println(c1.root)
         val n1 = c1.blockNew(null, HC.copy(payload = "aaa"))
         //println(n1.hash)
-        val n2 = c1.loadBlock(ChainState.BLOCK, n1.hash, true)
+        val n2 = c1.fsLoadBlock(ChainState.BLOCK, n1.hash, true)
         assert(n2.immut.payload == "aaa")
         //Thread.sleep(500)
     }
