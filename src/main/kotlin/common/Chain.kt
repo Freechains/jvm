@@ -52,9 +52,9 @@ fun ChainState.toDir () : String {
 
 fun String.toChainState () : ChainState {
     return when (this) {
-        "BLOCK" -> ChainState.BLOCK
-        "TINE"  -> ChainState.TINE
-        "REM"   -> ChainState.REM
+        "block" -> ChainState.BLOCK
+        "tine"  -> ChainState.TINE
+        "rem"   -> ChainState.REM
         else    -> error("bug found")
     }
 }

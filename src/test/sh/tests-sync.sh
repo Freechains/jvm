@@ -34,8 +34,8 @@ freechains --host=localhost:8401 chain send / localhost:8400
 
 ! diff -q -I time $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 
-freechains --host=localhost:8400 chain accept / `freechains --host=localhost:8400 chain tine list /`
-freechains --host=localhost:8401 chain accept / `freechains --host=localhost:8401 chain tine list /`
+freechains --host=localhost:8400 chain accept / `freechains --host=localhost:8400 chain list / tine`
+freechains --host=localhost:8401 chain accept / `freechains --host=localhost:8401 chain list / tine`
 
 freechains --host=localhost:8400 host now 8000000
 freechains --host=localhost:8401 host now 8000000

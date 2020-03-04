@@ -228,7 +228,7 @@ fun main_ (args: Array<String>) : String {
                 opts["get"] as Boolean -> {
                     writer.writeLineX("FC chain get")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX("BLOCK")
+                    writer.writeLineX("block")
                     writer.writeLineX(opts["<hash>"] as Hash)
                     val json = reader.readAllBytes().toString(Charsets.UTF_8)
                     if (json.isEmpty()) {

@@ -616,7 +616,7 @@ class Tests {
         val n2 = main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331"))
         assert(n2 == "1 / 10") { n2 }
 
-        val ts0 = main_(arrayOf(H1, "chain", "tine", "list", "/xxx"))
+        val ts0 = main_(arrayOf(H1, "chain", "state", "list", "/xxx", "tine"))
         val t0 = ts0.split("\n").let {
             assert(it.size == 1)
             assert(it[0].startsWith("2_"))
@@ -656,7 +656,7 @@ class Tests {
         val hs3 = main_(arrayOf(H0, "chain", "heads", "/xxx"))
         assert(hs3.substring(0, 3) == "10_")
 
-        val ts11 = main_(arrayOf(H0, "chain", "tine", "list", "/xxx"))
+        val ts11 = main_(arrayOf(H0, "chain", "state", "list", "/xxx", "tine"))
         val t11 = ts11.split("\n").let {
             assert(it.size == 1)
             assert(it[0].startsWith("11_"))
@@ -677,13 +677,13 @@ class Tests {
         main_(arrayOf(H0, "host", "now", "${1 * day + 4 * hour + 2 * seg}"))
 
         //main_(arrayOf(H0,"host","flush"))
-        val ts2 = main_(arrayOf(H0, "chain", "tine", "list", "/xxx"))
+        val ts2 = main_(arrayOf(H0, "chain", "state", "list", "/xxx", "tine"))
         val t2 = ts2.split("\n").let {
             assert(it.size == 1)
             assert(it[0].startsWith("12_"))
             it[0]
         }
-        val b2 = main_(arrayOf(H0, "chain", "tine", "get", "/xxx", t2)).jsonToBlock()
+        val b2 = main_(arrayOf(H0, "chain", "state", "get", "/xxx", t2, "tine")).jsonToBlock()
         assert(b2.immut.payload == "no sig")
         main_(arrayOf(H0, "chain", "accept", "/xxx", t2))
         val hs5 = main_(arrayOf(H0, "chain", "heads", "/xxx"))
