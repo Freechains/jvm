@@ -156,7 +156,7 @@ fun Chain.getHeads (imm: BlockImmut) : Array<String> {
 fun Chain.isConsolidated (blk: Block) : Boolean {
     return when {
         blk.accepted                        -> true
-        blk.time <= getNow() - 2 * hour     -> true
+        blk.time <= getNow() - 2*hour       -> true     // old enough
         else -> blk.immut.like.let {
             when {
                 (it == null)                -> false    // not a like
@@ -173,18 +173,62 @@ fun Chain.blockChain (blk: Block, asr: Boolean = true) {
         this.blockAssert(blk)       // skip for testing purposes
     }
     this.saveBlock("blocks",blk)
-    this.reheads(blk)
+    this.heads.add(blk.hash)
+    this.reBacksFronts(blk)
+    this.save()
+}
+
+private fun Chain.reBacksFronts (blk: Block) {
+    blk.immut.backs.forEach {
+        this.heads.remove(it)
+        this.loadBlock("blocks",it,false).let {
+            assert(!it.fronts.contains(blk.hash)) { it.hash + " -> " + blk.hash }
+            it.fronts.add(blk.hash)
+            it.fronts.sort()
+            this.saveBlock("blocks",it)
+        }
+    }
+}
+
+fun Chain.blockRemove (hash: Hash) {
+    val blk = this.loadBlock("blocks", hash, false)
+
+    // remove all my fronts as well
+    blk.fronts.forEach {
+        this.blockRemove(it)
+    }
+
+    // reheads: remove myself // add all backs
+    if (this.heads.contains(hash)) {
+        this.heads.remove(hash)
+        blk.immut.backs.forEach {
+            assert(!this.heads.contains(it))
+            this.heads.add(it)
+        }
+    }
+
+    // refronts: remove myself as front of all my backs
+    blk.immut.backs.forEach {
+        this.loadBlock("blocks", it, false).let {
+            it.fronts.remove(hash)
+            this.saveBlock("blocks", it)
+        }
+    }
+
+    blk.fronts.clear()
+    this.saveBlock("rems", blk)
+    this.remBlock("blocks", blk.hash)
     this.save()
 }
 
 fun Chain.backsCheck (blk: Block) : Boolean {
     for (back in blk.immut.backs) {
         if (! this.containsBlock("blocks",back)) {
-            return false
+            return false    // all backs must exist
         }
         val bk = this.loadBlock("blocks",back,false)
         if (bk.immut.time > blk.immut.time) {
-            return false
+            return false    // all backs must be older
         }
     }
     return true
@@ -218,18 +262,6 @@ fun Chain.blockAssert (blk: Block) {
         val msg = lazySodium.bytes(blk.hash)
         val key = Key.fromHexString(blk.sign.pub).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
-    }
-}
-
-private fun Chain.reheads (blk: Block) {
-    this.heads.add(blk.hash)
-    for (back in blk.immut.backs) {
-        this.heads.remove(back)
-        val bk = this.loadBlock("blocks",back,false)
-        assert(!bk.fronts.contains(blk.hash)) { bk.hash + " -> " + blk.hash }
-        bk.fronts.add(blk.hash)
-        bk.fronts.sort()
-        this.saveBlock("blocks",bk)
     }
 }
 
@@ -392,6 +424,7 @@ fun Chain.save () {
     val dir = File(this.root + this.name + "/blocks/")
     if (!dir.exists()) {
         dir.mkdirs()
+        File(this.root + this.name + "/rems/").mkdirs()
         File(this.root + this.name + "/tines/").mkdirs()
     }
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
@@ -408,8 +441,13 @@ fun Chain.saveBlock (dir: String, blk: Block) {
     File(this.root + this.name + "/" + dir + "/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
 
-fun Chain.delTine (blk: Block) {
-    assert(File(this.root + this.name + "/tines/" + blk.hash + ".blk").delete()) { "tine is not found" }
+fun Chain.moveBlock (from: String, to: String, hash: Hash) {
+    File(this.root + this.name + "/" + from + "/" + hash + ".blk")
+        .renameTo(File(this.root + this.name + "/" + to + "/" + hash + ".blk"))
+}
+
+fun Chain.remBlock (dir: String, hash: Hash) {
+    assert(File(this.root + this.name + "/" + dir + "/" + hash + ".blk").delete()) { "tine is not found" }
 }
 
 fun Chain.loadBlock (dir: String, hash: Hash, decrypt: Boolean) : Block {

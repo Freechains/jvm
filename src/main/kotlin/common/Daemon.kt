@@ -195,10 +195,16 @@ class Daemon (host : Host) {
                         "FC chain accept" -> {
                             val hash = reader.readLineX()
                             when {
+                                (chain.containsBlock("rems",hash)) -> {
+                                    val rem = chain.loadBlock("rems", hash, false)
+                                    chain.blockChain(rem, true)
+                                    chain.remBlock("rems", rem.hash)
+                                    writer.writeLineX("true")
+                                }
                                 (chain.containsBlock("tines",hash)) -> {
                                     val tine = chain.loadBlock("tines", hash, false)
                                     chain.blockChain(tine, true)
-                                    chain.delTine(tine)
+                                    chain.remBlock("tines", tine.hash)
                                     writer.writeLineX("true")
                                 }
                                 (chain.containsBlock("blocks",hash)) -> {
@@ -207,6 +213,22 @@ class Daemon (host : Host) {
                                     writer.writeLineX("true")
                                 }
                                 else  -> {
+                                    writer.writeLineX("false")
+                                }
+                            }
+                        }
+                        "FC chain remove" -> {
+                            val hash = reader.readLineX()
+                            when {
+                                (chain.containsBlock("blocks",hash)) -> {
+                                    chain.blockRemove(hash)
+                                    writer.writeLineX("true")
+                                }
+                                (chain.containsBlock("tines",hash)) -> {
+                                    chain.moveBlock("tines", "rems", hash)
+                                    writer.writeLineX("true")
+                                }
+                                else -> {
                                     writer.writeLineX("false")
                                 }
                             }
@@ -430,17 +452,14 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
                 )
             }
 
-            //println("${blk.hash} / ${blk.height} / ${blk.hashable.time}")
             when {
                 // refuse block from the future
                 (blk.immut.time > now+T30M_future) -> {
-                    println("fut ${blk.hash}")
                     continue@xxx
                 }
 
                 // refuse blocks too old
                 (blk.immut.time < now-T120_past) -> {
-                    println("old ${blk.hash}")
                     continue@xxx
                 }
 
@@ -450,19 +469,16 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
 
                 // quarentine noob/late block
                 (checkRepTime() && failRepTime()) -> {
-                    println("fail ${blk.hash}")
                     // enqueue only if backs are ok (otherwise, back is also enqueued)
                     // TODO: when back was enqueued previously, the host should signal the peer
                     //  to avoid this situation (it may send many other wrong blocks)
                     if (chain.backsCheck(blk)) {
-                        println("tine ${blk.hash}")
                         chain.saveBlock("tines",blk)
                     }
                     // otherwise just ignore
                     continue@xxx
                 }
             }
-            println("pass ${blk.hash}")
 
             var inc = 1
             try {
