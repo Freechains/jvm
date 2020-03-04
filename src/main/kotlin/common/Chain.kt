@@ -154,7 +154,7 @@ fun Chain.getHeads (imm: BlockImmut) : Array<String> {
     val liked =
         if (imm.like != null && imm.like.ref.hashIsBlock()) {
             val ref = this.fsLoadBlock(ChainState.BLOCK, imm.like.ref,false)
-            if (!this.isConsolidated(ref)) {
+            if (!this.isAcceptedAlsoByTime(ref)) {
                 return arrayOf(ref.hash)    // liked still to be consolidated, point only to it
             }
             setOf<Hash>(ref.hash)           // liked consolidated, point to it and other heads
@@ -164,7 +164,7 @@ fun Chain.getHeads (imm: BlockImmut) : Array<String> {
 
     fun dns (hash: Hash) : List<Hash> {
         return this.fsLoadBlock(ChainState.BLOCK,hash,false).let {
-            if (this.isConsolidated(it))
+            if (this.isAcceptedAlsoByTime(it))
                 arrayListOf<Hash>(it.hash)
             else
                 it.immut.backs.map(::dns).flatten()
@@ -175,7 +175,18 @@ fun Chain.getHeads (imm: BlockImmut) : Array<String> {
 
 // CHAIN BLOCK
 
-fun Chain.isConsolidated (blk: Block) : Boolean {
+fun Chain.isAcceptedAlsoByTime (blk: Block) : Boolean {
+    // if also accepted by time, we are sure that all backs are also accepted (since they will have smaller time)
+    return this.isAccepted(blk) &&
+            (
+                blk.time <= getNow()-T2H_past   ||
+                blk.immut.backs.all {
+                    this.isAcceptedAlsoByTime(this.fsLoadBlock(ChainState.BLOCK, it, false))
+                }
+            )
+}
+
+fun Chain.isAccepted (blk: Block) : Boolean {
     return when {
         blk.immut.height <= 1               -> true     // first two blocks
         blk.accepted                        -> true     // manually accepted
@@ -187,7 +198,7 @@ fun Chain.isConsolidated (blk: Block) : Boolean {
                 (it == null)                -> false    // not a like
                 (! it.ref.hashIsBlock())    -> true     // like to pubkey
                 else ->                                 // like to block, only if consolidated
-                    this.isConsolidated(this.fsLoadBlock(ChainState.BLOCK,it.ref,false))
+                    this.isAccepted(this.fsLoadBlock(ChainState.BLOCK,it.ref,false))
             }
         }
     }
@@ -244,13 +255,14 @@ fun Chain.blockRemove (hash: Hash) {
 }
 
 fun Chain.backsCheck (blk: Block) : Boolean {
-    for (back in blk.immut.backs) {
-        if (! this.fsExistsBlock(ChainState.BLOCK,back)) {
-            return false    // all backs must exist
+    blk.immut.backs.forEach {
+        if (! this.fsExistsBlock(ChainState.BLOCK,it)) {
+            return false        // all backs must exist
         }
-        val bk = this.fsLoadBlock(ChainState.BLOCK,back,false)
-        if (bk.immut.time > blk.immut.time) {
-            return false    // all backs must be older
+        this.fsLoadBlock(ChainState.BLOCK,it,false).let {
+            if (it.immut.time > blk.immut.time) {
+                return false    // all backs must be older
+            }
         }
     }
     return true

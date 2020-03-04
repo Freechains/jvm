@@ -442,7 +442,7 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
             //println("[recv] ${blk.hash}")
 
             if (
-                !chain.isConsolidated(blk) &&
+                !chain.isAccepted(blk) &&
                 (
                     blk.immut.time <= now-T2H_past          ||  // too late
                     blk.sign == null                        ||  // no sig

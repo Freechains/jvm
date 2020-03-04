@@ -782,4 +782,36 @@ class Tests {
         // h0 -> h12 -> h22
         //    -> h11
     }
+
+    @Test
+    fun m10_cons() {
+        a_reset()
+
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M100/"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M100/")) }
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M101/", "8331"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M101/")) }
+        Thread.sleep(100)
+        main(arrayOf(H0, "chain", "join", "/", "pubpvt", PUB0, PVT0))
+        main(arrayOf(H1, "chain", "join", "/", "pubpvt", PUB0))
+
+        val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1", "--sign=$PVT1"))
+        val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2", "--sign=$PVT1"))
+        main_(arrayOf(H0, "chain", "accept", "/", h2))
+        val h3 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3", "--sign=$PVT0"))
+        val t1 = main_(arrayOf(H0, "chain", "heads", "/"))
+        assert(t1.contains(h3) && !t1.contains(h2) && !t1.contains(h1))
+
+        // h2 will not be accepted, even if h3 is
+        // so, h4, will be put in front of h1
+
+        main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+        val h4 = main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h4"))
+        assert(h4.startsWith("2_"))
+
+        main_(arrayOf(H1, "chain", "accept", "/", h2))
+        main_(arrayOf(H1, "chain", "accept", "/", h4))
+        val h5 = main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h5"))
+        assert(h5.startsWith("4_"))
+    }
 }
