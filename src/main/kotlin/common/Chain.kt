@@ -225,7 +225,7 @@ private fun Chain.reBacksFronts (blk: Block) {
     }
 }
 
-fun Chain.blockRemove (hash: Hash) {
+fun Chain.blockRemove (hash: Hash): Array<Hash> {
     val blk = this.fsLoadBlock(ChainState.BLOCK, hash, false)
 
     // remove all my fronts as well
@@ -254,6 +254,8 @@ fun Chain.blockRemove (hash: Hash) {
     this.fsSaveBlock(ChainState.REM, blk)
     this.fsRemBlock(ChainState.BLOCK, blk.hash)
     this.fsSave()
+
+    return blk.immut.backs
 }
 
 fun Chain.backsCheck (blk: Block) : Boolean {

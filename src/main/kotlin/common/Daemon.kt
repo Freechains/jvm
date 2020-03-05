@@ -161,7 +161,7 @@ class Daemon (host : Host) {
                         "FC chain get" -> {
                             val state = reader.readLineX().toChainState()
                             val hash = reader.readLineX()
-                            assert(state == ChainState.BLOCK || state == ChainState.TINE)
+                            assert(state != ChainState.WANT)
 
                             val dec = chain.isSharedWithKey() || (chain.crypto is PubPvt && chain.crypto.pvt != null)
                             val blk   = chain.fsLoadBlock(state,hash,dec)
@@ -221,15 +221,16 @@ class Daemon (host : Host) {
                             val hash = reader.readLineX()
                             when {
                                 (chain.fsExistsBlock(ChainState.BLOCK,hash)) -> {
-                                    chain.blockRemove(hash)
-                                    writer.writeLineX("true")
+                                    val heads = chain.blockRemove(hash)
+                                    heads.forEach { writer.writeLineX(it) }
+                                    writer.writeLineX("")
                                 }
                                 (chain.fsExistsBlock(ChainState.TINE,hash)) -> {
                                     chain.fsMoveBlock(ChainState.TINE, ChainState.REM, hash)
-                                    writer.writeLineX("true")
+                                    writer.writeLineX("")
                                 }
                                 else -> {
-                                    writer.writeLineX("false")
+                                    writer.writeLineX("")
                                 }
                             }
                         }

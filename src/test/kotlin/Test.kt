@@ -24,7 +24,10 @@ import kotlin.concurrent.thread
  *                                reps             28-02    29-02
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1453/1366 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 KB
+ *  - usar espacos em vez de \n nos retornos de FC
  *  - Simulation.kt
+ *  - BUGS
+ *    - none
  *  - HOST: "create" receives pub/pvt args
  *    - creates pvt chain oo (for logs)
  *    - join reputation system (evaluate continue@xxx)
@@ -46,14 +49,14 @@ import kotlin.concurrent.thread
  *  - QUARANTINE
  *    - signal remote as soon as local detects the first tine in the chain (to avoid many others in the same chain)
  *    - limit tines per IP
- *  - BUGS
- *    - none
  *  - VERSIONS
  *    - jvm,android,lua
  *    - remove jar from repo, use github releases
  *  - LIFEREA
  *    - autochain, first post introducing itself (ID/photo?)
- *  - all use cases (chain cfg e usos da industria)
+  *  - IDEAS:
+ *    - chain for restauration of state in other host holding all necessary commands
+*  - all use cases (chain cfg e usos da industria)
  *    - stack overflow
  *  - commands with auth. ip port time to avoid reuse
  *  - RX Kotlin
@@ -734,8 +737,9 @@ class Tests {
 
         // h0 -> h11
 
-        assert("false" == main_(arrayOf(H0, "chain", "remove", "/", "xxx")))
-        assert("true" == main_(arrayOf(H0, "chain", "remove", "/", h11)))
+        assert("" == main_(arrayOf(H0, "chain", "remove", "/", "xxx")))
+        val hs2 = main_(arrayOf(H0, "chain", "remove", "/", h11))
+        assert(hs2.startsWith("1_"))
         val t2 = main_(arrayOf(H0, "chain", "heads", "/"))
         assert(t2.contains(h0) && !t2.contains(h11))
 
@@ -751,7 +755,8 @@ class Tests {
         // h0 -> h12 -> h22
         // h11
 
-        assert("true" == main_(arrayOf(H0, "chain", "remove", "/", h12)))
+        val hs4 = main_(arrayOf(H0, "chain", "remove", "/", h12))
+        assert(hs4.startsWith("1_"))
         val t4 = main_(arrayOf(H0, "chain", "heads", "/"))
         assert(t4.contains(h0) && !t4.contains(h12))
 

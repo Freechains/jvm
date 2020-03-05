@@ -220,9 +220,9 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX("FC chain remove")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<hash>"] as String)
-                    val ret = reader.readLineX()
-                    System.err.println("chain remove: $ret")
-                    return ret
+                    val rets = reader.readLinesX()
+                    System.err.println("chain remove: ...")
+                    return rets
                 }
 
                 opts["get"] as Boolean -> {
