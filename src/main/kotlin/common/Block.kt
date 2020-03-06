@@ -27,15 +27,15 @@ data class Signature (
 
 @Serializable
 data class BlockImmut (
-    val time      : Long,           // TODO: ULong
-    val like      : Like?,
-    val encoding  : String,         // payload encoding
-    val encrypted : Boolean,        // payload is encrypted (method depends on chain)
-    val payload   : String,
-    val refs      : Array<String>,  // post hash or user pubkey
-    val backs     : Array<Hash>     // back links (previous blocks)
+    val time    : Long,           // TODO: ULong
+    val like    : Like?,
+    val code    : String,         // payload encoding
+    val crypt   : Boolean,        // payload is encrypted (method depends on chain)
+    val payload : String,
+    val refs    : Array<String>,  // post hash or user pubkey
+    val backs   : Array<Hash>     // back links (previous blocks)
 ) {
-    val height    : Int = this.backs.backsToHeight()
+    val height  : Int = this.backs.backsToHeight()
 }
 
 @Serializable

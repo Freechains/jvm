@@ -29,8 +29,8 @@ fun String.fromJsonToHost () : Host {
 
 // CHAIN
 
-fun Host.joinChain (name: String, crypto: Crypto?) : Chain {
-    val chain = Chain(this.root+"/chains/", name, crypto)
+fun Host.joinChain (name: String, pub: ChainPub?) : Chain {
+    val chain = Chain(this.root+"/chains/", name, pub)
     val file = File(chain.root + chain.name + "/" + "chain")
     assert(!file.exists()) { "chain already exists: $chain"}
     chain.fsSave()

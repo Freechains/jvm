@@ -7,9 +7,7 @@ import kotlinx.serialization.json.JsonConfiguration
 import java.io.File
 
 import com.goterl.lazycode.lazysodium.LazySodium
-import com.goterl.lazycode.lazysodium.interfaces.Box
 import com.goterl.lazycode.lazysodium.interfaces.GenericHash
-import com.goterl.lazycode.lazysodium.interfaces.SecretBox
 import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
@@ -21,22 +19,11 @@ import kotlin.math.absoluteValue
 
 // internal methods are private but are used in tests
 
-typealias HKey = String
-
 @Serializable
-sealed class Crypto
-
-@Serializable
-data class Shared (
-    val key : HKey?
-) : Crypto()
-
-@Serializable
-data class PubPvt (
+data class ChainPub (
     val oonly : Boolean,
-    val pub   : HKey,
-    val pvt   : HKey?
-) : Crypto()
+    val key   : HKey
+)
 
 enum class ChainState {
     WANT, BLOCK, TINE, REM
@@ -65,7 +52,7 @@ fun String.toChainState () : ChainState {
 data class Chain (
     val root   : String,
     val name   : String,
-    val crypto : Crypto?
+    val pub    : ChainPub?
 ) {
     val hash   : String = this.toHash()
     val heads  : ArrayList<Hash> = arrayListOf(this.getGenesis())
@@ -97,10 +84,6 @@ fun Chain.getGenesis () : Hash {
     return "0_" + this.toHash()
 }
 
-fun Chain.isSharedWithKey () : Boolean {
-    return (this.crypto is Shared && this.crypto.key!=null)
-}
-
 // HASH
 
 val zeros = ByteArray(GenericHash.BYTES)
@@ -109,12 +92,8 @@ private fun String.calcHash () : String {
 }
 
 fun Chain.toHash () : String {
-    val crypto = when (this.crypto) {
-        null      -> ""
-        is Shared -> ""     // no key: allows untrusted nodes
-        is PubPvt -> this.crypto.oonly.toString() + this.crypto.pub
-    }
-    return (this.name+crypto).calcHash()
+    val pub = if (this.pub == null) "" else this.pub.oonly.toString()+"_"+this.pub.key
+    return (this.name+pub).calcHash()
 }
 
 fun BlockImmut.toHash () : Hash {
@@ -123,26 +102,27 @@ fun BlockImmut.toHash () : Hash {
 
 // NODE
 
-fun Chain.blockNew (sig_pvt: String?, imm: BlockImmut, acc: Boolean=false) : Block {
+fun Chain.blockNew (imm: BlockImmut, sign: HKey?, crypt: HKey?, acc: Boolean) : Block {
     // non-empty pre-set backs only used in tests
     val backs = if (imm.backs.isNotEmpty()) imm.backs else this.getHeads(imm)
 
-    assert(this.crypto !is Shared || imm.encrypted)
-    val pay = if (imm.encrypted) this.encrypt(imm.payload) else imm.payload
+    val pay = if (crypt == null) imm.payload else imm.payload.encrypt(crypt)
 
-    val h_ = imm.copy(payload=pay, backs=backs)
+    val h_ = imm.copy(crypt=crypt!=null, payload=pay, backs=backs)
     val hash = h_.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
-    val signature= if (sig_pvt == null) null else {
-        val pvt = if (sig_pvt != "chain") sig_pvt else (this.crypto as PubPvt).pvt!!
-        val sig = ByteArray(Sign.BYTES)
-        val msg = lazySodium.bytes(hash)
-        val key = Key.fromHexString(pvt).asBytes
-        lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), key)
-        val sig_hash = LazySodium.toHex(sig)
-        Signature(sig_hash, pvt.pvtToPub())
-    }
+    val signature=
+        if (sign == null)
+            null
+        else {
+            val sig = ByteArray(Sign.BYTES)
+            val msg = lazySodium.bytes(hash)
+            val pvt = Key.fromHexString(sign).asBytes
+            lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), pvt)
+            val sig_hash = LazySodium.toHex(sig)
+            Signature(sig_hash, sign.pvtToPub())
+        }
 
     val new = Block(h_, mutableListOf(), signature, acc, hash)
     this.blockAssert(new)
@@ -155,7 +135,7 @@ fun Chain.getHeads (imm: BlockImmut) : Array<String> {
     // if the post is removed, so is the like
     val liked =
         if (imm.like != null && imm.like.ref.hashIsBlock()) {
-            val ref = this.fsLoadBlock(ChainState.BLOCK, imm.like.ref,false)
+            val ref = this.fsLoadBlock(ChainState.BLOCK, imm.like.ref,null)
             if (!this.isAcceptedAlsoByTime(ref)) {
                 return arrayOf(ref.hash)    // liked still to be consolidated, point only to it
             }
@@ -165,7 +145,7 @@ fun Chain.getHeads (imm: BlockImmut) : Array<String> {
         }
 
     fun dns (hash: Hash) : List<Hash> {
-        return this.fsLoadBlock(ChainState.BLOCK,hash,false).let {
+        return this.fsLoadBlock(ChainState.BLOCK,hash,null).let {
             if (this.isAcceptedAlsoByTime(it))
                 arrayListOf<Hash>(it.hash)
             else
@@ -183,7 +163,7 @@ fun Chain.isAcceptedAlsoByTime (blk: Block) : Boolean {
             (
                 blk.time <= getNow()-T2H_past   ||
                 blk.immut.backs.all {
-                    this.isAcceptedAlsoByTime(this.fsLoadBlock(ChainState.BLOCK, it, false))
+                    this.isAcceptedAlsoByTime(this.fsLoadBlock(ChainState.BLOCK, it, null))
                 }
             )
 }
@@ -200,7 +180,7 @@ fun Chain.isAccepted (blk: Block) : Boolean {
                 (it == null)                -> false    // not a like
                 (! it.ref.hashIsBlock())    -> true     // like to pubkey
                 else ->                                 // like to block, only if consolidated
-                    this.isAccepted(this.fsLoadBlock(ChainState.BLOCK,it.ref,false))
+                    this.isAccepted(this.fsLoadBlock(ChainState.BLOCK,it.ref,null))
             }
         }
     }
@@ -216,7 +196,7 @@ fun Chain.blockChain (blk: Block) {
 private fun Chain.reBacksFronts (blk: Block) {
     blk.immut.backs.forEach {
         this.heads.remove(it)
-        this.fsLoadBlock(ChainState.BLOCK,it,false).let {
+        this.fsLoadBlock(ChainState.BLOCK,it,null).let {
             assert(!it.fronts.contains(blk.hash)) { it.hash + " -> " + blk.hash }
             it.fronts.add(blk.hash)
             it.fronts.sort()
@@ -226,7 +206,7 @@ private fun Chain.reBacksFronts (blk: Block) {
 }
 
 fun Chain.blockRemove (hash: Hash): Array<Hash> {
-    val blk = this.fsLoadBlock(ChainState.BLOCK, hash, false)
+    val blk = this.fsLoadBlock(ChainState.BLOCK, hash, null)
 
     // remove all my fronts as well
     blk.fronts.forEach {
@@ -244,7 +224,7 @@ fun Chain.blockRemove (hash: Hash): Array<Hash> {
 
     // refronts: remove myself as front of all my backs
     blk.immut.backs.forEach {
-        this.fsLoadBlock(ChainState.BLOCK, it, false).let {
+        this.fsLoadBlock(ChainState.BLOCK, it, null).let {
             it.fronts.remove(hash)
             this.fsSaveBlock(ChainState.BLOCK, it)
         }
@@ -263,7 +243,7 @@ fun Chain.backsCheck (blk: Block) : Boolean {
         if (! this.fsExistsBlock(ChainState.BLOCK,it)) {
             return false        // all backs must exist
         }
-        this.fsLoadBlock(ChainState.BLOCK,it,false).let {
+        this.fsLoadBlock(ChainState.BLOCK,it,null).let {
             if (it.immut.time > blk.immut.time) {
                 return false    // all backs must be older
             }
@@ -283,13 +263,13 @@ fun Chain.blockAssert (blk: Block) {
         imm.time >= now-T120_past           // not too old
     )
 
-    if (this.crypto is PubPvt && this.crypto.oonly) {
+    if (this.pub != null && this.pub.oonly) {
         assert(this.fromOwner(blk))         // signed by owner (if oonly is set)
     }
 
     val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
     if (blk.immut.backs.contains(gen)) {
-        val b = this.fsLoadBlock(ChainState.BLOCK, gen,false)
+        val b = this.fsLoadBlock(ChainState.BLOCK, gen,null)
         assert(b.fronts.isEmpty() || b.fronts[0]==blk.hash) { "genesis is already referred" }
     }
 
@@ -309,64 +289,10 @@ fun Chain.blockAssert (blk: Block) {
     }
 }
 
-// CRYPTO
-
-private fun Chain.encrypt (payload: String) : String {
-    return when (this.crypto) {
-        is Shared -> {
-            val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
-            val key = Key.fromHexString(this.crypto.key)
-            LazySodium.toHex(nonce) + lazySodium.cryptoSecretBoxEasy(payload, nonce, key)
-        }
-        is PubPvt -> {
-            val dec = payload.toByteArray()
-            val enc = ByteArray(Box.SEALBYTES + dec.size)
-            val key = Key.fromHexString(this.crypto.pub).asBytes
-            val key_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
-            assert(lazySodium.convertPublicKeyEd25519ToCurve25519(key_, key))
-            lazySodium.cryptoBoxSeal(enc, dec, dec.size.toLong(), key_)
-            LazySodium.toHex(enc)
-        }
-        else -> error("bug found")
-    }
-}
-
-private fun Chain.decrypt (payload: String) : Pair<Boolean,String> {
-    return when (this.crypto) {
-        null -> Pair(false,payload)
-        is Shared -> {
-            val idx = SecretBox.NONCEBYTES * 2
-            val pay = lazySodium.cryptoSecretBoxOpenEasy(
-                payload.substring(idx),
-                LazySodium.toBin(payload.substring(0, idx)),
-                Key.fromHexString(this.crypto.key)
-            )
-            Pair(true,pay)
-        }
-        is PubPvt -> {
-            val enc = LazySodium.toBin(payload)
-            val dec = ByteArray(enc.size - Box.SEALBYTES)
-
-            val pub = Key.fromHexString(this.crypto.pub).asBytes
-            val pvt = Key.fromHexString(this.crypto.pvt).asBytes
-            val pub_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
-            val pvt_ = ByteArray(Box.CURVE25519XSALSA20POLY1305_SECRETKEYBYTES)
-            assert(lazySodium.convertPublicKeyEd25519ToCurve25519(pub_,pub))
-            assert(lazySodium.convertSecretKeyEd25519ToCurve25519(pvt_,pvt))
-
-            assert(lazySodium.cryptoBoxSealOpen(dec, enc, enc.size.toLong(), pub_, pvt_))
-            Pair(true,dec.toString(Charsets.UTF_8))
-        }
-    }
-}
-
 // LIKE
 
 fun Chain.fromOwner (blk: Block) : Boolean {
-    return when (this.crypto) {
-        is PubPvt -> blk.sign!=null && blk.sign.pub==this.crypto.pub
-        else -> false
-    }
+    return (this.pub != null) && (blk.sign != null) && (blk.sign.pub == this.pub.key)
 }
 
 fun Chain.getPostRep (hash: String) : Int {
@@ -384,11 +310,11 @@ fun Chain.getPostRep (hash: String) : Int {
 }
 
 fun Chain.getPubRep (pub: String, now: Long) : Int {
-    val gen = this.fsLoadBlock(ChainState.BLOCK, this.getGenesis(),false).fronts.let {
+    val gen = this.fsLoadBlock(ChainState.BLOCK, this.getGenesis(),null).fronts.let {
         if (it.isEmpty())
             LK30_max
         else
-            this.fsLoadBlock(ChainState.BLOCK, it[0],false).let {
+            this.fsLoadBlock(ChainState.BLOCK, it[0],null).let {
                 when {
                     (it.sign == null) -> 0
                     (it.sign.pub == pub) -> LK30_max
@@ -403,7 +329,7 @@ fun Chain.getPubRep (pub: String, now: Long) : Int {
 
     val mines = b90s
         .filter { it.sign != null &&
-                it.sign.pub == pub }                          // all I signed
+                  it.sign.pub == pub }                       // all I signed
 
     val (pos,neg) = mines                          // mines
         .filter { it.immut.like == null }                    // not likes
@@ -447,7 +373,7 @@ internal fun Chain.traverseFromHeads (
 
     while (pending.isNotEmpty()) {
         val hash = pending.removeFirst()
-        val blk = this.fsLoadBlock(ChainState.BLOCK, hash,false)
+        val blk = this.fsLoadBlock(ChainState.BLOCK, hash,null)
         if (!f(blk)) {
             break
         }
@@ -492,17 +418,17 @@ fun Chain.fsLoadBlocks (state: ChainState) : List<Hash> {
         .map { it.removeSuffix(".blk") }
 }
 
-fun Chain.fsLoadBlock (state: ChainState, hash: Hash, decrypt: Boolean) : Block {
+fun Chain.fsLoadBlock (state: ChainState, hash: Hash, crypt: HKey?) : Block {
     val blk = File(this.root + this.name + state.toDir() + hash + ".blk").readText().jsonToBlock()
-    if (!decrypt || !blk.immut.encrypted) {
+    if (crypt==null || !blk.immut.crypt) {
         return blk
     }
-    val (succ,pay) =
-        if (blk.immut.encrypted)
-            this.decrypt(blk.immut.payload)
-        else
-            Pair(true,blk.immut.payload)
-    return blk.copy(immut = blk.immut.copy(encrypted=!succ, payload=pay))
+    return blk.copy (
+        immut = blk.immut.copy (
+            crypt   = false,
+            payload = blk.immut.payload.decrypt(crypt)
+        )
+    )
 }
 
 fun Chain.fsExistsBlock (state: ChainState, hash: Hash) : Boolean {

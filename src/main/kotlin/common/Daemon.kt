@@ -108,22 +108,16 @@ class Daemon (host : Host) {
             "FC chain join" -> {
                 val name= reader.readLineX().nameCheck()
                 val type= reader.readLineX()
-                val crypto = when (type) {
-                    "" -> null
-                    "shared" -> {
-                        val key = reader.readLineX()
-                        Shared(if (key.isEmpty()) null else key)
-                    }
-                    "pubpvt" -> {
-                        val oonly= reader.readLineX().toBoolean()
+                val pub =
+                    if (type.isEmpty()) {
+                        null
+                    } else {
+                        val oonly= type.toBoolean()
                         val pub= reader.readLineX()
-                        val pvt= reader.readLineX()
-                        PubPvt(oonly, pub, if (pvt.isEmpty()) null else pvt)
+                        ChainPub(oonly, pub)
                     }
-                    else -> error("bug found")
-                }
                 val chain = synchronized (getLock()) {
-                    local.joinChain(name,crypto)
+                    local.joinChain(name,pub)
                 }
                 writer.writeLineX(chain.hash)
                 System.err.println("chain join: $name (${chain.hash})")
@@ -159,11 +153,12 @@ class Daemon (host : Host) {
                         "FC chain get" -> {
                             val state = reader.readLineX().toChainState()
                             val hash = reader.readLineX()
+                            val crypt= reader.readLineX()
                             assert(state != ChainState.WANT)
 
-                            val dec = chain.isSharedWithKey() || (chain.crypto is PubPvt && chain.crypto.pvt != null)
-                            val blk   = chain.fsLoadBlock(state,hash,dec)
-                            val json  = blk.toJson()
+                            val crypt_= if (crypt == "") null else crypt
+                            val blk    = chain.fsLoadBlock(state,hash,crypt_)
+                            val json   = blk.toJson()
 
                             assert(json.length <= Int.MAX_VALUE)
                             writer.writeBytes(json)
@@ -194,19 +189,19 @@ class Daemon (host : Host) {
                             val hash = reader.readLineX()
                             when {
                                 (chain.fsExistsBlock(ChainState.REM,hash)) -> {
-                                    val rem = chain.fsLoadBlock(ChainState.REM, hash, false)
+                                    val rem = chain.fsLoadBlock(ChainState.REM, hash, null)
                                     chain.blockChain(rem)
                                     chain.fsRemBlock(ChainState.REM, rem.hash)
                                     writer.writeLineX("true")
                                 }
                                 (chain.fsExistsBlock(ChainState.TINE,hash)) -> {
-                                    val tine = chain.fsLoadBlock(ChainState.TINE, hash, false)
+                                    val tine = chain.fsLoadBlock(ChainState.TINE, hash,null)
                                     chain.blockChain(tine)
                                     chain.fsRemBlock(ChainState.TINE, tine.hash)
                                     writer.writeLineX("true")
                                 }
                                 (chain.fsExistsBlock(ChainState.BLOCK,hash)) -> {
-                                    val blk = chain.fsLoadBlock(ChainState.BLOCK, hash, false)
+                                    val blk = chain.fsLoadBlock(ChainState.BLOCK, hash, null)
                                     chain.fsSaveBlock(ChainState.BLOCK,blk.copy(accepted = true))
                                     writer.writeLineX("true")
                                 }
@@ -234,15 +229,14 @@ class Daemon (host : Host) {
                         }
                         "FC chain post" -> {
                             val time = reader.readLineX()
-                            val like   = reader.readLineX().toInt()
-                            val cod  = reader.readLineX()
-                            val cry = reader.readLineX().toBoolean() or chain.isSharedWithKey()
-
-                            val cods = cod.split(' ')
-                            val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
-
                             val refs = reader.readLineX()
-                            val sig  = reader.readLineX()   // "" / "chain" / <pvt>
+                            val sign = reader.readLineX()   // "" / <pvt>
+                            val crypt= reader.readLineX()
+                            val like    = reader.readLineX().toInt()
+                            val code = reader.readLineX()
+
+                            val cods = code.split(' ')
+                            val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
 
                             val refs_ =
                                 if (refs.isEmpty()) emptyArray() else refs.split(' ').toTypedArray()
@@ -253,7 +247,7 @@ class Daemon (host : Host) {
                                 } else {
                                     if (refs_[0].hashIsBlock()) {
                                         // refs a post
-                                        val blk = chain.fsLoadBlock(ChainState.BLOCK, refs_[0], false)
+                                        val blk = chain.fsLoadBlock(ChainState.BLOCK, refs_[0], null)
                                         val l1 = arrayOf(Like(like/2, LikeType.POST, refs_[0]))
                                         if (blk.sign == null)
                                             l1
@@ -270,20 +264,22 @@ class Daemon (host : Host) {
                             val hashes = mutableListOf<Hash>()
                             for (l in likes) {
                                 val blk = chain.blockNew (
-                                    if (sig.isEmpty()) null else sig,
                                     BlockImmut (
                                         max (
                                             time.nowToTime(),
-                                            chain.heads.map { chain.fsLoadBlock(ChainState.BLOCK,it,false).immut.time }.max()!!
+                                            chain.heads.map { chain.fsLoadBlock(ChainState.BLOCK,it,null).immut.time }.max()!!
                                                 // TODO: +1 prevents something that happened after to occur simultaneously (also, problem with TODO???)
                                         ),
                                         l,
                                         cods[0],
-                                        cry,
+                                        false,
                                         pay,
                                         refs_,
                                         emptyArray()
-                                    )
+                                    ),
+                                    if (sign.isEmpty()) null else sign,
+                                    if (crypt.isEmpty()) null else crypt,
+                                    false
                                 )
                                 hashes.add(blk.hash)
                             }
@@ -362,7 +358,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
             }
             visited.add(hash)
 
-            val blk = chain.fsLoadBlock(ChainState.BLOCK, hash,false)
+            val blk = chain.fsLoadBlock(ChainState.BLOCK, hash,null)
 
             writer.writeLineX(hash)                                     // 2: asks if contains hash
             val state = reader.readLineX().toChainState()   // 3: receives yes or no
@@ -382,7 +378,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
         val n2 = toSend.size
         while (toSend.isNotEmpty()) {
             val hash = toSend.pop()
-            val blk = chain.fsLoadBlock(ChainState.BLOCK, hash,false)
+            val blk = chain.fsLoadBlock(ChainState.BLOCK, hash,null)
             blk.fronts.clear()
             writer.writeBytes(blk.toJson())          // 6
             writer.writeLineX("\n")

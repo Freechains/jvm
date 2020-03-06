@@ -17,9 +17,7 @@ Usage:
     freechains host start <dir>
     freechains [options] host stop
     freechains [options] host now <time>
-    freechains [options] chain join <chain>
-    freechains [options] chain join <chain> shared [<shared_key>]
-    freechains [options] chain join <chain> pubpvt [owner-only] <pub> [<pvt>]
+    freechains [options] chain join <chain> [ [owner-only] <pub> ]
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain>
     freechains [options] chain get <chain> <hash>
@@ -35,15 +33,15 @@ Usage:
     freechains [options] crypto create (shared | pubpvt) <passphrase>
 
 Options:
-    --help                 [none]        displays this help
-    --version              [none]        displays version information
-    --host=<addr:port>     [all]         sets address and port to connect [default: localhost:8330]
-    --time=<ms>            [post|like]   sets block timestamp [default: now]
-    --sign=<pvt>           [post|like]   signs block with given key
-    --utf8-eof=<word>      [post]        sets word terminator for utf8 post
-    --encrypt              [post]        encrypts post with chain's private key (shared is always encrypted)
-    --ref=<hash>           [post]        refers to previous post
-    --why=<text>           [like]        explains reason for the like
+    --help                 [none]           displays this help
+    --version              [none]           displays version information
+    --host=<addr:port>     [all]            sets address and port to connect [default: localhost:8330]
+    --time=<ms>            [post|like]      sets block timestamp [default: now]
+    --sign=<pvtkey>        [post|like]      signs post with given private key
+    --crypt=<key>          [get|post]       (de|en)crypts post with given shared or private key
+    --ref=<hash>           [post]           refers to previous post
+    --why=<text>           [like]           explains reason for the like
+    --utf8-eof=<word>      [post]           sets word terminator for utf8 post
 
 More Information:
 
@@ -114,23 +112,15 @@ fun main_ (args: Array<String>) : String {
             val writer = DataOutputStream(socket.getOutputStream()!!)
             val reader = DataInputStream(socket.getInputStream()!!)
             when {
+                //     freechains [options] chain join <chain> [ [owner-only] <pub> ]
                 opts["join"] as Boolean -> {
                     writer.writeLineX("FC chain join")
                     writer.writeLineX(opts["<chain>"] as String)
-                    when {
-                        opts["shared"] as Boolean -> {
-                            writer.writeLineX("shared")
-                            writer.writeLineX(opts["<shared_key>"] as String? ?: "")
-                        }
-                        opts["pubpvt"] as Boolean -> {
-                            writer.writeLineX("pubpvt")
-                            writer.writeLineX((opts["owner-only"] as Boolean? ?: false).toString())
-                            writer.writeLineX(opts["<pub>"] as String? ?: "")
-                            writer.writeLineX(opts["<pvt>"] as String? ?: "")
-                        }
-                        else -> {
-                            writer.writeLineX("")
-                        }
+                    if (opts["<pub>"] != null) {
+                        writer.writeLineX((opts["owner-only"] as Boolean? ?: false).toString())
+                        writer.writeLineX(opts["<pub>"] as String)
+                    } else {
+                        writer.writeLineX("")
                     }
                     return reader.readLineX()
                 }
@@ -160,16 +150,16 @@ fun main_ (args: Array<String>) : String {
                             writer.writeLineX("FC chain post")
                             writer.writeLineX(opts["<chain>"] as String)
                             writer.writeLineX(opts["--time"] as String)
+                            writer.writeLineX((opts["<hash_or_pub>"] as String))
+                            writer.writeLineX(opts["--sign"] as String? ?: "")
+                            writer.writeLineX("")   // crypt
                             writer.writeLineX((opts["<integer>"] as String).let {
                                 if (it.last() != '-') it else ("-" + it.substring(0, it.length - 1))
                             })
                             writer.writeLineX("utf8")
-                            writer.writeLineX("false")
                             writer.writeLineX((opts["--why"] as String?).let {
                                 if (it == null) "" else it + "\n"
                             })
-                            writer.writeLineX((opts["<hash_or_pub>"] as String))
-                            writer.writeLineX(opts["--sign"] as String? ?: "")
 
                             val hash = reader.readLineX()
                             return hash
@@ -191,6 +181,7 @@ fun main_ (args: Array<String>) : String {
                             writer.writeLineX(opts["<chain>"] as String)
                             writer.writeLineX(opts["<state>"] as String)
                             writer.writeLineX(opts["<hash>"] as String)
+                            writer.writeLineX("")
                             val json = reader.readAllBytes().toString(Charsets.UTF_8)
                             if (json.isEmpty()) {
                                 System.err.println("chain get: not found")
@@ -222,6 +213,7 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX("block")
                     writer.writeLineX(opts["<hash>"] as Hash)
+                    writer.writeLineX(opts["--crypt"] as String? ?: "")
                     val json = reader.readAllBytes().toString(Charsets.UTF_8)
                     if (json.isEmpty()) {
                         System.err.println("chain get: not found")
@@ -234,9 +226,11 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX("FC chain post")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["--time"] as String)
+                    writer.writeLineX(opts["--ref"] as String? ?: "")
+                    writer.writeLineX(opts["--sign"] as String? ?: "")
+                    writer.writeLineX((opts["--crypt"] as String? ?: "").toString())
                     writer.writeLineX("0")
                     writer.writeLineX(if (opts["utf8"] as Boolean) "utf8"+(if (eof.isEmpty()) "" else " "+eof) else "base64")
-                    writer.writeLineX((opts["--encrypt"] as Boolean).toString())
 
                     val bytes = when {
                         opts["inline"] as Boolean -> (opts["<path_or_text>"] as String).toByteArray()
@@ -252,9 +246,6 @@ fun main_ (args: Array<String>) : String {
                     if (eof.isEmpty()) {
                         writer.writeLineX("\n")
                     }
-
-                    writer.writeLineX(opts["--ref"] as String? ?: "")
-                    writer.writeLineX(opts["--sign"] as String? ?: "")
 
                     val hash = reader.readLineX()
                     return hash
