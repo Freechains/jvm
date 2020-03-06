@@ -152,10 +152,8 @@ class Daemon (host : Host) {
                             System.err.println("chain genesis: $hash")
                         }
                         "FC chain heads" -> {
-                            for (head in chain.heads) {
-                                writer.writeLineX(head)
-                            }
-                            writer.writeLineX("")
+                            val hs = chain.heads.joinToString(" ")
+                            writer.writeLineX(hs)
                             System.err.println("chain heads: ${chain.heads}")
                         }
                         "FC chain get" -> {
@@ -243,10 +241,12 @@ class Daemon (host : Host) {
                             val cods = cod.split(' ')
                             val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
 
-                            val refs = reader.readLinesX()
+                            val refs = reader.readLineX()
                             val sig  = reader.readLineX()   // "" / "chain" / <pvt>
 
-                            val refs_ = if (refs == "") emptyArray() else refs.split('\n').toTypedArray()
+                            val refs_ =
+                                if (refs.isEmpty()) emptyArray() else refs.split(' ').toTypedArray()
+
                             val likes =
                                 if (refs_.isEmpty()) {
                                     arrayOf<Like?>(null)

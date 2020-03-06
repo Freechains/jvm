@@ -7,6 +7,7 @@ import java.io.File
 import java.net.Socket
 import java.util.Base64
 import kotlin.io.println as output
+import kotlin.io.println as println
 
 val doc = """
 freechains
@@ -141,15 +142,7 @@ fun main_ (args: Array<String>) : String {
                 opts["heads"] as Boolean -> {
                     writer.writeLineX("FC chain heads")
                     writer.writeLineX(opts["<chain>"] as String)
-                    var ret = ""
-                    while (true) {
-                        val hash = reader.readLineX()
-                        if (hash.isEmpty()) {
-                            break
-                        } else {
-                            ret += hash + "\n"
-                        }
-                    }
+                    val ret = reader.readLineX()
                     return ret
                 }
                 opts["like"] as Boolean -> {
@@ -175,10 +168,9 @@ fun main_ (args: Array<String>) : String {
                             writer.writeLineX((opts["--why"] as String?).let {
                                 if (it == null) "" else it + "\n"
                             })
-                            writer.writeLineX((opts["<hash_or_pub>"] as String) + "\n")
+                            writer.writeLineX((opts["<hash_or_pub>"] as String))
                             writer.writeLineX(opts["--sign"] as String? ?: "")
 
-                            writer.writeLineX("\n")
                             val hash = reader.readLineX()
                             return hash
                         }
@@ -261,10 +253,8 @@ fun main_ (args: Array<String>) : String {
                         writer.writeLineX("\n")
                     }
 
-                    writer.writeLineX((opts["--ref"] as String?).let {
-                        if (it == null) "" else it + "\n"
-                    })
-                    writer.writeLineX((opts["--sign"] as String? ?: ""))
+                    writer.writeLineX(opts["--ref"] as String? ?: "")
+                    writer.writeLineX(opts["--sign"] as String? ?: "")
 
                     val hash = reader.readLineX()
                     return hash
