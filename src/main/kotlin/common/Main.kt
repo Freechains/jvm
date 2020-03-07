@@ -280,14 +280,7 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX("FC crypto create")
                     writer.writeLineX(if (isShared) "shared" else "pubpvt")
                     writer.writeLineX(opts["<passphrase>"] as String)
-                    if (isShared) {
-                        return reader.readLineX()       // shared key
-
-                    } else {
-                        val pvt = reader.readLineX()    // private key
-                        val pub = reader.readLineX()    // public key
-                        return pvt + "\n" + pub
-                    }
+                    return reader.readLineX()
                 }
             }
         }

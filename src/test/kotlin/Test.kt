@@ -48,6 +48,7 @@ import kotlin.concurrent.thread
  *    - freechains now s/ time (retorna now)
  *    - freechains host restart
  *    - freechains host trust (green edges, keeps blk.accept)
+ *    - freechains crypto w/o passphrase (to self generate)
  *    - --ref=<hash> [post] sets back reference to post (currently only auto w/ likes)
  *  - QUARANTINE
  *    - signal remote as soon as local detects the first tine in the chain (to avoid many others in the same chain)

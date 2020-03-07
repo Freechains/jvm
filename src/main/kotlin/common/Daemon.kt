@@ -100,8 +100,10 @@ class Daemon (host : Host) {
                     "pubpvt" -> {
                         val keys = lazySodium.cryptoSignSeedKeypair(pwh)
                         //println("PUBPVT: ${keys.publicKey.asHexString} // ${keys.secretKey.asHexString}")
-                        writer.writeLineX(keys.getPublicKey().getAsHexString())
-                        writer.writeLineX(keys.getSecretKey().getAsHexString())
+                        writer.writeLineX(
+                            keys.getPublicKey().getAsHexString() + ' ' +
+                            keys.getSecretKey().getAsHexString()
+                        )
                     }
                 }
             }

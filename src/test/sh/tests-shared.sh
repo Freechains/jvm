@@ -11,28 +11,28 @@ FC=/tmp/freechains
 freechains host create $FC/8400 8400
 freechains host start $FC/8400 &
 sleep 0.5
-k=`freechains --host=localhost:8400 crypto create shared correct`
-freechains --host=localhost:8400 chain join / shared $k
+k0=`freechains --host=localhost:8400 crypto create shared correct`
+freechains --host=localhost:8400 chain join /
 
 # 8401 (wrong password)
 freechains host create $FC/8401 8401
 freechains host start $FC/8401 &
 sleep 0.5
-k=`freechains --host=localhost:8401 crypto create shared wrong`
-freechains --host=localhost:8401 chain join / shared $k
+k1=`freechains --host=localhost:8401 crypto create shared wrong`
+freechains --host=localhost:8401 chain join /
 
 # 8402 (correct password)
 freechains host create $FC/8402 8402
 freechains host start $FC/8402 &
 sleep 0.5
-k=`freechains --host=localhost:8402 crypto create shared correct`
-freechains --host=localhost:8402 chain join / shared $k
+k2=`freechains --host=localhost:8402 crypto create shared correct`
+freechains --host=localhost:8402 chain join /
 
 # 8403 (no password)
 freechains host create $FC/8403 8403
 freechains host start $FC/8403 &
 sleep 0.5
-freechains --host=localhost:8403 chain join / shared
+freechains --host=localhost:8403 chain join /
 
 # get genesis block of each host
 g0=`freechains --host=localhost:8400 chain genesis /`
@@ -45,9 +45,9 @@ diff <(echo "$g0") <(echo "$g1") || exit 1
 diff <(echo "$g0") <(echo "$g2") || exit 1
 diff <(echo "$g0") <(echo "$g3") || exit 1
 
-# post to 8400, send to 8401 (fail) 8402 (succees)
-h1=`freechains --host=localhost:8400 chain post / inline utf8 Hello_World`
-h2=`freechains --host=localhost:8400 chain post / inline utf8 Bye_World`
+# post to 8400, send to 8401 (fail) 8402 (success)
+h1=`freechains --host=localhost:8400 --crypt=$k0 chain post / inline utf8 Hello_World`
+h2=`freechains --host=localhost:8400 --crypt=$k0 chain post / inline utf8 Bye_World`
 freechains --host=localhost:8400 chain send / localhost:8401
 freechains --host=localhost:8400 chain send / localhost:8402
 freechains --host=localhost:8400 chain send / localhost:8403
@@ -57,12 +57,12 @@ diff -I time $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 diff -I time $FC/8400/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
 diff -I time $FC/8400/chains/blocks/ $FC/8403/chains/blocks/ || exit 1
 
-freechains --host=localhost:8400 chain get / $h1 > $FC/v01.blk
-freechains --host=localhost:8400 chain get / $h2 > $FC/v02.blk
-freechains --host=localhost:8401 chain get / $h1 > $FC/v11.blk
-freechains --host=localhost:8401 chain get / $h2 > $FC/v12.blk
-freechains --host=localhost:8402 chain get / $h1 > $FC/v21.blk
-freechains --host=localhost:8402 chain get / $h2 > $FC/v22.blk
+freechains --host=localhost:8400 --crypt=$k0 chain get / $h1 > $FC/v01.blk
+freechains --host=localhost:8400 --crypt=$k0 chain get / $h2 > $FC/v02.blk
+freechains --host=localhost:8401 --crypt=$k1 chain get / $h1 > $FC/v11.blk
+freechains --host=localhost:8401 --crypt=$k1 chain get / $h2 > $FC/v12.blk
+freechains --host=localhost:8402 --crypt=$k2 chain get / $h1 > $FC/v21.blk
+freechains --host=localhost:8402 --crypt=$k2 chain get / $h2 > $FC/v22.blk
 freechains --host=localhost:8403 chain get / $h1 > $FC/v31.blk
 freechains --host=localhost:8403 chain get / $h2 > $FC/v32.blk
 
