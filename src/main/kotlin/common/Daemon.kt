@@ -146,9 +146,11 @@ class Daemon (host : Host) {
                             System.err.println("chain genesis: $hash")
                         }
                         "FC chain heads" -> {
-                            val hs = chain.heads.joinToString(" ")
+                            val state = reader.readLineX()
+                            val heads = if (state == "unstable") chain.heads else chain.stableHeads()
+                            val hs = heads.joinToString(" ")
                             writer.writeLineX(hs)
-                            System.err.println("chain heads: ${chain.heads}")
+                            System.err.println("chain heads: $heads")
                         }
                         "FC chain get" -> {
                             val state = reader.readLineX().toChainState()

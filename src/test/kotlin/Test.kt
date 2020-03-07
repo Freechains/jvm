@@ -25,7 +25,7 @@ import kotlin.concurrent.thread
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1453/1366 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 KB
  *  - Simulation.kt
- *  - likes, /home, docs, fred, ppt
+ *  - likes, /home, table/shared, docs, fred, ppt
  *  - BUGS
  *    - removed item, then restored, heads of CFG should be restored as well, how?
  *  - HOST: "create" receives pub/pvt args
@@ -308,14 +308,14 @@ class Tests {
         main(arrayOf("chain", "join", "/xxx"))
 
         main(arrayOf("chain", "genesis", "/xxx"))
-        main(arrayOf("chain", "heads", "/xxx"))
+        main(arrayOf("chain", "heads", "unstable", "/xxx"))
 
         val h1 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa"))
         main(arrayOf("chain", "accept", "/xxx", h1))
         main(arrayOf("chain", "post", "/xxx", "file", "utf8", "/tmp/freechains/tests/M1/host"))
 
         main(arrayOf("chain", "genesis", "/xxx"))
-        main(arrayOf("chain", "heads", "/xxx"))
+        main(arrayOf("chain", "heads", "unstable", "/xxx"))
 
         main(arrayOf("chain", "get", H0, "/xxx", "0_87732F8F0B42F1A372BB47F43AF4663D8EAB459486459F096FD34FF73E11BFA0"))
         main(arrayOf("chain", "get", "/xxx", "0_87732F8F0B42F1A372BB47F43AF4663D8EAB459486459F096FD34FF73E11BFA0"))
@@ -620,14 +620,14 @@ class Tests {
         // still the same
         main_(arrayOf(H1, "host", "now", "${2 * hour - 100}"))
         //main_(arrayOf(H1,"host","flush"))
-        val hs1 = main_(arrayOf(H1, "chain", "heads", "/xxx"))
+        val hs1 = main_(arrayOf(H1, "chain", "heads", "unstable", "/xxx"))
         assert(hs1.substring(0, 2) == "1_")
 
         // now ok
         main_(arrayOf(H1, "host", "now", "${2 * hour + 100}"))
         main_(arrayOf(H1, "chain", "accept", "/xxx", t0))
         //main_(arrayOf(H1,"host","flush"))
-        val hs2 = main_(arrayOf(H1, "chain", "heads", "/xxx"))
+        val hs2 = main_(arrayOf(H1, "chain", "heads", "unstable", "/xxx"))
         assert(hs2.substring(0, 2) == "2_")
 
         // I'm still in the past, only the two first
@@ -647,7 +647,7 @@ class Tests {
         val n5 = main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330"))
         assert(n5 == "0 / 1")
 
-        val hs3 = main_(arrayOf(H0, "chain", "heads", "/xxx"))
+        val hs3 = main_(arrayOf(H0, "chain", "heads", "unstable", "/xxx"))
         assert(hs3.substring(0, 3) == "10_")
 
         val ts11 = main_(arrayOf(H0, "chain", "state", "list", "/xxx", "tine"))
@@ -661,7 +661,7 @@ class Tests {
         // flush after 2h
         main_(arrayOf(H0, "host", "now", "${1 * day + 2 * hour + 1 * seg}"))
         //main_(arrayOf(H0,"host","flush"))
-        val hs4 = main_(arrayOf(H0, "chain", "heads", "/xxx"))
+        val hs4 = main_(arrayOf(H0, "chain", "heads", "unstable", "/xxx"))
         assert(hs4.substring(0, 3) == "11_")
 
         // new post, no rep
@@ -680,7 +680,7 @@ class Tests {
         val b2 = main_(arrayOf(H0, "chain", "state", "get", "/xxx", "tine", t2)).jsonToBlock()
         assert(b2.immut.payload == "no sig")
         main_(arrayOf(H0, "chain", "accept", "/xxx", t2))
-        val hs5 = main_(arrayOf(H0, "chain", "heads", "/xxx"))
+        val hs5 = main_(arrayOf(H0, "chain", "heads", "unstable", "/xxx"))
         assert(hs5.substring(0, 3) == "12_")
 
         // like post w/o pub
@@ -723,7 +723,7 @@ class Tests {
 
         val h0 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h0"))
         val h11 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h11"))
-        val t1 = main_(arrayOf(H0, "chain", "heads", "/"))
+        val t1 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
         assert(t1.contains(h11) && !t1.contains(h0))
 
         // h0 -> h11
@@ -731,7 +731,7 @@ class Tests {
         assert("" == main_(arrayOf(H0, "chain", "remove", "/", "xxx")))
         val hs2 = main_(arrayOf(H0, "chain", "remove", "/", h11))
         assert(hs2.startsWith("1_"))
-        val t2 = main_(arrayOf(H0, "chain", "heads", "/"))
+        val t2 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
         assert(t2.contains(h0) && !t2.contains(h11))
 
         // h0
@@ -740,7 +740,7 @@ class Tests {
         val h12 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h12"))
         main_(arrayOf(H0, "chain", "accept", "/", h12))
         val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h22"))
-        val t3 = main_(arrayOf(H0, "chain", "heads", "/"))
+        val t3 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
         assert(t3.contains(h22) && !t3.contains(h11))
 
         // h0 -> h12 -> h22
@@ -748,7 +748,7 @@ class Tests {
 
         val hs4 = main_(arrayOf(H0, "chain", "remove", "/", h12))
         assert(hs4.startsWith("1_"))
-        val t4 = main_(arrayOf(H0, "chain", "heads", "/"))
+        val t4 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
         assert(t4.contains(h0) && !t4.contains(h12))
 
         // h0
@@ -756,7 +756,7 @@ class Tests {
         // h11
 
         assert("true" == main_(arrayOf(H0, "chain", "accept", "/", h12)))
-        val t5 = main_(arrayOf(H0, "chain", "heads", "/"))
+        val t5 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
         assert(!t5.contains(h0) && t5.contains(h12))
 
         // h0 -> h12
@@ -764,7 +764,7 @@ class Tests {
         // h11
 
         assert("true" == main_(arrayOf(H0, "chain", "accept", "/", h11)))
-        val t6 = main_(arrayOf(H0, "chain", "heads", "/"))
+        val t6 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
         assert(!t6.contains(h0) && t6.contains(h11) && t6.contains(h12))
 
         // h0 -> h12
@@ -772,7 +772,7 @@ class Tests {
         // h22
 
         assert("true" == main_(arrayOf(H0, "chain", "accept", "/", h22)))
-        val t7 = main_(arrayOf(H0, "chain", "heads", "/"))
+        val t7 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
         assert(!t7.contains(h0) && t7.contains(h11) && !t7.contains(h12) && t7.contains(h22))
 
         // h0 -> h12 -> h22
@@ -795,7 +795,7 @@ class Tests {
         val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2", "--sign=$PVT1"))
         main_(arrayOf(H0, "chain", "accept", "/", h2))
         val h3 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3", "--sign=$PVT0"))
-        val t1 = main_(arrayOf(H0, "chain", "heads", "/"))
+        val t1 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
         assert(t1.contains(h3) && !t1.contains(h2) && !t1.contains(h1))
 
         // h2 will not be accepted, even if h3 is

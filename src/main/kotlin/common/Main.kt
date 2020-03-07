@@ -19,7 +19,7 @@ Usage:
     freechains [options] host now <time>
     freechains [options] chain join <chain> [ [owner-only] <pub> ]
     freechains [options] chain genesis <chain>
-    freechains [options] chain heads <chain>
+    freechains [options] chain heads (stable | unstable) <chain>
     freechains [options] chain get <chain> <hash>
     freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
     freechains [options] chain like get <chain> <hash_or_pub>
@@ -132,6 +132,7 @@ fun main_ (args: Array<String>) : String {
                 opts["heads"] as Boolean -> {
                     writer.writeLineX("FC chain heads")
                     writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX(if (opts["stable"] as Boolean) "stable" else "unstable")
                     val ret = reader.readLineX()
                     return ret
                 }

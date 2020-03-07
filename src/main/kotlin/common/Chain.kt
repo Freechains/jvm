@@ -100,11 +100,11 @@ fun BlockImmut.toHash () : Hash {
     return this.backs.backsToHeight().toString() + "_" + this.toJson().calcHash()
 }
 
-// NODE
+// BLOCK
 
 fun Chain.blockNew (imm: BlockImmut, sign: HKey?, crypt: HKey?, acc: Boolean) : Block {
     // non-empty pre-set backs only used in tests
-    val backs = if (imm.backs.isNotEmpty()) imm.backs else this.getHeads(imm)
+    val backs = if (imm.backs.isNotEmpty()) imm.backs else this.blockHeads(imm)
 
     val pay = if (crypt == null) imm.payload else imm.payload.encrypt(crypt)
 
@@ -130,13 +130,13 @@ fun Chain.blockNew (imm: BlockImmut, sign: HKey?, crypt: HKey?, acc: Boolean) : 
     return new
 }
 
-fun Chain.getHeads (imm: BlockImmut) : Array<String> {
+private fun Chain.blockHeads (imm: BlockImmut) : Array<String> {
     // a like must point back to post, this way,
     // if the post is removed, so is the like
     val liked =
         if (imm.like != null && imm.like.ref.hashIsBlock()) {
             val ref = this.fsLoadBlock(ChainState.BLOCK, imm.like.ref,null)
-            if (!this.isAcceptedAlsoByTime(ref)) {
+            if (!this.isStable(ref)) {
                 return arrayOf(ref.hash)    // liked still to be consolidated, point only to it
             }
             setOf<Hash>(ref.hash)           // liked consolidated, point to it and other heads
@@ -146,26 +146,38 @@ fun Chain.getHeads (imm: BlockImmut) : Array<String> {
 
     fun dns (hash: Hash) : List<Hash> {
         return this.fsLoadBlock(ChainState.BLOCK,hash,null).let {
-            if (this.isAcceptedAlsoByTime(it))
+            if (this.isStable(it))
                 arrayListOf<Hash>(it.hash)
             else
                 it.immut.backs.map(::dns).flatten()
         }
     }
-    return (liked + this.heads.toList().map(::dns).flatten().toSet()).toTypedArray()
+    return (liked + this.stableHeads()).toTypedArray()
 }
 
 // CHAIN BLOCK
 
-fun Chain.isAcceptedAlsoByTime (blk: Block) : Boolean {
+fun Chain.isStable (blk: Block) : Boolean {
     // if also accepted by time, we are sure that all backs are also accepted (since they will have smaller time)
     return this.isAccepted(blk) &&
             (
                 blk.time <= getNow()-T2H_past   ||
                 blk.immut.backs.all {
-                    this.isAcceptedAlsoByTime(this.fsLoadBlock(ChainState.BLOCK, it, null))
+                    this.isStable(this.fsLoadBlock(ChainState.BLOCK, it, null))
                 }
             )
+}
+
+fun Chain.stableHeads () : List<String> {
+    fun dns (hash: Hash) : List<Hash> {
+        return this.fsLoadBlock(ChainState.BLOCK,hash,null).let {
+            if (this.isStable(it))
+                arrayListOf<Hash>(it.hash)
+            else
+                it.immut.backs.map(::dns).flatten()
+        }
+    }
+    return this.heads.toList().map(::dns).flatten().toSet().toList()
 }
 
 fun Chain.isAccepted (blk: Block) : Boolean {
