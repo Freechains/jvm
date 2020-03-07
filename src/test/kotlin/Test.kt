@@ -25,11 +25,9 @@ import kotlin.concurrent.thread
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1453/1366 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 KB
  *  - Simulation.kt
- *  - remove pvt from host
- *  - likes, docs, fred, ppt
- *  - removed item, then restored, heads of CFG should be restored as well, how?
+ *  - likes, /home, docs, fred, ppt
  *  - BUGS
- *    - none
+ *    - removed item, then restored, heads of CFG should be restored as well, how?
  *  - HOST: "create" receives pub/pvt args
  *    - creates pvt chain oo (for logs)
  *    - save CFG in a chain
@@ -679,9 +677,7 @@ class Tests {
             assert(it[0].startsWith("12_"))
             it[0]
         }
-        println("antes")
         val b2 = main_(arrayOf(H0, "chain", "state", "get", "/xxx", "tine", t2)).jsonToBlock()
-        println("depois")
         assert(b2.immut.payload == "no sig")
         main_(arrayOf(H0, "chain", "accept", "/xxx", t2))
         val hs5 = main_(arrayOf(H0, "chain", "heads", "/xxx"))

@@ -2,8 +2,8 @@
     "immut": {
         "time": 0,
         "like": null,
-        "encoding": "",
-        "encrypted": false,
+        "code": "",
+        "crypt": false,
         "payload": "",
         "refs": [
         ],
@@ -12,10 +12,10 @@
         "height": 0
     },
     "fronts": [
-        "1_0F02A3E2235E4137AB9EC6858BE4BEB3D0BF9790AFDA417F59CC84D959408CB4"
+        "1_D3348C8079C3F4BACC99E87191EECD197A846E503586648246003BCBC639DE73"
     ],
     "sign": null,
     "accepted": true,
-    "hash": "0_67876045C2A9ECC755BB4EF72454D38127F9C7BC9E7494CE378760D41B44B940",
-    "time": 1583331828142
+    "hash": "0_99CB94E603FBA2915647AB24C60712A21EB64D89A63B323C04D246E596230FB6",
+    "time": 1583540714820
 }
