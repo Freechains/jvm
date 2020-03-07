@@ -185,9 +185,7 @@ class Daemon (host : Host) {
                         }
                         "FC chain state list" -> {
                             val state = reader.readLineX().toChainState()
-                            chain.fsLoadBlocks(state)
-                                .forEach { writer.writeLineX(it) }
-                            writer.writeLineX("")
+                            writer.writeLineX(chain.fsLoadBlocks(state).joinToString(" "))
                         }
                         "FC chain accept" -> {
                             val hash = reader.readLineX()

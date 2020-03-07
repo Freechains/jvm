@@ -174,7 +174,7 @@ fun main_ (args: Array<String>) : String {
                             writer.writeLineX("FC chain state list")
                             writer.writeLineX(opts["<chain>"] as String)
                             writer.writeLineX(opts["<state>"] as String)
-                            val list = reader.readLinesX()
+                            val list = reader.readLineX()
                             return list
                         }
                         opts["get"] as Boolean -> {
