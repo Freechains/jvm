@@ -20,19 +20,19 @@ b1=`freechains --host=localhost:8400 chain post / inline utf8 Hello_World`
 freechains --host=localhost:8400 --sign=$PVT chain post / inline utf8 Hello_World
 freechains --host=localhost:8400 host now 8000000
 
-b2=`freechains --host=localhost:8400 --sign=$PVT chain like post / 1000 "$b1"`
+b2=`freechains --host=localhost:8400 --sign=$PVT chain like post / + 1000 "$b1"`
 diff <(echo $b2) <(echo "") || exit 1
 
 freechains --host=localhost:8400 host now 90000000
 echo $b1
-b3=`freechains --host=localhost:8400 --sign=$PVT chain like post / 1000 "$b1"`
+b3=`freechains --host=localhost:8400 --sign=$PVT chain like post / + 1000 "$b1"`
 j3=`freechains --host=localhost:8400 chain get / $b3`
 d31=`jq ".immut.refs" <(echo $j3)`
 d32="[ \"$b1\" ]"
 diff <(echo $d31) <(echo $d32) || exit 1
 
 freechains --host=localhost:8400 host now 180000000
-b4=`freechains --host=localhost:8400 --sign=$PVT chain like post / 1000- "$b1" --why="hated it"`
+b4=`freechains --host=localhost:8400 --sign=$PVT chain like post / - 1000 "$b1" --why="hated it"`
 j4=`freechains --host=localhost:8400 chain get / $b4`
 d41=`jq ".immut.like" <(echo $j4)`
 diff <(echo $d41) <(echo "{ \"n\": -500, \"type\": \"POST\", \"ref\": \"$b1\" }") || exit 1

@@ -23,7 +23,7 @@ Usage:
     freechains [options] chain get <chain> <hash>
     freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
     freechains [options] chain like get <chain> <hash_or_pub>
-    freechains [options] chain like post <chain> <integer> <hash_or_pub>
+    freechains [options] chain like post <chain> (+|-) <integer> <hash_or_pub>
     freechains [options] chain state list <chain> <state>
     freechains [options] chain state get <chain> <state> <hash>
     freechains [options] chain accept <chain> <hash>
@@ -148,15 +148,14 @@ fun main_ (args: Array<String>) : String {
                             return ret
                         }
                         opts["post"] as Boolean -> {
+                            val sig = if (opts["-"] as Boolean) "-" else "+"
                             writer.writeLineX("FC chain post")
                             writer.writeLineX(opts["<chain>"] as String)
                             writer.writeLineX(opts["--time"] as String)
                             writer.writeLineX((opts["<hash_or_pub>"] as String))
                             writer.writeLineX(opts["--sign"] as String? ?: "")
                             writer.writeLineX("")   // crypt
-                            writer.writeLineX((opts["<integer>"] as String).let {
-                                if (it.last() != '-') it else ("-" + it.substring(0, it.length - 1))
-                            })
+                            writer.writeLineX(sig + (opts["<integer>"] as String))
                             writer.writeLineX("utf8")
                             writer.writeLineX((opts["--why"] as String?).let {
                                 if (it == null) "" else it + "\n"

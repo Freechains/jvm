@@ -26,8 +26,6 @@ import kotlin.concurrent.thread
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 KB
  *  - Simulation.kt
  *  - likes, /home, table/shared, docs, fred, ppt
- *  - BUGS
- *    - removed item, then restored, heads of CFG should be restored as well, how?
  *  - HOST: "create" receives pub/pvt args
  *    - creates pvt chain oo (for logs)
  *    - save CFG in a chain
@@ -545,7 +543,7 @@ class Tests {
 
         // give to myself
         assert("30000" == main_(arrayOf("--time=" + (1 * day + 1).toString(), "chain", "like", "get", "/xxx", PUB0)))
-        main_(arrayOf("chain", "like", "post", "/xxx", "1000", h1, "--time=" + (1 * day).toString(), "--sign=$PVT0"))
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h1, "--time=" + (1 * day).toString(), "--sign=$PVT0"))
         assert("29500" == main_(arrayOf("--time=" + (1 * day + 1).toString(), "chain", "like", "get", "/xxx", PUB0)))
 
         // give to other
@@ -555,6 +553,7 @@ class Tests {
                 "like",
                 "post",
                 "/xxx",
+                "+",
                 "1000",
                 h2,
                 "--time=" + (1 * day + 1).toString(),
@@ -571,7 +570,8 @@ class Tests {
                 "like",
                 "post",
                 "/xxx",
-                "1000-",
+                "-",
+                "1000",
                 h3_,
                 "--time=" + (1 * day + 0).toString(),
                 "--why=" + h3_.substring(0, 9),
@@ -585,6 +585,7 @@ class Tests {
                 "like",
                 "post",
                 "/xxx",
+                "+",
                 "500",
                 h3_,
                 "--time=" + (1 * day + 1).toString(),
@@ -692,6 +693,7 @@ class Tests {
                 "like",
                 "post",
                 "/xxx",
+                "+",
                 "1000",
                 h4,
                 "--time=" + (1 * day).toString(),
