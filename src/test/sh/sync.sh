@@ -5,7 +5,7 @@ echo "=== TESTS-SYNC ==="
 echo
 
 FC=/tmp/freechains
-./tests-clean.sh
+./clean.sh
 
 ###############################################################################
 echo "#### 1"

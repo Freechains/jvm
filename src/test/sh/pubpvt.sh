@@ -5,7 +5,7 @@ echo "=== TESTS-PUBPVT ==="
 echo
 
 FC=/tmp/freechains
-./tests-clean.sh
+./clean.sh
 
 # 8400 (public and private keys)
 freechains host create $FC/8400 8400

@@ -5,7 +5,7 @@ echo "=== TESTS-SHARED ==="
 echo
 
 FC=/tmp/freechains
-./tests-clean.sh
+./clean.sh
 
 # 8400 (correct password)
 freechains host create $FC/8400 8400

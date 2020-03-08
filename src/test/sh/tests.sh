@@ -2,9 +2,9 @@
 
 #while :
 #do
-  ./tests-general.sh || exit 1
-  ./tests-sync.sh    || exit 1
-  #./tests-shared.sh  || exit 1
-  ./tests-pubpvt.sh  || exit 1
-  ./tests-like.sh    || exit 1
+  ./general.sh || exit 1
+  ./sync.sh    || exit 1
+  #./shared.sh  || exit 1
+  ./pubpvt.sh  || exit 1
+  ./like.sh    || exit 1
 #done
