@@ -141,7 +141,6 @@ fun main_ (args: Array<String>) : String {
                         opts["get"] as Boolean -> {
                             writer.writeLineX("FC chain reps")
                             writer.writeLineX(opts["<chain>"] as String)
-                            writer.writeLineX(opts["--time"] as String)
                             writer.writeLineX(opts["<hash_or_pub>"] as String)
                             val ret = reader.readLineX()
                             System.err.println("chain reps: $ret")

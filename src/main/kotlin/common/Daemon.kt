@@ -170,14 +170,13 @@ class Daemon (host : Host) {
                             System.err.println("chain get: $hash")
                         }
                         "FC chain reps" -> {
-                            val time = reader.readLineX()
                             val ref = reader.readLineX()
 
                             val likes =
                                 if (ref.hashIsBlock()) {
                                     chain.getPostRep(ref)
                                 } else {
-                                    chain.getPubRep(ref, time.nowToTime())
+                                    chain.getPubRep(ref, getNow())
                                 }
 
                             writer.writeLineX(likes.toString())
