@@ -157,45 +157,50 @@ private fun Chain.blockHeads (imm: BlockImmut) : Array<String> {
 
 // CHAIN BLOCK
 
-fun Chain.isStable (blk: Block) : Boolean {
-    // if also accepted by time, we are sure that all backs are also accepted (since they will have smaller time)
-    return this.isAccepted(blk) &&
-            (
-                blk.time <= getNow()-T2H_past   ||
-                blk.immut.backs.all {
-                    this.isStable(this.fsLoadBlock(ChainState.BLOCK, it, null))
-                }
-            )
+fun Chain.isStableRec (blk: Block) : Boolean {
+    return this.isStable(blk) && blk.immut.backs.all {
+        this.isStable(this.fsLoadBlock(ChainState.BLOCK, it, null))
+    }
 }
 
 fun Chain.stableHeads () : List<String> {
     fun dns (hash: Hash) : List<Hash> {
         return this.fsLoadBlock(ChainState.BLOCK,hash,null).let {
-            if (this.isStable(it))
+            if (this.isStableRec(it))
                 arrayListOf<Hash>(it.hash)
             else
                 it.immut.backs.map(::dns).flatten()
         }
     }
-    return this.heads.toList().map(::dns).flatten().toSet().toList()
+
+    val ret = this.heads.toList().map(::dns).flatten().toSet().toList()
+
+    fun isBack (hash: Hash) : Boolean {
+        return this.fsLoadBlock(ChainState.BLOCK,hash,null).fronts.any { ret.contains(it) || isBack(it) }
+    }
+
+    return ret.filter { !isBack(it) }
 }
 
-fun Chain.isAccepted (blk: Block) : Boolean {
-    return when {
-        blk.immut.height <= 1               -> true     // first two blocks
-        blk.accepted                        -> true     // manually accepted
-        blk.time <= getNow() - T2H_past     -> true     // old enough (local time)
-        this.crypto is Shared               -> true     // shared key, only trusted hosts
-        this.fromOwner(blk)                 -> true     // owner signature
-        else -> blk.immut.like.let {
-            when {
-                (it == null)                -> false    // not a like
-                (! it.ref.hashIsBlock())    -> true     // like to pubkey
-                else ->                                 // like to block, only if consolidated
-                    this.isAccepted(this.fsLoadBlock(ChainState.BLOCK,it.ref,null))
-            }
-        }
-    }
+fun Chain.isStable (blk: Block) : Boolean {
+    return (
+        blk.accepted                        ||      // manually accepted
+        blk.immut.height <= 1               ||      // first two blocks
+        this.fromOwner(blk)                 ||      // owner signature
+        blk.immut.like != null              ||      // a like
+        blk.localTime <= getNow()-T2H_past          // old enough (local time)
+    )
+}
+
+fun Chain.isTine (blk: Block, now: Long) : Boolean {
+    return (
+        !this.isStable(blk) &&
+        (
+            blk.immut.time <= now-T2H_past          ||  // too late
+            blk.sign == null                        ||  // no sig
+            this.getPubRep(blk.sign.pub,now) <= 0       // no rep
+        )
+    )
 }
 
 fun Chain.blockChain (blk: Block) {
@@ -258,6 +263,9 @@ fun Chain.backsCheck (blk: Block) : Boolean {
         this.fsLoadBlock(ChainState.BLOCK,it,null).let {
             if (it.immut.time > blk.immut.time) {
                 return false    // all backs must be older
+            }
+            if (! this.isStable(it)) {
+                return false    // all backs must be stable
             }
         }
     }

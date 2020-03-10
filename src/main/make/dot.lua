@@ -40,7 +40,7 @@ function go (hash)
 
     local h   = blk.immut
     local ref = sub(h.refs[1] or '')
-    local t   = math.floor(blk.time/3600000)
+    local t   = math.floor(blk.immut.time/3600000)
     local lik = (type(h.like)=='table' and h.like.n) or '---'
 
     NODES[#NODES+1] = '_'..hash..'[label="'..sub(hash)..'\n'..h.payload..'\n'..ref..'\n'..lik..'\n'..t..'"];'

@@ -26,10 +26,10 @@ hs=`freechains --host=localhost:8400 chain heads unstable /`
 freechains --host=localhost:8400 chain get / "$g" > $FC/freechains-tests-gen.out
 freechains --host=localhost:8400 chain get / "$hs" > $FC/freechains-tests-heads.out
 
-diff -I time $FC/freechains-tests-gen.out   out/freechains-tests-get-0.out || exit 1
-diff -I time $FC/freechains-tests-get-0.out out/freechains-tests-get-0.out || exit 1
-diff -I time $FC/freechains-tests-get-1.out out/freechains-tests-get-1.out || exit 1
-diff -I time $FC/freechains-tests-heads.out out/freechains-tests-get-1.out || exit 1
+diff -I localTime $FC/freechains-tests-gen.out   out/freechains-tests-get-0.out || exit 1
+diff -I localTime $FC/freechains-tests-get-0.out out/freechains-tests-get-0.out || exit 1
+diff -I localTime $FC/freechains-tests-get-1.out out/freechains-tests-get-1.out || exit 1
+diff -I localTime $FC/freechains-tests-heads.out out/freechains-tests-get-1.out || exit 1
 
 h=`freechains --host=localhost:8400 --sign=$PVT chain post / file base64 /bin/cat`
 freechains --host=localhost:8400 chain get / "$h" > $FC/cat.blk
@@ -48,7 +48,7 @@ freechains --host=localhost:8400 chain --sign=$PVT post / inline utf8 111
 freechains --host=localhost:8400 chain --sign=$PVT post / inline utf8 222
 freechains --host=localhost:8400 chain send / localhost:8401
 
-diff -I time $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+diff -I localTime $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 ret=`ls $FC/8400/chains/blocks/ | wc`
 if [ "$ret" != "      5       5     355" ]; then
   echo "$ret"
@@ -71,7 +71,7 @@ P2=$!
 wait $P1 $P2
 #sleep 10
 
-diff -I time $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
+diff -I localTime $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
 ret=`ls $FC/8401/chains/blocks/ | wc`
 if [ "$ret" != "      5       5     355" ]; then
   echo "$ret"
@@ -94,8 +94,8 @@ freechains --host=localhost:8400 chain send / localhost:8402 &
 P2=$!
 wait $P1 $P2
 
-diff -I time $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
-diff -I time $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
+diff -I localTime $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+diff -I localTime $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
 ret=`ls $FC/8401/chains/blocks/ | wc`
 if [ "$ret" != "     55      55    3950" ]; then
   echo "$ret"
@@ -122,7 +122,7 @@ sleep 10
 
 for i in $(seq 8411 8420)
 do
-  diff -I time $FC/8400/chains/blocks/ $FC/$i/chains/blocks/ || exit 1
+  diff -I localTime $FC/8400/chains/blocks/ $FC/$i/chains/blocks/ || exit 1
 done
 
 for i in $(seq 8411 8420)
@@ -139,7 +139,7 @@ sleep 10
 
 for i in $(seq 8421 8430)
 do
-  diff -I time $FC/8400/chains/blocks/ $FC/$i/chains/blocks/ || exit 1
+  diff -I localTime $FC/8400/chains/blocks/ $FC/$i/chains/blocks/ || exit 1
 done
 
 ###############################################################################

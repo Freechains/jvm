@@ -815,7 +815,7 @@ class Tests {
         main_(arrayOf(H1, "chain", "accept", "/", h2))
         main_(arrayOf(H1, "chain", "accept", "/", h4))
         val h5 = main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h5"))
-        assert(h5.startsWith("4_"))
+        assert(h5.startsWith("3_"))
     }
     @Test
     fun m11_send_after_tine() {

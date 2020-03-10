@@ -430,6 +430,7 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
         // receive blocks
         val n2 = reader.readLineX().toInt()    // 5
         Nmax += n2
+        var n2_ = 0
 
         xxx@for (j in 1..n2) {
             val blk = reader.readLinesX().jsonToBlock().copy(accepted = false) // 6
@@ -440,14 +441,7 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
                 continue
             }
 
-            if (
-                !chain.isAccepted(blk) &&
-                (
-                    blk.immut.time <= now-T2H_past          ||  // too late
-                    blk.sign == null                        ||  // no sig
-                    chain.getPubRep(blk.sign.pub,now) <= 0      // no rep
-                )
-            ) {
+            if (chain.isTine(blk,now)) {
                 // quarentine noob/late block
                 assert(chain.backsCheck(blk))
                 chain.fsSaveBlock(ChainState.TINE, blk)
@@ -461,9 +455,10 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
                     inc = 0
                 }
                 Nmin += inc
+                n2_ += inc
             }
         }
-        writer.writeLineX(Nmin.toString())             // 7
+        writer.writeLineX(n2_.toString())             // 7
     }
     writer.writeLineX(n1.toString())                // 8
     return Pair(Nmin,Nmax)

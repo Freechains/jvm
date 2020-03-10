@@ -43,8 +43,8 @@ freechains --host=localhost:8400 chain send / localhost:8401  # FAIL
 freechains --host=localhost:8400 chain send / localhost:8402  # SUCCESS
 
 # compare them
-! diff -q -I time $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
-diff -I time $FC/8400/chains/blocks/ $FC/8402/chains/blocks/      || exit 1
+! diff -q -I localTime $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+diff -I localTime $FC/8400/chains/blocks/ $FC/8402/chains/blocks/      || exit 1
 
 # post to 8400, send to 8401 (fail) 8402 (succees, but crypted)
 h=`freechains --host=localhost:8400 --sign=$PVT --crypt=$PVT chain post / inline utf8 Hello_World`

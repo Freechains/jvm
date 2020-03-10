@@ -40,13 +40,13 @@ data class BlockImmut (
 
 @Serializable
 data class Block (
-    val immut    : BlockImmut,         // things to hash
-    val fronts   : MutableList<Hash>,  // front links (next blocks)
-    val sign     : Signature?,
-    val accepted : Boolean,
-    val hash     : Hash               // hash of immut
+    val immut     : BlockImmut,         // things to hash
+    val fronts    : MutableList<Hash>,  // front links (next blocks)
+    val sign      : Signature?,
+    val accepted  : Boolean,
+    val hash      : Hash               // hash of immut
 ) {
-    val time     : Long = getNow()     // local time
+    val localTime : Long = getNow()     // local time
 }
 
 fun Array<Hash>.backsToHeight () : Int {

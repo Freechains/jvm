@@ -32,7 +32,7 @@ freechains --host=localhost:8401 chain post / inline utf8 aaa
 freechains --host=localhost:8400 chain send / localhost:8401
 freechains --host=localhost:8401 chain send / localhost:8400
 
-! diff -q -I time $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+! diff -q -I localTime $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 
 freechains --host=localhost:8400 chain accept / `freechains --host=localhost:8400 chain state list / tine`
 freechains --host=localhost:8401 chain accept / `freechains --host=localhost:8401 chain state list / tine`
@@ -40,7 +40,7 @@ freechains --host=localhost:8401 chain accept / `freechains --host=localhost:840
 freechains --host=localhost:8400 host now 8000000
 freechains --host=localhost:8401 host now 8000000
 
-diff -I time $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+diff -I localTime $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 
 ###############################################################################
 
