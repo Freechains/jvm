@@ -184,10 +184,12 @@ fun Chain.stableHeads () : List<String> {
 
 fun Chain.isStable (blk: Block) : Boolean {
     return (
-        blk.accepted                        ||      // manually accepted
+        // unchangeable
         blk.immut.height <= 1               ||      // first two blocks
         this.fromOwner(blk)                 ||      // owner signature
         blk.immut.like != null              ||      // a like
+        // changeable
+        blk.accepted                        ||      // manually accepted
         blk.localTime <= getNow()-T2H_past          // old enough (local time)
     )
 }
