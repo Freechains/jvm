@@ -242,53 +242,30 @@ class Daemon (host : Host) {
                             val refs_ =
                                 if (refs.isEmpty()) emptyArray() else refs.split(' ').toTypedArray()
 
-                            val likes =
-                                if (refs_.isEmpty()) {
-                                    arrayOf<Like?>(null)
-                                } else {
-                                    if (refs_[0].hashIsBlock()) {
-                                        // refs a post
-                                        val blk = chain.fsLoadBlock(ChainState.BLOCK, refs_[0], null)
-                                        val l1 = arrayOf(Like(like/2, LikeType.POST, refs_[0]))
-                                        if (blk.sign == null)
-                                            l1
-                                        else
-                                            l1.plus(Like(like/2, LikeType.PUBKEY, blk.sign.pub))
-                                    } else {
-                                        // refs a pubkey
-                                        arrayOf (
-                                            Like(like, LikeType.PUBKEY, refs_[0])
-                                        )
-                                    }
-                                }
-
-                            val hashes = mutableListOf<Hash>()
-                            for (l in likes) {
-                                val blk = chain.blockNew (
-                                    BlockImmut (
-                                        max (
-                                            time.nowToTime(),
-                                            chain.heads.map { chain.fsLoadBlock(ChainState.BLOCK,it,null).immut.time }.max()!!
-                                                // TODO: +1 prevents something that happened after to occur simultaneously (also, problem with TODO???)
-                                        ),
-                                        l,
-                                        cods[0],
-                                        false,
-                                        pay,
-                                        refs_,
-                                        emptyArray()
-                                    ),
-                                    if (sign.isEmpty()) null else sign,
-                                    if (crypt.isEmpty()) null else crypt,
-                                    false
-                                )
-                                hashes.add(blk.hash)
+                            val like_ = if (refs_.isEmpty()) null else {
+                                Like(like, if (refs_[0].hashIsBlock()) LikeType.POST else LikeType.PUBKEY, refs_[0])
                             }
-                            println("post: $hashes")
 
-                            val ret = hashes.joinToString(" ")
-                            writer.writeLineX(ret)
-                            System.err.println("chain post: $ret")
+                            val blk = chain.blockNew (
+                                BlockImmut (
+                                    max (
+                                        time.nowToTime(),
+                                        chain.heads.map { chain.fsLoadBlock(ChainState.BLOCK,it,null).immut.time }.max()!!
+                                            // TODO: +1 prevents something that happened after to occur simultaneously (also, problem with TODO???)
+                                    ),
+                                    like_,
+                                    cods[0],
+                                    false,
+                                    pay,
+                                    refs_,
+                                    emptyArray()
+                                ),
+                                if (sign.isEmpty()) null else sign,
+                                if (crypt.isEmpty()) null else crypt,
+                                false
+                            )
+                            writer.writeLineX(blk.hash)
+                            System.err.println("chain post: ${blk.hash}")
 
                             thread {
                                 signal(name,1)

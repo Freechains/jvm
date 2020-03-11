@@ -551,53 +551,21 @@ class Tests {
 
         // give to myself
         assert("30000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
-        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h1, "--sign=$PVT0"))
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", h1, "--sign=$PVT0"))
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", PUB0, "--sign=$PVT0"))
         assert("29500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
 
         // give to other
-        val h3 = main_(
-            arrayOf(
-                "chain",
-                "like",
-                "post",
-                "/xxx",
-                "+",
-                "1000",
-                h2,
-                "--sign=$PVT0"
-            )
-        )
+        val h3 = main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", h2, "--sign=$PVT0"))
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", PUB1, "--sign=$PVT0"))
         assert("28500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
         assert("1500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
-        val h3_ = h3.split(" ")[0]
-        main_(
-            arrayOf(
-                "chain",
-                "like",
-                "post",
-                "/xxx",
-                "-",
-                "1000",
-                h3_,
-                "--why=" + h3_.substring(0, 9),
-                "--sign=$PVT1"
-            )
-        )
+        main_(arrayOf("chain","like","post","/xxx","-","500",h3,"--why=" + h3.substring(0,9),"--sign=$PVT1"))
+        main_(arrayOf("chain","like","post","/xxx","-","500",PUB0,"--why=" + h3.substring(0,9),"--sign=$PVT1"))
         assert("500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
-        main_(
-            arrayOf(
-                "chain",
-                "like",
-                "post",
-                "/xxx",
-                "+",
-                "500",
-                h3_,
-                "--why=" + h3_.substring(0, 9),
-                "--sign=$PVT1"
-            )
-        )
+        main_(arrayOf("chain","like","post","/xxx","+","250",h3,"--why=" + h3.substring(0,9),"--sign=$PVT1"))
+        main_(arrayOf("chain","like","post","/xxx","+","250",PUB0,"--why=" + h3.substring(0,9),"--sign=$PVT1"))
 
         assert("0" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
         assert("28250" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
@@ -691,24 +659,13 @@ class Tests {
         assert(hs5.substring(0, 3) == "12_")
 
         // like post w/o pub
-        main_(
-            arrayOf(
-                H1,
-                "chain",
-                "like",
-                "post",
-                "/xxx",
-                "+",
-                "1000",
-                h4,
-                "--sign=$PVT0"
-            )
-        )
+        main_(arrayOf(H1,"chain","like","post","/xxx","+","1000",h4,"--sign=$PVT0"))
+
         val n7 = main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330"))
         //println(n7)
         assert(n7 == "1 / 1")
-        assert("27750" == main_(arrayOf(H1, "chain", "like", "get", "/xxx", PUB0)))
-        assert("27750" == main_(arrayOf(H0, "chain", "like", "get", "/xxx", PUB0)))
+        assert("27250" == main_(arrayOf(H1, "chain", "like", "get", "/xxx", PUB0)))
+        assert("27250" == main_(arrayOf(H0, "chain", "like", "get", "/xxx", PUB0)))
 
         val ln = main_(arrayOf(H0, "chain", "like", "get", "/xxx", hn))
         val l1 = main_(arrayOf(H0, "chain", "like", "get", "/xxx", h1))
@@ -716,7 +673,7 @@ class Tests {
         val l3 = main_(arrayOf(H0, "chain", "like", "get", "/xxx", h3))
         val l4 = main_(arrayOf(H0, "chain", "like", "get", "/xxx", h4))
         println("$ln // $l1 // $l2 // $l3 // $l4")
-        assert(ln == "0" && l1 == "500" && l2 == "500" && l3 == "0" && l4 == "500")
+        assert(ln == "0" && l1 == "500" && l2 == "500" && l3 == "-250" && l4 == "1000")
     }
 
     @Test
