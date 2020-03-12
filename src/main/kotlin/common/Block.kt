@@ -15,19 +15,19 @@ enum class BlockState {
 fun BlockState.toDir () : String {
     return when (this) {
         BlockState.ACCEPTED -> "/blocks/"
-        BlockState.REJECTED  -> "/tines/"
-        BlockState.BANNED   -> "/rems/"
+        BlockState.REJECTED -> "/tines/"
+        BlockState.BANNED   -> "/banned/"
         else -> error("bug found: unexpected ChainState.WANT")
     }
 }
 
 fun String.toChainState () : BlockState {
     return when (this) {
-        "want"  -> BlockState.MISSING
-        "block" -> BlockState.ACCEPTED
-        "tine"  -> BlockState.REJECTED
-        "rem"   -> BlockState.BANNED
-        else    -> error("bug found")
+        "missing"  -> BlockState.MISSING
+        "accepted" -> BlockState.ACCEPTED
+        "rejected" -> BlockState.REJECTED
+        "banned"   -> BlockState.BANNED
+        else       -> error("bug found")
     }
 }
 

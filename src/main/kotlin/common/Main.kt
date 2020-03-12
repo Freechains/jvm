@@ -210,7 +210,7 @@ fun main_ (args: Array<String>) : String {
                 opts["get"] as Boolean -> {
                     writer.writeLineX("FC chain get")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX("block")
+                    writer.writeLineX("accepted")
                     writer.writeLineX(opts["<hash>"] as Hash)
                     writer.writeLineX(opts["--crypt"] as String? ?: "")
                     val json = reader.readAllBytes().toString(Charsets.UTF_8)

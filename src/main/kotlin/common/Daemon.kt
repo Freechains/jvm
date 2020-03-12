@@ -190,15 +190,15 @@ class Daemon (host : Host) {
                             val hash = reader.readLineX()
                             when {
                                 (chain.fsExistsBlock(BlockState.BANNED,hash)) -> {
-                                    val rem = chain.fsLoadBlock(BlockState.BANNED, hash, null)
-                                    chain.blockChain(rem)
-                                    chain.fsRemBlock(BlockState.BANNED, rem.hash)
+                                    val ban = chain.fsLoadBlock(BlockState.BANNED, hash, null)
+                                    chain.blockChain(ban)
+                                    chain.fsRemBlock(BlockState.BANNED, ban.hash)
                                     writer.writeLineX("true")
                                 }
                                 (chain.fsExistsBlock(BlockState.REJECTED,hash)) -> {
-                                    val tine = chain.fsLoadBlock(BlockState.REJECTED, hash,null)
-                                    chain.blockChain(tine)
-                                    chain.fsRemBlock(BlockState.REJECTED, tine.hash)
+                                    val rej = chain.fsLoadBlock(BlockState.REJECTED, hash,null)
+                                    chain.blockChain(rej)
+                                    chain.fsRemBlock(BlockState.REJECTED, rej.hash)
                                     writer.writeLineX("true")
                                 }
                                 (chain.fsExistsBlock(BlockState.ACCEPTED,hash)) -> {
@@ -395,10 +395,10 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
                 break                               // nothing else to answer
             } else {
                 val state = when {
-                    chain.fsExistsBlock(BlockState.ACCEPTED, hash) -> "block"
-                    chain.fsExistsBlock(BlockState.REJECTED,  hash) -> "tine"
-                    chain.fsExistsBlock(BlockState.BANNED,   hash) -> "rem"
-                    else                                        -> "want"
+                    chain.fsExistsBlock(BlockState.ACCEPTED, hash) -> "accepted"
+                    chain.fsExistsBlock(BlockState.REJECTED,  hash) -> "rejected"
+                    chain.fsExistsBlock(BlockState.BANNED,   hash) -> "banned"
+                    else                                        -> "missing"
                 }
                 writer.writeLineX(state)   // 3: have or not block
             }

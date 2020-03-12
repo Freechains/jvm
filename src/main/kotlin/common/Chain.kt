@@ -393,7 +393,7 @@ fun Chain.fsSave () {
     val dir = File(this.root + this.name + "/blocks/")
     if (!dir.exists()) {
         dir.mkdirs()
-        File(this.root + this.name + "/rems/").mkdirs()
+        File(this.root + this.name + "/banned/").mkdirs()
         File(this.root + this.name + "/tines/").mkdirs()
     }
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
@@ -409,7 +409,7 @@ fun Chain.fsMoveBlock (from: BlockState, to: BlockState, hash: Hash) {
 }
 
 fun Chain.fsRemBlock (state: BlockState, hash: Hash) {
-    assert(File(this.root + this.name + state.toDir() + hash + ".blk").delete()) { "tine is not found" }
+    assert(File(this.root + this.name + state.toDir() + hash + ".blk").delete()) { "rejected is not found" }
 }
 
 fun Chain.fsLoadBlocks (state: BlockState) : List<Hash> {
