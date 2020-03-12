@@ -155,7 +155,7 @@ class Tests {
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
         val blk = c2.blockNew(HC.now(), null, null, false)
-        val blk2 = c2.fsLoadBlock(ChainState.BLOCK, blk.hash, null)
+        val blk2 = c2.fsLoadBlock(BlockState.ACCEPTED, blk.hash, null)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
     }
 
@@ -176,12 +176,12 @@ class Tests {
         }
         assert(ok)
 
-        assert(chain.fsExistsBlock(ChainState.BLOCK, chain.getGenesis()))
+        assert(chain.fsExistsBlock(BlockState.ACCEPTED, chain.getGenesis()))
         //println(n1.toHeightHash())
-        assert(chain.fsExistsBlock(ChainState.BLOCK, n1.hash))
-        assert(chain.fsExistsBlock(ChainState.BLOCK, n2.hash))
-        assert(chain.fsExistsBlock(ChainState.BLOCK, n3.hash))
-        assert(!chain.fsExistsBlock(ChainState.BLOCK, "2_........"))
+        assert(chain.fsExistsBlock(BlockState.ACCEPTED, n1.hash))
+        assert(chain.fsExistsBlock(BlockState.ACCEPTED, n2.hash))
+        assert(chain.fsExistsBlock(BlockState.ACCEPTED, n3.hash))
+        assert(!chain.fsExistsBlock(BlockState.ACCEPTED, "2_........"))
     }
 
     @Test
@@ -258,7 +258,7 @@ class Tests {
 
         fun Chain.getMaxTime(): Long {
             return this.heads
-                .map { this.fsLoadBlock(ChainState.BLOCK, it, null) }
+                .map { this.fsLoadBlock(BlockState.ACCEPTED, it, null) }
                 .map { it.immut.time }
                 .max()!!
         }
@@ -426,7 +426,7 @@ class Tests {
         //println(c1.root)
         val n1 = c1.blockNew(HC.copy(payload = "aaa"), null, SHA0, false)
         //println(n1.hash)
-        val n2 = c1.fsLoadBlock(ChainState.BLOCK, n1.hash, SHA0)
+        val n2 = c1.fsLoadBlock(BlockState.ACCEPTED, n1.hash, SHA0)
         assert(n2.immut.payload == "aaa")
         //Thread.sleep(500)
     }

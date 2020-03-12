@@ -8,6 +8,29 @@ import kotlin.math.max
 
 typealias Hash = String
 
+enum class BlockState {
+    MISSING, ACCEPTED, REJECTED, BANNED
+}
+
+fun BlockState.toDir () : String {
+    return when (this) {
+        BlockState.ACCEPTED -> "/blocks/"
+        BlockState.REJECTED  -> "/tines/"
+        BlockState.BANNED   -> "/rems/"
+        else -> error("bug found: unexpected ChainState.WANT")
+    }
+}
+
+fun String.toChainState () : BlockState {
+    return when (this) {
+        "want"  -> BlockState.MISSING
+        "block" -> BlockState.ACCEPTED
+        "tine"  -> BlockState.REJECTED
+        "rem"   -> BlockState.BANNED
+        else    -> error("bug found")
+    }
+}
+
 enum class LikeType {
     POST, PUBKEY
 }
