@@ -203,7 +203,7 @@ class Daemon (host : Host) {
                                 }
                                 (chain.fsExistsBlock(BlockState.ACCEPTED,hash)) -> {
                                     val blk = chain.fsLoadBlock(BlockState.ACCEPTED, hash, null)
-                                    chain.fsSaveBlock(BlockState.ACCEPTED,blk.copy(accepted = true))
+                                    chain.fsSaveBlock(blk.copy(accepted = true), BlockState.ACCEPTED)
                                     writer.writeLineX("true")
                                 }
                                 else  -> {
@@ -382,7 +382,6 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
 
     var Nmax = 0
     var Nmin = 0
-    val now = getNow()
 
     // for each remote head
     val n1 = reader.readLineX().toInt()        // 1
@@ -418,10 +417,11 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
                 continue
             }
 
-            if (chain.isTine(blk,now)) {
+            // TODO: isso tudo vai sair, o bloco vai entrar normal
+            if (chain.blockState(blk) == BlockState.REJECTED) {
                 // quarentine noob/late block
                 assert(chain.backsCheck(blk))
-                chain.fsSaveBlock(BlockState.REJECTED, blk)
+                chain.fsSaveBlock(blk, BlockState.REJECTED)
             } else {
                 // chain block
                 var inc = 1

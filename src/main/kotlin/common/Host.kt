@@ -49,7 +49,7 @@ fun Host.joinChain (name: String, pub: ChainPub?) : Chain {
         true,
         chain.getGenesis()
     )
-    chain.fsSaveBlock(BlockState.ACCEPTED,genesis)
+    chain.fsSaveBlock(genesis, BlockState.ACCEPTED)
     return file.readText().fromJsonToChain()
 }
 

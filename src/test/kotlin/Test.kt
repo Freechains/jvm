@@ -236,6 +236,7 @@ class Tests {
         setNow(27*day)
         val ab2 = chain.blockNew(HC.now(), null, null,true)
         setNow(28*day)
+        assert(chain.blockState(b1) == BlockState.REJECTED)
         chain.blockNew(HC.now().copy(backs = arrayOf(b1.hash)), null, null,true)
         setNow(32*day)
         chain.blockNew(HC.now(), null, null,true)

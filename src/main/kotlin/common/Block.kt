@@ -9,7 +9,7 @@ import kotlin.math.max
 typealias Hash = String
 
 enum class BlockState {
-    MISSING, ACCEPTED, REJECTED, BANNED
+    MISSING, ACCEPTED, PENDING, REJECTED, BANNED
 }
 
 fun BlockState.toDir () : String {
@@ -25,6 +25,7 @@ fun String.toChainState () : BlockState {
     return when (this) {
         "missing"  -> BlockState.MISSING
         "accepted" -> BlockState.ACCEPTED
+        "pending"  -> BlockState.PENDING
         "rejected" -> BlockState.REJECTED
         "banned"   -> BlockState.BANNED
         else       -> error("bug found")

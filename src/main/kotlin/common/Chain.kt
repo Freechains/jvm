@@ -113,7 +113,7 @@ private fun Chain.blockHeads (imm: BlockImmut) : Array<String> {
     val liked =
         if (imm.like != null && imm.like.ref.hashIsBlock()) {
             val ref = this.fsLoadBlock(BlockState.ACCEPTED, imm.like.ref,null)
-            if (!this.isStable(ref)) {
+            if (this.blockState(ref) != BlockState.ACCEPTED) {
                 return arrayOf(ref.hash)    // liked still to be consolidated, point only to it
             }
             setOf<Hash>(ref.hash)           // liked consolidated, point to it and other heads
@@ -123,7 +123,7 @@ private fun Chain.blockHeads (imm: BlockImmut) : Array<String> {
 
     fun dns (hash: Hash) : List<Hash> {
         return this.fsLoadBlock(BlockState.ACCEPTED,hash,null).let {
-            if (this.isStable(it))
+            if (this.blockState(it) == BlockState.ACCEPTED)
                 arrayListOf<Hash>(it.hash)
             else
                 it.immut.backs.map(::dns).flatten()
@@ -133,12 +133,6 @@ private fun Chain.blockHeads (imm: BlockImmut) : Array<String> {
 }
 
 // CHAIN BLOCK
-
-fun Chain.isStableRec (blk: Block) : Boolean {
-    return this.isStable(blk) && blk.immut.backs.all {
-        this.isStable(this.fsLoadBlock(BlockState.ACCEPTED, it, null))
-    }
-}
 
 fun Chain.stableHeads () : List<String> {
     fun dns (hash: Hash) : List<Hash> {
@@ -157,48 +151,6 @@ fun Chain.stableHeads () : List<String> {
     }
 
     return ret.filter { !isBack(it) }
-}
-
-fun Chain.isStable (blk: Block) : Boolean {
-    return (
-        // unchangeable
-        blk.immut.height <= 1               ||      // first two blocks
-        this.fromOwner(blk)                 ||      // owner signature
-        blk.immut.like != null              ||      // a like
-        // changeable
-        blk.accepted                        ||      // manually accepted
-        blk.localTime <= getNow()-T2H_past          // old enough (local time)
-    )
-}
-
-fun Chain.isTine (blk: Block, now: Long) : Boolean {
-    return (
-        !this.isStable(blk) &&
-        (
-            blk.immut.time <= now-T2H_past          ||  // too late
-            blk.sign == null                        ||  // no sig
-            this.getPubRep(blk.sign.pub,now) <= 0       // no rep
-        )
-    )
-}
-
-fun Chain.blockChain (blk: Block) {
-    this.fsSaveBlock(BlockState.ACCEPTED,blk)
-    this.heads.add(blk.hash)
-    this.reBacksFronts(blk)
-    this.fsSave()
-}
-
-private fun Chain.reBacksFronts (blk: Block) {
-    blk.immut.backs.forEach {
-        this.heads.remove(it)
-        this.fsLoadBlock(BlockState.ACCEPTED,it,null).let {
-            assert(!it.fronts.contains(blk.hash)) { it.hash + " -> " + blk.hash }
-            it.fronts.add(blk.hash)
-            it.fronts.sort()
-            this.fsSaveBlock(BlockState.ACCEPTED,it)
-        }
-    }
 }
 
 fun Chain.blockRemove (hash: Hash): Array<Hash> {
@@ -222,76 +174,16 @@ fun Chain.blockRemove (hash: Hash): Array<Hash> {
     blk.immut.backs.forEach {
         this.fsLoadBlock(BlockState.ACCEPTED, it, null).let {
             it.fronts.remove(hash)
-            this.fsSaveBlock(BlockState.ACCEPTED, it)
+            this.fsSaveBlock(it, BlockState.ACCEPTED)
         }
     }
 
     blk.fronts.clear()
-    this.fsSaveBlock(BlockState.BANNED, blk)
+    this.fsSaveBlock(blk, BlockState.BANNED)
     this.fsRemBlock(BlockState.ACCEPTED, blk.hash)
     this.fsSave()
 
     return blk.immut.backs
-}
-
-fun Chain.backsCheck (blk: Block) : Boolean {
-    blk.immut.backs.forEach {
-        if (! this.fsExistsBlock(BlockState.ACCEPTED,it)) {
-            return false        // all backs must exist
-        }
-        this.fsLoadBlock(BlockState.ACCEPTED,it,null).let {
-            if (it.immut.time > blk.immut.time) {
-                return false    // all backs must be older
-            }
-            if (! this.isStable(it)) {
-                return false    // all backs must be stable
-            }
-        }
-    }
-    return true
-}
-
-fun Chain.blockAssert (blk: Block) {
-    val imm = blk.immut
-    assert(blk.hash == imm.toHash())        // hash matches immut
-    assert(this.backsCheck(blk))            // backs exist and are older
-
-    val now = getNow()
-    assert (
-        imm.time <= now+T30M_future &&      // not from the future
-        imm.time >= now-T120D_past           // not too old
-    )
-
-    if (this.pub != null && this.pub.oonly) {
-        assert(this.fromOwner(blk))         // signed by owner (if oonly is set)
-    }
-
-    val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
-    if (blk.immut.backs.contains(gen)) {
-        val b = this.fsLoadBlock(BlockState.ACCEPTED, gen,null)
-        assert(b.fronts.isEmpty() || b.fronts[0]==blk.hash) { "genesis is already referred" }
-    }
-
-    if (imm.like != null) {                 // like has reputation
-        val n = imm.like.n
-        val pub = blk.sign!!.pub
-        assert(this.fromOwner(blk) || n <= this.getPubRep(pub, imm.time)) {
-            "not enough reputation"
-        }
-    }
-
-    if (blk.sign != null) {                 // sig.hash/blk.hash/sig.pubkey all match
-        val sig = LazySodium.toBin(blk.sign.hash)
-        val msg = lazySodium.bytes(blk.hash)
-        val key = Key.fromHexString(blk.sign.pub).asBytes
-        assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
-    }
-}
-
-// LIKE
-
-fun Chain.fromOwner (blk: Block) : Boolean {
-    return (this.pub != null) && (blk.sign != null) && (blk.sign.pub == this.pub.key)
 }
 
 fun Chain.getPostRep (hash: String) : Int {
@@ -328,7 +220,7 @@ fun Chain.getPubRep (pub: String, now: Long) : Int {
 
     val mines = b90s
         .filter { it.sign != null &&
-                  it.sign.pub == pub }                       // all I signed
+                it.sign.pub == pub }                       // all I signed
 
     val (pos,neg) = mines                          // mines
         .filter { it.immut.like == null }                    // not likes
@@ -397,10 +289,6 @@ fun Chain.fsSave () {
         File(this.root + this.name + "/tines/").mkdirs()
     }
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
-}
-
-fun Chain.fsSaveBlock (st: BlockState, blk: Block) {
-    File(this.root + this.name + st.toDir() + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
 
 fun Chain.fsMoveBlock (from: BlockState, to: BlockState, hash: Hash) {
