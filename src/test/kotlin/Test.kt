@@ -549,9 +549,12 @@ class Tests {
 
         // like noob post
         main_(arrayOf(H0, "host", "now", (1*day+1*hour).toString()))
-        assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("2_"))
+        assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("3_"))
         assert("29999" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
         assert( "1000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+
+        // h1 -> h2 -> l1 -> l2 -> l3
+        error("OK")
 
         // give to myself
         main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", h1, "--sign=$PVT0"))

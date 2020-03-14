@@ -1,7 +1,5 @@
 package org.freechains.common
 
-import java.io.File
-
 import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
@@ -59,7 +57,7 @@ fun Chain.backsAssert (blk: Block) {
         this.fsLoadBlock(it,null).let {
             assert(it.immut.time <= blk.immut.time)        // all backs must be older
 
-            if (blk.immut.isLikePub()) {
+            if (blk.immut.isLikeBlock()) {
                 // a post like must back to the ref only
                 assert(blk.immut.like!!.ref==it.hash && blk.immut.backs.size==1)
             } else {

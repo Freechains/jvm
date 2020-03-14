@@ -83,7 +83,7 @@ fun Chain.blockNew (imm: Immut, sign: HKey?, crypt: HKey?, acc: Boolean) : Block
     val heads = this.getHeads(State.ACCEPTED)
     val backs = when {
         imm.backs.isNotEmpty() -> imm.backs    // used in tests and likes
-        imm.isLikePub()        -> arrayOf(imm.like!!.ref)
+        imm.isLikeBlock()      -> arrayOf(imm.like!!.ref)
         else                   -> heads.toTypedArray()
     }
 
@@ -118,33 +118,41 @@ fun Chain.getHeads (state: State) : List<Hash> {
         return hs
             .map {
                 this.fsLoadBlock(it,null).let {
-                    //println("${it.hash} -> ${this.blockState(it)}")
+                    println("${it.hash} -> ${this.blockState(it)}")
                     when {
-                        it.immut.isLikePub()           -> recs(state, it.immut.backs.toList())
-                        (this.blockState(it) == state) -> {
-                            if (state != State.ACCEPTED) {
-                                listOf(it.hash)
-                            } else {
-                                // if accepted, go to the tip accepteds in fronts
-                                fun fronts (blk: Block) : List<Hash> {
-                                    val ret = blk.fronts
-                                        .map { this.fsLoadBlock(it,null) }
-                                        .filter { this.blockState(it) == State.ACCEPTED }
-                                        .map { fronts(it) }
-                                        .flatten()
-                                    return if (!ret.isEmpty()) ret else listOf(it.hash)
-                                }
-                                fronts(it)
-                            }
-                        }
+                        // if like block, go back until finds liked block
+                        it.immut.isLikeBlock()         -> recs(state, it.immut.backs.toList())
+
+                        // block has expected state, return it
+                        (this.blockState(it) == state) -> listOf(it.hash)
+
+                        // I want accepted blocks, go back to find them
                         (state == State.ACCEPTED)      -> recs(state, it.immut.backs.toList())
+
+                        // did not find
                         else                           -> emptyList()
                     }
                 }
             }
             .flatten()
     }
-    return recs(state, this.heads)
+    val ret = recs(state, this.heads)
+
+    // if accepted, go to the tip accepteds in fronts
+    fun fronts (hs: List<Hash>) : List<Hash> {
+        return hs
+            .map    { this.fsLoadBlock(it,null) }
+            .filter { this.blockState(it) == State.ACCEPTED }
+            .map    {
+                val blk = it
+                fronts(blk.fronts).let {
+                    if (it.isEmpty()) listOf(blk.hash) else it
+                }
+            }
+            .flatten()
+    }
+
+    return if (state != State.ACCEPTED) ret else fronts(ret).toSet().toList()
 }
 
 // REMOVE

@@ -107,6 +107,6 @@ fun Hash.hashIsBlock () : Boolean {
     return this.contains('_')   // otherwise is pubkey
 }
 
-fun Immut.isLikePub () : Boolean {
+fun Immut.isLikeBlock () : Boolean {
     return this.like!=null && this.like.ref.hashIsBlock()
 }
