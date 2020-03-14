@@ -16,6 +16,12 @@ const val T1D_rep     = 1*day           // account to reputation posts older tha
 const val mlk = 1
 const val lk  = 1000*mlk                // rewards for post after 24h
 const val LK30_max = 30*lk
+const val LK23_rej = 2/3
+
+fun dbg (v: String) : String {
+    println(v)
+    return v
+}
 
 fun String.pvtToPub () : String {
     return this.substring(this.length/2)

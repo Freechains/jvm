@@ -8,26 +8,26 @@ import kotlin.math.max
 
 typealias Hash = String
 
-enum class BlockState {
+enum class State {
     MISSING, ACCEPTED, PENDING, REJECTED, BANNED
 }
 
-fun BlockState.toDir () : String {
+fun State.toString_ () : String {
     return when (this) {
-        BlockState.ACCEPTED -> "/blocks/"
-        BlockState.REJECTED -> "/tines/"
-        BlockState.BANNED   -> "/banned/"
-        else -> error("bug found: unexpected ChainState.WANT")
+        State.ACCEPTED -> "accepted"
+        State.PENDING  -> "pending"
+        State.REJECTED -> "rejected"
+        else -> error("bug found: unexpected state")
     }
 }
 
-fun String.toChainState () : BlockState {
+fun String.toState () : State {
     return when (this) {
-        "missing"  -> BlockState.MISSING
-        "accepted" -> BlockState.ACCEPTED
-        "pending"  -> BlockState.PENDING
-        "rejected" -> BlockState.REJECTED
-        "banned"   -> BlockState.BANNED
+        "missing"  -> State.MISSING
+        "accepted" -> State.ACCEPTED
+        "pending"  -> State.PENDING
+        "rejected" -> State.REJECTED
+        "banned"   -> State.BANNED
         else       -> error("bug found")
     }
 }
@@ -50,7 +50,7 @@ data class Signature (
 )
 
 @Serializable
-data class BlockImmut (
+data class Immut (
     val time    : Long,           // TODO: ULong
     val like    : Like?,
     val code    : String,         // payload encoding
@@ -64,11 +64,11 @@ data class BlockImmut (
 
 @Serializable
 data class Block (
-    val immut     : BlockImmut,         // things to hash
+    val immut     : Immut,              // things to hash
     val fronts    : MutableList<Hash>,  // front links (next blocks)
     val sign      : Signature?,
-    val accepted  : Boolean,
-    val hash      : Hash               // hash of immut
+    val accepted  : Boolean,            // TODO: remove
+    val hash      : Hash                // hash of immut
 ) {
     val localTime : Long = getNow()     // local time
 }
@@ -80,10 +80,10 @@ fun Array<Hash>.backsToHeight () : Int {
     }
 }
 
-fun BlockImmut.toJson (): String {
+fun Immut.toJson (): String {
     @UseExperimental(UnstableDefault::class)
     val json = Json(JsonConfiguration(prettyPrint=true))
-    return json.stringify(BlockImmut.serializer(), this)
+    return json.stringify(Immut.serializer(), this)
 }
 
 fun Block.toJson (): String {
@@ -105,4 +105,8 @@ private fun Hash.toHeight () : Int {
 
 fun Hash.hashIsBlock () : Boolean {
     return this.contains('_')   // otherwise is pubkey
+}
+
+fun Immut.isLikePub () : Boolean {
+    return this.like!=null && this.like.ref.hashIsBlock()
 }

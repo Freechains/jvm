@@ -148,20 +148,18 @@ class Daemon (host : Host) {
                             System.err.println("chain genesis: $hash")
                         }
                         "FC chain heads" -> {
-                            val state = reader.readLineX()
-                            val heads = if (state == "unstable") chain.heads else chain.stableHeads()
+                            val state = reader.readLineX().toState()
+                            val heads = chain.getHeads(state)
                             val hs = heads.joinToString(" ")
                             writer.writeLineX(hs)
                             System.err.println("chain heads: $heads")
                         }
                         "FC chain get" -> {
-                            val state = reader.readLineX().toChainState()
                             val hash = reader.readLineX()
                             val crypt= reader.readLineX()
-                            assert(state != BlockState.MISSING)
 
                             val crypt_= if (crypt == "") null else crypt
-                            val blk    = chain.fsLoadBlock(state,hash,crypt_)
+                            val blk    = chain.fsLoadBlock(hash, crypt_)
                             val json   = blk.toJson()
 
                             assert(json.length <= Int.MAX_VALUE)
@@ -174,58 +172,22 @@ class Daemon (host : Host) {
 
                             val likes =
                                 if (ref.hashIsBlock()) {
-                                    chain.getPostRep(ref)
+                                    chain.repsPostSum(ref)
                                 } else {
-                                    chain.getPubRep(ref, getNow())
+                                    chain.repsPub(ref, getNow())
                                 }
 
                             writer.writeLineX(likes.toString())
                             System.err.println("chain reps: $likes")
                         }
-                        "FC chain state list" -> {
-                            val state = reader.readLineX().toChainState()
-                            writer.writeLineX(chain.fsLoadBlocks(state).joinToString(" "))
-                        }
-                        "FC chain accept" -> {
+                        "FC chain ban" -> {
                             val hash = reader.readLineX()
-                            when {
-                                (chain.fsExistsBlock(BlockState.BANNED,hash)) -> {
-                                    val ban = chain.fsLoadBlock(BlockState.BANNED, hash, null)
-                                    chain.blockChain(ban)
-                                    chain.fsRemBlock(BlockState.BANNED, ban.hash)
-                                    writer.writeLineX("true")
-                                }
-                                (chain.fsExistsBlock(BlockState.REJECTED,hash)) -> {
-                                    val rej = chain.fsLoadBlock(BlockState.REJECTED, hash,null)
-                                    chain.blockChain(rej)
-                                    chain.fsRemBlock(BlockState.REJECTED, rej.hash)
-                                    writer.writeLineX("true")
-                                }
-                                (chain.fsExistsBlock(BlockState.ACCEPTED,hash)) -> {
-                                    val blk = chain.fsLoadBlock(BlockState.ACCEPTED, hash, null)
-                                    chain.fsSaveBlock(blk.copy(accepted = true), BlockState.ACCEPTED)
-                                    writer.writeLineX("true")
-                                }
-                                else  -> {
-                                    writer.writeLineX("false")
-                                }
-                            }
-                        }
-                        "FC chain remove" -> {
-                            val hash = reader.readLineX()
-                            when {
-                                (chain.fsExistsBlock(BlockState.ACCEPTED,hash)) -> {
-                                    val heads = chain.blockRemove(hash)
-                                    heads.forEach { writer.writeLineX(it) }
-                                    writer.writeLineX("")
-                                }
-                                (chain.fsExistsBlock(BlockState.REJECTED,hash)) -> {
-                                    chain.fsMoveBlock(BlockState.REJECTED, BlockState.BANNED, hash)
-                                    writer.writeLineX("")
-                                }
-                                else -> {
-                                    writer.writeLineX("")
-                                }
+                            if (! chain.fsExistsBlock(hash)) {
+                                writer.writeLineX("")
+                            } else {
+                                val heads = chain.blockBan(hash)
+                                heads.forEach { writer.writeLineX(it) }
+                                writer.writeLineX("")
                             }
                         }
                         "FC chain post" -> {
@@ -247,10 +209,10 @@ class Daemon (host : Host) {
                             }
 
                             val blk = chain.blockNew (
-                                BlockImmut (
+                                Immut (
                                     max (
                                         time.nowToTime(),
-                                        chain.heads.map { chain.fsLoadBlock(BlockState.ACCEPTED,it,null).immut.time }.max()!!
+                                        chain.heads.map { chain.fsLoadBlock(it, null).immut.time }.max()!!
                                             // TODO: +1 prevents something that happened after to occur simultaneously (also, problem with TODO???)
                                     ),
                                     like_,
@@ -336,11 +298,11 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
             }
             visited.add(hash)
 
-            val blk = chain.fsLoadBlock(BlockState.ACCEPTED, hash,null)
+            val blk = chain.fsLoadBlock(hash, null)
 
-            writer.writeLineX(hash)                                     // 2: asks if contains hash
-            val state = reader.readLineX().toChainState()   // 3: receives yes or no
-            if (state != BlockState.MISSING) {
+            writer.writeLineX(hash)                            // 2: asks if contains hash
+            val state = reader.readLineX().toState()   // 3: receives yes or no
+            if (state != State.MISSING) {
                 continue                             // already has: finishes subpath
             }
 
@@ -356,7 +318,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
         val n2 = toSend.size
         while (toSend.isNotEmpty()) {
             val hash = toSend.pop()
-            val blk = chain.fsLoadBlock(BlockState.ACCEPTED, hash,null)
+            val blk = chain.fsLoadBlock(hash, null)
             blk.fronts.clear()
             writer.writeBytes(blk.toJson())          // 6
             writer.writeLineX("\n")
@@ -394,10 +356,9 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
                 break                               // nothing else to answer
             } else {
                 val state = when {
-                    chain.fsExistsBlock(BlockState.ACCEPTED, hash) -> "accepted"
-                    chain.fsExistsBlock(BlockState.REJECTED,  hash) -> "rejected"
-                    chain.fsExistsBlock(BlockState.BANNED,   hash) -> "banned"
-                    else                                        -> "missing"
+                    chain.fsExistsBlock(hash,"/banned/") -> "banned"
+                    ! chain.fsExistsBlock(hash)               -> "missing"
+                    else -> chain.blockState(chain.fsLoadBlock(hash,null)).toString_()
                 }
                 writer.writeLineX(state)   // 3: have or not block
             }
@@ -409,30 +370,13 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
         var n2_ = 0
 
         xxx@for (j in 1..n2) {
-            val blk = reader.readLinesX().jsonToBlock().copy(accepted = false) // 6
-
             try {
-                chain.blockAssert(blk)
+                val blk = reader.readLinesX().jsonToBlock().copy(accepted = false) // 6
+                chain.blockChain(blk)
+                Nmin++
+                n2_++
             } catch (e: Throwable) {
-                continue
-            }
-
-            // TODO: isso tudo vai sair, o bloco vai entrar normal
-            if (chain.blockState(blk) == BlockState.REJECTED) {
-                // quarentine noob/late block
-                assert(chain.backsCheck(blk))
-                chain.fsSaveBlock(blk, BlockState.REJECTED)
-            } else {
-                // chain block
-                var inc = 1
-                try {
-                    chain.blockChain(blk)
-                } catch (e: Throwable) {
-                    System.err.println(e.message)
-                    inc = 0
-                }
-                Nmin += inc
-                n2_ += inc
+                System.err.println(e.message)
             }
         }
         writer.writeLineX(n2_.toString())             // 7

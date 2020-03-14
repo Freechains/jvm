@@ -35,7 +35,7 @@ fun Host.joinChain (name: String, pub: ChainPub?) : Chain {
     assert(!file.exists()) { "chain already exists: $chain"}
     chain.fsSave()
     val genesis = Block (
-        BlockImmut (
+        Immut (
             0,
             null,
             "",
@@ -49,7 +49,7 @@ fun Host.joinChain (name: String, pub: ChainPub?) : Chain {
         true,
         chain.getGenesis()
     )
-    chain.fsSaveBlock(genesis, BlockState.ACCEPTED)
+    chain.fsSaveBlock(genesis)
     return file.readText().fromJsonToChain()
 }
 

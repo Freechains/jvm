@@ -74,10 +74,10 @@ import kotlin.concurrent.thread
  *  - RPi: cable eth + wifi router + phones
  */
 
-fun BlockImmut.now (t: Long = getNow()) : BlockImmut {
+fun Immut.now (t: Long = getNow()) : Immut {
     return this.copy(time = t)
 }
-val H   = BlockImmut(0, null,"",false, "", emptyArray(), emptyArray())
+val H   = Immut(0, null,"",false, "", emptyArray(), emptyArray())
 val HC  = H.copy(code="utf8", crypt=true)
 
 const val PVT0 = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
@@ -155,7 +155,7 @@ class Tests {
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
         val blk = c2.blockNew(HC.now(), null, null, false)
-        val blk2 = c2.fsLoadBlock(BlockState.ACCEPTED, blk.hash, null)
+        val blk2 = c2.fsLoadBlock(blk.hash, null)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
     }
 
@@ -176,12 +176,12 @@ class Tests {
         }
         assert(ok)
 
-        assert(chain.fsExistsBlock(BlockState.ACCEPTED, chain.getGenesis()))
+        assert(chain.fsExistsBlock(chain.getGenesis()))
         //println(n1.toHeightHash())
-        assert(chain.fsExistsBlock(BlockState.ACCEPTED, n1.hash))
-        assert(chain.fsExistsBlock(BlockState.ACCEPTED, n2.hash))
-        assert(chain.fsExistsBlock(BlockState.ACCEPTED, n3.hash))
-        assert(!chain.fsExistsBlock(BlockState.ACCEPTED, "2_........"))
+        assert(chain.fsExistsBlock(n1.hash))
+        assert(chain.fsExistsBlock(n2.hash))
+        assert(chain.fsExistsBlock(n3.hash))
+        assert(!chain.fsExistsBlock("2_........"))
     }
 
     @Test
@@ -232,11 +232,11 @@ class Tests {
         val ab0 = chain.blockNew(HC.now(1*day), null, null,true)
         setNow(2*day)
         chain.blockNew(HC.now(2*day-1).copy(payload = "a1"), null, null,true)
-        val b1 = chain.blockNew(HC.now().copy(backs = arrayOf(ab0.hash)), null, null,true)
+        val b1 = chain.blockNew(HC.now().copy(backs=arrayOf(ab0.hash)), null, null,true)
         setNow(27*day)
         val ab2 = chain.blockNew(HC.now(), null, null,true)
         setNow(28*day)
-        assert(chain.blockState(b1) == BlockState.REJECTED)
+        //assert(chain.blockState(b1) == BlockState.REJECTED)
         chain.blockNew(HC.now().copy(backs = arrayOf(b1.hash)), null, null,true)
         setNow(32*day)
         chain.blockNew(HC.now(), null, null,true)
@@ -259,7 +259,7 @@ class Tests {
 
         fun Chain.getMaxTime(): Long {
             return this.heads
-                .map { this.fsLoadBlock(BlockState.ACCEPTED, it, null) }
+                .map { this.fsLoadBlock(it, null) }
                 .map { it.immut.time }
                 .max()!!
         }
@@ -301,7 +301,7 @@ class Tests {
     }
 
     @Test
-    fun m1_args() {
+    fun m01_args() {
         a_reset()
         main(arrayOf("host", "create", "/tmp/freechains/tests/M1/"))
         thread {
@@ -310,27 +310,32 @@ class Tests {
         Thread.sleep(100)
         main(arrayOf("chain", "join", "/xxx"))
 
-        main(arrayOf("chain", "genesis", "/xxx"))
-        main(arrayOf("chain", "heads", "unstable", "/xxx"))
+        assert(main_(arrayOf("chain", "genesis", "/xxx")).startsWith("0_"))
+        assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("0_"))
 
-        val h1 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa"))
-        main(arrayOf("chain", "accept", "/xxx", h1))
-        main(arrayOf("chain", "post", "/xxx", "file", "utf8", "/tmp/freechains/tests/M1/host"))
+        main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", "--sign=$PVT0"))
+        assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("1_"))
+        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).isEmpty())
+        assert(main_(arrayOf("chain", "heads", "rejected", "/xxx")).isEmpty())
 
-        main(arrayOf("chain", "genesis", "/xxx"))
-        main(arrayOf("chain", "heads", "unstable", "/xxx"))
+        val h2 = main_(arrayOf("chain", "post", "/xxx", "file", "utf8", "/tmp/freechains/tests/M1/host"))
+        assert(dbg(main_(arrayOf("chain", "heads", "accepted", "/xxx"))).startsWith("1_"))
+        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).isEmpty())
+        assert(main_(arrayOf("chain", "heads", "rejected", "/xxx")).startsWith("2_"))
 
-        main(arrayOf("chain", "get", H0, "/xxx", "0_87732F8F0B42F1A372BB47F43AF4663D8EAB459486459F096FD34FF73E11BFA0"))
-        main(arrayOf("chain", "get", "/xxx", "0_87732F8F0B42F1A372BB47F43AF4663D8EAB459486459F096FD34FF73E11BFA0"))
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", h2, "--sign=$PVT0"))
+        assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("1_"))
+        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("2_"))
+        assert(main_(arrayOf("chain", "heads", "rejected", "/xxx")).isEmpty())
 
         main(arrayOf("chain", "post", "/xxx", "file", "base64", "/bin/cat"))
         main(arrayOf("host", "stop"))
         // TODO: check genesis 2x, "aaa", "host"
-        // $ cat /tmp/freechains/tests/M1/chains/xxx/*
+        // $ cat /tmp/freechains/tests/M1/chains/xxx/blocks/*
     }
 
     @Test
-    fun m2_crypto() {
+    fun m02_crypto() {
         //a_reset()
         main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
         thread {
@@ -356,7 +361,7 @@ class Tests {
     }
 
     @Test
-    fun m2_crypto_pubpvt() {
+    fun m02_crypto_pubpvt() {
         val ls = LazySodiumJava(SodiumJava())
         val bobKp = ls.cryptoBoxKeypair()
         val message = "A super secret message".toByteArray()
@@ -406,7 +411,7 @@ class Tests {
     }
 
     @Test
-    fun m3_crypto_post() {
+    fun m03_crypto_post() {
         //a_reset()
         //main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
         val host = Host_load("/tmp/freechains/tests/M2/")
@@ -421,19 +426,19 @@ class Tests {
     }
 
     @Test
-    fun m4_crypto_encrypt() {
+    fun m04_crypto_encrypt() {
         val host = Host_load("/tmp/freechains/tests/M2/")
         val c1 = host.loadChain("/sym")
         //println(c1.root)
         val n1 = c1.blockNew(HC.copy(payload = "aaa"), null, SHA0, false)
         //println(n1.hash)
-        val n2 = c1.fsLoadBlock(BlockState.ACCEPTED, n1.hash, SHA0)
+        val n2 = c1.fsLoadBlock(n1.hash, SHA0)
         assert(n2.immut.payload == "aaa")
         //Thread.sleep(500)
     }
 
     @Test
-    fun m5_crypto_encrypt_sym() {
+    fun m05_crypto_encrypt_sym() {
         //a_reset()
         main(arrayOf("host", "create", "/tmp/freechains/tests/M50/"))
         main(arrayOf("host", "create", "/tmp/freechains/tests/M51/", "8331"))
@@ -461,7 +466,7 @@ class Tests {
     }
 
     @Test
-    fun m6_crypto_encrypt_asy() {
+    fun m06_crypto_encrypt_asy() {
         a_reset() // must be here
         main(arrayOf("host", "create", "/tmp/freechains/tests/M60/"))
         main(arrayOf("host", "create", "/tmp/freechains/tests/M61/", "8331"))
@@ -488,7 +493,7 @@ class Tests {
     }
 
     @Test
-    fun m7_genesis_fork() {
+    fun m07_genesis_fork() {
         a_reset()
 
         main(arrayOf("host", "create", "/tmp/freechains/tests/M70/"))
@@ -525,7 +530,7 @@ class Tests {
     }
 
     @Test
-    fun m8_likes() {
+    fun m08_likes() {
         a_reset() // must be here
         main(arrayOf("host", "create", "/tmp/freechains/tests/M80/"))
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M80/")) }
@@ -536,25 +541,22 @@ class Tests {
 
         // first post
         val h1 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", "--sign=$PVT0"))
-        main_(arrayOf(H0, "chain", "accept", "/xxx", h1))
 
         // noob post
         val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "bbba", "--sign=$PVT1"))
-        main_(arrayOf(H0, "chain", "accept", "/xxx", h2))
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1", h2, "--sign=$PVT0"))
+        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("2_"))
 
+        // like noob post
         main_(arrayOf(H0, "host", "now", (1*day+1*hour).toString()))
-
-        //main_(arrayOf("chain","like","/xxx","1",h1!!,"--time="+(24*hour-1).toString(),"--sign=$PVT1"))
-        assert("30000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
-        assert("1000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
-
-        main_(arrayOf("host", "now", (1 * day + 10).toString()))
+        assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("2_"))
+        assert("29999" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
+        assert( "1000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
         // give to myself
-        assert("30000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
         main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", h1, "--sign=$PVT0"))
         main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", PUB0, "--sign=$PVT0"))
-        assert("29500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
+        assert("29499" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
 
         // give to other
         val h3 = main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", h2, "--sign=$PVT0"))
@@ -678,7 +680,7 @@ class Tests {
     }
 
     @Test
-    fun m9_remove() {
+    fun m09_remove() {
         a_reset()
 
         main(arrayOf("host", "create", "/tmp/freechains/tests/M90/"))
@@ -693,8 +695,8 @@ class Tests {
 
         // h0 -> h11
 
-        assert("" == main_(arrayOf(H0, "chain", "remove", "/", "xxx")))
-        val hs2 = main_(arrayOf(H0, "chain", "remove", "/", h11))
+        assert("" == main_(arrayOf(H0, "chain", "ban", "/", "xxx")))
+        val hs2 = main_(arrayOf(H0, "chain", "ban", "/", h11))
         assert(hs2.startsWith("1_"))
         val t2 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
         assert(t2.contains(h0) && !t2.contains(h11))
@@ -711,7 +713,7 @@ class Tests {
         // h0 -> h12 -> h22
         // h11
 
-        val hs4 = main_(arrayOf(H0, "chain", "remove", "/", h12))
+        val hs4 = main_(arrayOf(H0, "chain", "ban", "/", h12))
         assert(hs4.startsWith("1_"))
         val t4 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
         assert(t4.contains(h0) && !t4.contains(h12))
@@ -758,10 +760,19 @@ class Tests {
 
         val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1", "--sign=$PVT1"))
         val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2", "--sign=$PVT1"))
-        main_(arrayOf(H0, "chain", "accept", "/", h2))
         val h3 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3", "--sign=$PVT0"))
-        val t1 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
-        assert(t1.contains(h3) && !t1.contains(h2) && !t1.contains(h1))
+
+        // h1 (g) -> h2 (y)
+        //        -> h3 (r)
+
+        //main_(arrayOf(H0, "chain", "like", "post", "/", "+", "1000", h2, "--sign=$PVT1"))
+        val as1 = main_(arrayOf(H0, "chain", "heads", "accepted", "/"))
+        val ps1 = main_(arrayOf(H0, "chain", "heads", "pending",  "/"))
+        val rs1 = main_(arrayOf(H0, "chain", "heads", "rejected", "/"))
+        println(as1)
+        assert( as1.contains(h1) && !as1.contains(h2) && !as1.contains(h3))
+        assert(!ps1.contains(h1) &&  ps1.contains(h2) &&  ps1.contains(h3))
+        assert(!rs1.contains(h1) && !rs1.contains(h2) && !rs1.contains(h3))
 
         // h2 will not be accepted, even if h3 is
         // so, h4, will be put in front of h1
