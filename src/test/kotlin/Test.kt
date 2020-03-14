@@ -735,62 +735,90 @@ class Tests {
         Thread.sleep(100)
         main(arrayOf("chain", "join", "/"))
 
-        val h0 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h0"))
-        val h11 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h11"))
-        val t1 = main_(arrayOf(H0, "chain", "heads", "pending", "/"))
-        assert(t1.contains(h11) && !t1.contains(h0))
+        val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h0", "--sign=$PVT0"))
+        val h21 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h11"))
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.contains(h21) && !it.contains(h1))
+        }
 
-        // h0 -> h11
+        // h1 -> h21
 
-        assert("" == main_(arrayOf(H0, "chain", "ban", "/", "xxx")))
-        val hs2 = main_(arrayOf(H0, "chain", "ban", "/", h11))
-        assert(hs2.startsWith("1_"))
-        val t2 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
-        assert(t2.contains(h0) && !t2.contains(h11))
+        main_(arrayOf(H0, "chain", "ban", "/", "xxx")).let {
+            assert(it == "false")
+        }
+        main_(arrayOf(H0, "chain", "ban", "/", h21)).let {
+            assert(it == "true")
+        }
+        main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
+            assert(it.contains(h1) && !it.contains(h21))
+        }
 
-        // h0
-        // h11
+        // h1
+        // h21
 
-        val h12 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h12"))
-        main_(arrayOf(H0, "chain", "accept", "/", h12))
-        val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h22"))
-        val t3 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
-        assert(t3.contains(h22) && !t3.contains(h11))
+        val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h12"))
+        assert(h22.startsWith("2_"))
+        val l1 = main_(arrayOf(H0,"chain","like","post","/","+","1",h22,"--sign=$PVT0"))
 
-        // h0 -> h12 -> h22
-        // h11
+        val h23 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h22"))
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.contains(h23) && !it.contains(h21))
+        }
 
-        val hs4 = main_(arrayOf(H0, "chain", "ban", "/", h12))
-        assert(hs4.startsWith("1_"))
-        val t4 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
-        assert(t4.contains(h0) && !t4.contains(h12))
 
-        // h0
-        // h12 -> h22
-        // h11
+        // h1 -> h22 -> l1
+        //    -> h22
+        // h21
 
-        assert("true" == main_(arrayOf(H0, "chain", "accept", "/", h12)))
-        val t5 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
-        assert(!t5.contains(h0) && t5.contains(h12))
+        main_(arrayOf(H0, "chain", "ban", "/", h22)).let {
+            assert(it == "true")
+        }
+        main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
+            assert(it.contains(h1) && !it.contains(h22))
+        }
 
-        // h0 -> h12
-        // h22
-        // h11
+        // h1 -> h23
+        // h22 -> l1
+        // h21
 
-        assert("true" == main_(arrayOf(H0, "chain", "accept", "/", h11)))
-        val t6 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
-        assert(!t6.contains(h0) && t6.contains(h11) && t6.contains(h12))
+        main_(arrayOf(H0, "chain", "unban", "/", h22)).let {
+            assert(it == "true")
+        }
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.contains(h22))
+        }
+        main_(arrayOf(H0, "chain", "unban", "/", l1)).let {
+            assert(it == "true")
+        }
+        main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
+            assert(it.contains(l1))
+        }
 
-        // h0 -> h12
-        //    -> h11
-        // h22
+        // h1 -> h22 -> l1
+        //    -> h23
+        // h21
 
-        assert("true" == main_(arrayOf(H0, "chain", "accept", "/", h22)))
-        val t7 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
-        assert(!t7.contains(h0) && t7.contains(h11) && !t7.contains(h12) && t7.contains(h22))
+        main_(arrayOf(H0, "chain", "unban", "/", h21)).let {
+            assert(it == "true")
+        }
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(!it.contains(h1) && it.contains(h21) && !it.contains(h22) && it.contains(h23))
+        }
 
-        // h0 -> h12 -> h22
-        //    -> h11
+        // h1 -> h22 -> l1
+        //    -> h21
+        //    -> h23
+
+        main_(arrayOf(H0, "chain", "unban", "/", h23)).let {
+            assert(it == "false")
+        }
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(!it.contains(h1) && it.contains(h21) && !it.contains(h22) && it.contains(h23))
+        }
+
+        // h1 -> h22 -> l1
+        //    -> h21
+        //    -> h23
     }
 
     @Test

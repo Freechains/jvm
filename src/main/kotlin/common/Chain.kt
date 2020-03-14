@@ -190,11 +190,17 @@ fun Chain.blockRejectBan (hash: Hash, isBan: Boolean) {
 
     if (isBan) {
         blk.fronts.clear()
-        this.fsSaveBlock(blk, "/banned/")
+        this.fsSaveBlock(blk,"/banned/")
         this.fsRemBlock(blk.hash)
     }
 
     this.fsSave()
+}
+
+fun Chain.unban (hash: Hash) {
+    val blk = this.fsLoadBlock(hash, null,"/banned/")
+    this.blockChain(blk)
+    this.fsRemBlock(blk.hash,"/banned/")
 }
 
 // REPUTATION
@@ -311,12 +317,12 @@ fun Chain.fsSave () {
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
 }
 
-fun Chain.fsRemBlock (hash: Hash) {
-    assert(File(this.root + this.name + "/blocks/" + hash + ".blk").delete()) { "rejected is not found" }
+fun Chain.fsRemBlock (hash: Hash, dir: String="/blocks/") {
+    assert(File(this.root + this.name + dir + hash + ".blk").delete()) { "rejected is not found" }
 }
 
-fun Chain.fsLoadBlock (hash: Hash, crypt: HKey?) : Block {
-    val blk = File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
+fun Chain.fsLoadBlock (hash: Hash, crypt: HKey?, dir: String="/blocks/") : Block {
+    val blk = File(this.root + this.name + dir + hash + ".blk").readText().jsonToBlock()
     if (crypt==null || !blk.immut.crypt) {
         return blk
     }

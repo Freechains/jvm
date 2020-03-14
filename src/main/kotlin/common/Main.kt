@@ -25,6 +25,7 @@ Usage:
     freechains [options] chain like get <chain> <hash_or_pub>
     freechains [options] chain like post <chain> (+|-) <integer> <hash_or_pub>
     freechains [options] chain ban <chain> <hash>
+    freechains [options] chain unban <chain> <hash>
     freechains [options] chain listen <chain>
     freechains [options] chain send <chain> <host:port>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
@@ -76,7 +77,6 @@ fun main_ (args: Array<String>) : String {
                 opts["start"] as Boolean -> {
                     val dir = opts["<dir>"] as String
                     val host = Host_load(dir)
-                    System.err.println("host start: $host")
                     Daemon(host).daemon()
                     return "true"
                 }
@@ -146,9 +146,7 @@ fun main_ (args: Array<String>) : String {
                             writer.writeLineX("FC chain reps")
                             writer.writeLineX(opts["<chain>"] as String)
                             writer.writeLineX(opts["<hash_or_pub>"] as String)
-                            val ret = reader.readLineX()
-                            System.err.println("chain reps: $ret")
-                            return ret
+                            return reader.readLineX()
                         }
                         opts["post"] as Boolean -> {
                             assert(opts["--sign"] is String) { "expected `--sign`" }
@@ -165,8 +163,7 @@ fun main_ (args: Array<String>) : String {
                                 if (it == null) "" else it + "\n"
                             })
 
-                            val hash = reader.readLineX()
-                            return hash
+                            return reader.readLineX()
                         }
                     }
                 }
@@ -175,9 +172,13 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX("FC chain ban")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<hash>"] as String)
-                    val rets = reader.readLinesX()
-                    System.err.println("chain ban: ...")
-                    return rets
+                    return reader.readLineX()
+                }
+                opts["unban"] as Boolean -> {
+                    writer.writeLineX("FC chain unban")
+                    writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX(opts["<hash>"] as String)
+                    return reader.readLineX()
                 }
 
                 opts["get"] as Boolean -> {
@@ -187,7 +188,7 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX(opts["--crypt"] as String? ?: "")
                     val json = reader.readAllBytes().toString(Charsets.UTF_8)
                     if (json.isEmpty()) {
-                        System.err.println("chain get: not found")
+                        System.err.println("not found")
                     }
                     return json
                 }
