@@ -9,7 +9,7 @@ import kotlin.math.max
 typealias Hash = String
 
 enum class State {
-    MISSING, ACCEPTED, PENDING, REJECTED, BANNED
+    ACCEPTED, PENDING, REJECTED, BANNED, MISSING
 }
 
 fun State.toString_ () : String {
@@ -23,11 +23,11 @@ fun State.toString_ () : String {
 
 fun String.toState () : State {
     return when (this) {
-        "missing"  -> State.MISSING
         "accepted" -> State.ACCEPTED
         "pending"  -> State.PENDING
         "rejected" -> State.REJECTED
         "banned"   -> State.BANNED
+        "missing"  -> State.MISSING
         else       -> error("bug found")
     }
 }

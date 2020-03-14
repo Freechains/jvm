@@ -185,9 +185,8 @@ class Daemon (host : Host) {
                             if (! chain.fsExistsBlock(hash)) {
                                 writer.writeLineX("")
                             } else {
-                                val heads = chain.blockBan(hash)
-                                heads.forEach { writer.writeLineX(it) }
-                                writer.writeLineX("")
+                                chain.blockRejectBan(hash, true)
+                                writer.writeLineX(hash)
                             }
                         }
                         "FC chain post" -> {
@@ -284,9 +283,10 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
     //println("[send] $maxTime")
 
     // for each local head
-    val n1 = chain.heads.size
+    val heads = chain.getHeads(State.PENDING)
+    val n1 = heads.size
     writer.writeLineX(n1.toString())                              // 1
-    for (head in chain.heads) {
+    for (head in heads) {
         val pending = ArrayDeque<Hash>()
         pending.push(head)
 

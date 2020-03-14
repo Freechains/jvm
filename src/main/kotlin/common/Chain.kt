@@ -125,6 +125,8 @@ fun Chain.getHeads (state: State) : List<Hash> {
 
                         // block has expected state, return it
                         (this.blockState(it) == state) -> listOf(it.hash)
+                        (this.blockState(it) == State.ACCEPTED &&
+                         state == State.PENDING)       -> listOf(it.hash)
 
                         // I want accepted blocks, go back to find them
                         (state == State.ACCEPTED)      -> recs(state, it.immut.backs.toList())
@@ -138,11 +140,10 @@ fun Chain.getHeads (state: State) : List<Hash> {
     }
     val ret = recs(state, this.heads)
 
-    // if accepted, go to the tip accepteds in fronts
     fun fronts (hs: List<Hash>) : List<Hash> {
         return hs
             .map    { this.fsLoadBlock(it,null) }
-            .filter { this.blockState(it) == State.ACCEPTED }
+            .filter { this.blockState(it) <= state }
             .map    {
                 val blk = it
                 fronts(blk.fronts).let {
@@ -152,17 +153,22 @@ fun Chain.getHeads (state: State) : List<Hash> {
             .flatten()
     }
 
-    return if (state != State.ACCEPTED) ret else fronts(ret).toSet().toList()
+    return when (state) {
+        State.ACCEPTED -> fronts(ret).toSet().toList()      // go to the tips of accepteds
+        State.PENDING  -> fronts(ret).toSet().toList()      // go to the tips of accepteds
+        State.REJECTED -> ret                               // just want lis of rejected
+        else           -> error("bug found")
+    }
 }
 
-// REMOVE
+// BAN / REJECT
 
-fun Chain.blockBan (hash: Hash): Array<Hash> {
+fun Chain.blockRejectBan (hash: Hash, isBan: Boolean) {
     val blk = this.fsLoadBlock(hash, null)
 
     // remove all my fronts as well
     blk.fronts.forEach {
-        this.blockBan(it)
+        this.blockRejectBan(it,isBan)
     }
 
     // reheads: remove myself // add all backs
@@ -182,12 +188,13 @@ fun Chain.blockBan (hash: Hash): Array<Hash> {
         }
     }
 
-    blk.fronts.clear()
-    this.fsSaveBlock(blk, "/banned/")
-    this.fsRemBlock(blk.hash)
-    this.fsSave()
+    if (isBan) {
+        blk.fronts.clear()
+        this.fsSaveBlock(blk, "/banned/")
+        this.fsRemBlock(blk.hash)
+    }
 
-    return blk.immut.backs
+    this.fsSave()
 }
 
 // REPUTATION

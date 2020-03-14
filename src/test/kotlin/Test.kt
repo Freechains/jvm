@@ -315,8 +315,16 @@ class Tests {
 
         main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", "--sign=$PVT0"))
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("1_"))
-        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).isEmpty())
-        assert(main_(arrayOf("chain", "heads", "rejected", "/xxx")).isEmpty())
+        main_(arrayOf("chain", "heads", "rejected", "/xxx")).let {
+            println("|$it|")
+            assert(it.isEmpty())
+        }
+        main_(arrayOf("chain", "heads", "pending", "/xxx")).let {
+            it.split(' ').toTypedArray().let {
+                assert(it.size == 1)
+                assert(it[0].startsWith("1_"))
+            }
+        }
 
         val h2 = main_(arrayOf("chain", "post", "/xxx", "file", "utf8", "/tmp/freechains/tests/M1/host"))
         assert(dbg(main_(arrayOf("chain", "heads", "accepted", "/xxx"))).startsWith("1_"))
@@ -325,7 +333,7 @@ class Tests {
 
         main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", h2, "--sign=$PVT0"))
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("1_"))
-        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("2_"))
+        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("3_"))
         assert(main_(arrayOf("chain", "heads", "rejected", "/xxx")).isEmpty())
 
         main(arrayOf("chain", "post", "/xxx", "file", "base64", "/bin/cat"))
@@ -547,7 +555,9 @@ class Tests {
         // noob post
         val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "bbba", "--sign=$PVT1"))
         main_(arrayOf("chain", "like", "post", "/xxx", "+", "1", h2, "--sign=$PVT0"))
-        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("2_"))
+        main_(arrayOf("chain", "heads", "pending",  "/xxx")).let {
+            assert(it.startsWith("3_"))
+        }
 
         // h0 -> h1 -> h2 -> l1
 
@@ -610,7 +620,7 @@ class Tests {
         val nx = main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331"))
         assert(nx == "1 / 9") { nx }
         val hs1 = main_(arrayOf(H1, "chain", "heads", "pending", "/xxx"))
-        assert(hs1.startsWith("2_"))
+        assert(hs1.startsWith("3_"))
 
         // now ok
         main_(arrayOf(H1, "host", "now", "${1*day + 2*hour + 100}"))
@@ -637,10 +647,22 @@ class Tests {
         assert("0" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
         val hn =
             main_(arrayOf(H1, "chain", "post", "/xxx", "inline", "utf8", "no rep", "--sign=$PVT1"))
-        assert (
-            main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330"))
-                .equals("1 / 1")
-        )
+
+        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
+            assert(it == "0 / 0")
+        }
+        main_(arrayOf(H1, "chain", "heads", "rejected", "/xxx")).let {
+            assert(it.startsWith("8_"))
+        }
+
+        main_(arrayOf(H1,"chain","like","post","/xxx","+","1",hn,"--sign=$PVT0"))
+        main_(arrayOf(H1, "chain", "heads", "pending", "/xxx")).let {
+            assert(it.startsWith("9_"))
+        }
+
+        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
+            assert(it == "2 / 2")
+        }
 
         //                      --> l8 -----------------> l9 -> hn -> l10
         //                      --> l6 ----------> l7 -/
@@ -648,34 +670,27 @@ class Tests {
         // h0 -> h1 -> h2 -> l1 -\    \        /
         //          -> l2 --------> l3 -> l5 -/
 
-        val hs3 = main_(arrayOf(H0, "chain", "heads", "rejected", "/xxx"))
-        assert(hs3.startsWith("8_"))
-
-        main_(arrayOf("chain","like","post","/xxx","+","1",hn,"--sign=$PVT0"))
-        assert (
-            main_(arrayOf(H0, "chain", "heads", "pending", "/xxx"))
-                .startsWith("8_")
-        )
+        main_(arrayOf(H0, "chain", "heads", "pending", "/xxx")).let {
+            assert (it.startsWith("9_"))
+        }
 
         // flush after 2h
         main_(arrayOf(H0, "host", "now", "${1*day + 4*hour}"))
         main_(arrayOf(H1, "host", "now", "${1*day + 4*hour}"))
-        assert (
-            main_(arrayOf(H0, "chain", "heads", "accepted", "/xxx"))
-                .startsWith("9_")
-        )
-        assert (
-            main_(arrayOf(H1, "chain", "heads", "accepted", "/xxx"))
-                .startsWith("7_")
-        )
+        main_(arrayOf(H0, "chain", "heads", "accepted", "/xxx")).let {
+            assert(it.startsWith("9_"))
+        }
+        main_(arrayOf(H1, "chain", "heads", "accepted", "/xxx")).let {
+            assert (it.startsWith("9_"))
+        }
 
         // new post, no rep
         main_(arrayOf(H1, "host", "now", "${1*day + 4*hour}"))
         val h4 = main_(arrayOf(H1, "chain", "post", "/xxx", "inline", "utf8", "no sig"))
-        assert (
-            main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330"))
-                .equals("1 / 1")
-        )
+        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
+            assert(it.equals("0 / 0"))
+        }
+
         //                      --> l8 -----------------> l9 -> hn -> l10
         //                      --> l6 ----------> l7 -/      \ h4
         //                -> h3 -----\          /
@@ -683,11 +698,11 @@ class Tests {
         //          -> l2 --------> l3 -> l5 -/
 
         assert (
-            main_(arrayOf(H0, "chain", "heads", "rejected", "/xxx"))
-                .startsWith("8_")
+            main_(arrayOf(H1, "chain", "heads", "rejected", "/xxx"))
+                .startsWith("10_")
         )
         assert (
-            main_(arrayOf(H0, "chain", "get", "/xxx", h4))
+            main_(arrayOf(H1, "chain", "get", "/xxx", h4))
                 .jsonToBlock()
                 .immut.payload
                 .equals("no sig")
@@ -697,15 +712,7 @@ class Tests {
         main_(arrayOf(H1,"chain","like","post","/xxx","+","1000",h4,"--sign=$PVT0"))
         assert (
             main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330"))
-                .equals("1 / 1")
-        )
-        assert("27249" == main_(arrayOf(H1, "chain", "like", "get", "/xxx", PUB0)))
-        assert("27248" == main_(arrayOf(H0, "chain", "like", "get", "/xxx", PUB0)))
-
-        // like post w/o pub
-        assert (
-            main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331"))
-                .equals("1 / 1")
+                .equals("2 / 2")
         )
         assert("27248" == main_(arrayOf(H1, "chain", "like", "get", "/xxx", PUB0)))
         assert("27248" == main_(arrayOf(H0, "chain", "like", "get", "/xxx", PUB0)))
@@ -730,7 +737,7 @@ class Tests {
 
         val h0 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h0"))
         val h11 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h11"))
-        val t1 = main_(arrayOf(H0, "chain", "heads", "unstable", "/"))
+        val t1 = main_(arrayOf(H0, "chain", "heads", "pending", "/"))
         assert(t1.contains(h11) && !t1.contains(h0))
 
         // h0 -> h11

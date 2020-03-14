@@ -30,14 +30,16 @@ fun Chain.blockState (blk: Block) : State {
 }
 
 fun Chain.blockChain (blk: Block) {
+    // check if state of liked block was ACCEPTED
+    val wasLikedAccept=
+        blk.immut.isLikeBlock() &&
+        this.blockState(this.fsLoadBlock(blk.immut.like!!.ref,null)) == State.ACCEPTED
+
     this.blockAssert(blk)
     this.fsSaveBlock(blk)
     this.heads.add(blk.hash)
-    this.reBacksFronts(blk)
-    this.fsSave()
-}
 
-private fun Chain.reBacksFronts (blk: Block) {
+    // add new front of backs
     blk.immut.backs.forEach {
         this.heads.remove(it)
         this.fsLoadBlock(it, null).let {
@@ -47,6 +49,18 @@ private fun Chain.reBacksFronts (blk: Block) {
             this.fsSaveBlock(it)
         }
     }
+
+    // check if state of liked block changed to REJECTED
+    if (wasLikedAccept) {
+        this.fsLoadBlock(blk.immut.like!!.ref,null).let {
+            if (this.blockState(it) == State.REJECTED) {
+                // remove each front recursively from this.heads
+                it.fronts.forEach { this.blockRejectBan(it,false) }
+            }
+        }
+    }
+
+    this.fsSave()
 }
 
 fun Chain.backsAssert (blk: Block) {
