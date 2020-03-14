@@ -118,7 +118,7 @@ fun Chain.getHeads (state: State) : List<Hash> {
         return hs
             .map {
                 this.fsLoadBlock(it,null).let {
-                    println("${it.hash} -> ${this.blockState(it)}")
+                    //println("${it.hash} -> ${this.blockState(it)}")
                     when {
                         // if like block, go back until finds liked block
                         it.immut.isLikeBlock()         -> recs(state, it.immut.backs.toList())
@@ -208,7 +208,7 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
 
 fun Chain.repsPostSum (hash: String) : Int {
     val (pos,neg) = this.repsPost(hash)
-    return pos - neg
+    return pos + neg
 }
 
 fun Chain.repsPub (pub: String, now: Long) : Int {

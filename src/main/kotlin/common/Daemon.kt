@@ -135,7 +135,7 @@ class Daemon (host : Host) {
                 shouldClose = false
             }
             else -> {
-                assert(ln.substring(0,8) == "FC chain")
+                assert(ln.startsWith("FC chain"))
                 val name  = reader.readLineX().nameCheck()
                 val chain = synchronized (getLock()) {
                     local.loadChain(name)
@@ -372,6 +372,7 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
         xxx@for (j in 1..n2) {
             try {
                 val blk = reader.readLinesX().jsonToBlock().copy(accepted = false) // 6
+                //println("recv ${blk.hash}")
                 chain.blockChain(blk)
                 Nmin++
                 n2_++

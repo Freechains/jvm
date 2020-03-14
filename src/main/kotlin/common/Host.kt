@@ -65,17 +65,17 @@ fun Host.fsSave () {
 }
 
 fun Host_load (dir: String) : Host {
-    assert(dir.substring(0,1) == "/")
+    assert(dir.startsWith("/"))
     return File(fsRoot + "/" + dir + "/host").readText().fromJsonToHost()
 }
 
 fun Host_exists (dir: String) : Boolean {
-    assert(dir.substring(0,1) == "/")
+    assert(dir.startsWith("/"))
     return File(fsRoot + "/" + dir).exists()
 }
 
 fun Host_create (dir: String, port: Int = 8330) : Host {
-    assert(dir.substring(0,1) == "/")
+    assert(dir.startsWith("/"))
     val root = fsRoot + dir
     val fs = File(root)
     assert(!fs.exists()) { "directory already exists: " + root }

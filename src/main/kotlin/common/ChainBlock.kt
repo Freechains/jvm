@@ -12,7 +12,7 @@ fun Chain.blockState (blk: Block) : State {
 
     fun repsPostReject () : Boolean {
         val (pos,neg) = this.repsPost(blk.hash)
-        return neg*LK23_rej - pos >= 0
+        return neg*LK23_rej + pos <= 0
     }
 
     return when {
@@ -53,16 +53,14 @@ fun Chain.backsAssert (blk: Block) {
     // TODO 90d
 
     blk.immut.backs.forEach {
-        assert(this.fsExistsBlock(it))      // all backs must exist
+        //println("$it <- ${blk.hash}")
+        assert(this.fsExistsBlock(it)) { "back must exist" }
         this.fsLoadBlock(it,null).let {
-            assert(it.immut.time <= blk.immut.time)        // all backs must be older
-
+            assert(it.immut.time <= blk.immut.time) { "back must be older"}
             if (blk.immut.isLikeBlock()) {
-                // a post like must back to the ref only
-                assert(blk.immut.like!!.ref==it.hash && blk.immut.backs.size==1)
+                assert(blk.immut.like!!.ref==it.hash && blk.immut.backs.size==1) { "like must back single ref only" }
             } else {
-                // otherwise, all backs must be green
-                assert(this.blockState(it) == State.ACCEPTED)
+                assert(this.blockState(it) == State.ACCEPTED) { "backs must be accepted" }
             }
         }
     }
@@ -70,17 +68,15 @@ fun Chain.backsAssert (blk: Block) {
 
 fun Chain.blockAssert (blk: Block) {
     val imm = blk.immut
-    assert(blk.hash == imm.toHash())        // hash matches immut
+    assert(blk.hash == imm.toHash()) { "hash must verify" }
     this.backsAssert(blk)                   // backs exist and are older
 
     val now = getNow()
-    assert (
-        imm.time <= now+T30M_future &&      // not from the future
-        imm.time >= now-T120D_past          // not too old
-    )
+    assert(imm.time <= now+T30M_future) { "from the future" }
+    assert(imm.time >= now-T120D_past) { "too old" }
 
     if (this.pub != null && this.pub.oonly) {
-        assert(this.fromOwner(blk))         // signed by owner (if oonly is set)
+        assert(this.fromOwner(blk)) { "must be from owner" }
     }
 
     val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
