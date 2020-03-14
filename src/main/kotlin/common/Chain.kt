@@ -118,10 +118,25 @@ fun Chain.getHeads (state: State) : List<Hash> {
         return hs
             .map {
                 this.fsLoadBlock(it,null).let {
-                    println("${it.hash} -> ${this.blockState(it)}")
+                    //println("${it.hash} -> ${this.blockState(it)}")
                     when {
                         it.immut.isLikePub()           -> recs(state, it.immut.backs.toList())
-                        (this.blockState(it) == state) -> listOf(it.hash)
+                        (this.blockState(it) == state) -> {
+                            if (state != State.ACCEPTED) {
+                                listOf(it.hash)
+                            } else {
+                                // if accepted, go to the tip accepteds in fronts
+                                fun fronts (blk: Block) : List<Hash> {
+                                    val ret = blk.fronts
+                                        .map { this.fsLoadBlock(it,null) }
+                                        .filter { this.blockState(it) == State.ACCEPTED }
+                                        .map { fronts(it) }
+                                        .flatten()
+                                    return if (!ret.isEmpty()) ret else listOf(it.hash)
+                                }
+                                fronts(it)
+                            }
+                        }
                         (state == State.ACCEPTED)      -> recs(state, it.immut.backs.toList())
                         else                           -> emptyList()
                     }
