@@ -5,17 +5,14 @@
         "code": "",
         "crypt": false,
         "payload": "",
-        "refs": [
-        ],
         "backs": [
         ],
         "height": 0
     },
     "fronts": [
-        "1_D3348C8079C3F4BACC99E87191EECD197A846E503586648246003BCBC639DE73"
+        "1_E45D2C5ABFCC2507DF1E8DAB427A5CC3A4DAA1F29585C81DAE403B1588F7A082"
     ],
     "sign": null,
-    "accepted": true,
     "hash": "0_99CB94E603FBA2915647AB24C60712A21EB64D89A63B323C04D246E596230FB6",
-    "localTime": 1583540714820
+    "localTime": 1584310761617
 }
