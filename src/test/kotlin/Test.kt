@@ -154,7 +154,7 @@ class Tests {
         val c2 = h.loadChain(c1.name)
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
-        val blk = c2.blockNew(HC.now(), null, null, false)
+        val blk = c2.blockNew(HC.now(), null, null)
         val blk2 = c2.fsLoadBlock(blk.hash, null)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
     }
@@ -162,10 +162,10 @@ class Tests {
     @Test
     fun c1_post() {
         val host = Host_load("/tmp/freechains/tests/local/")
-        val chain = host.joinChain("/", null)
-        val n1 = chain.blockNew(H.now(), null, null,true)
-        val n2 = chain.blockNew(H.now(), null, null,true)
-        val n3 = chain.blockNew(H.now(), null, null, false)
+        val chain = host.joinChain("/", ChainPub(false,PUB0))
+        val n1 = chain.blockNew(H.now(), PVT0, null)
+        val n2 = chain.blockNew(H.now(), PVT0, null)
+        val n3 = chain.blockNew(H.now(), null, null)
 
         var ok = false
         try {
@@ -200,9 +200,9 @@ class Tests {
 
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
-        val src_chain = src.joinChain("/d3", null)
-        src_chain.blockNew(HC.now(), null, null, true)
-        src_chain.blockNew(HC.now(), null, null,true)
+        val src_chain = src.joinChain("/d3", ChainPub(false,PUB1))
+        src_chain.blockNew(HC.now(), PVT1, null)
+        src_chain.blockNew(HC.now(), PVT1, null)
         thread { Daemon(src).daemon() }
 
         // DESTINY
@@ -226,20 +226,20 @@ class Tests {
     fun e1_graph() {
         a_reset()
         val h = Host_create("/tmp/freechains/tests/graph/")
-        val chain = h.joinChain("/", null)
+        val chain = h.joinChain("/", ChainPub(true,PUB0))
 
         setNow(1*day)
-        val ab0 = chain.blockNew(HC.now(1*day), null, null,true)
+        val ab0 = chain.blockNew(HC.now(1*day), PVT0, null)
         setNow(2*day)
-        chain.blockNew(HC.now(2*day-1).copy(payload = "a1"), null, null,true)
-        val b1 = chain.blockNew(HC.now().copy(backs=arrayOf(ab0.hash)), null, null,true)
+        chain.blockNew(HC.now(2*day-1).copy(payload = "a1"), PVT0, null)
+        val b1 = chain.blockNew(HC.now().copy(backs=arrayOf(ab0.hash)), PVT0, null)
         setNow(27*day)
-        val ab2 = chain.blockNew(HC.now(), null, null,true)
+        val ab2 = chain.blockNew(HC.now(), PVT0, null)
         setNow(28*day)
         //assert(chain.blockState(b1) == BlockState.REJECTED)
-        chain.blockNew(HC.now().copy(backs = arrayOf(b1.hash)), null, null,true)
+        chain.blockNew(HC.now().copy(backs = arrayOf(b1.hash)), PVT0, null)
         setNow(32*day)
-        chain.blockNew(HC.now(), null, null,true)
+        chain.blockNew(HC.now(), PVT0, null)
 
         /*
                       /-- (a1) --\
@@ -277,14 +277,14 @@ class Tests {
         //a_reset()
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
-        val h1_chain = h1.joinChain("/xxx", null)
-        h1_chain.blockNew(H, null, null, true)
-        h1_chain.blockNew(H, null, null, true)
+        val h1_chain = h1.joinChain("/xxx", ChainPub(false,PUB1))
+        h1_chain.blockNew(H, PVT1, null)
+        h1_chain.blockNew(H, PVT1, null)
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
         val h2_chain = h2.joinChain("/xxx", null)
-        h2_chain.blockNew(H, null, null, true)
-        h2_chain.blockNew(H, null, null, true)
+        h2_chain.blockNew(H, PVT1, null)
+        h2_chain.blockNew(H, PVT1, null)
 
         Thread.sleep(100)
         thread { Daemon(h1).daemon() }
@@ -425,11 +425,11 @@ class Tests {
         val host = Host_load("/tmp/freechains/tests/M2/")
 
         val c1 = host.joinChain("/sym", null)
-        val n1 = c1.blockNew(HC, null, null, false)
+        val n1 = c1.blockNew(HC, null, null)
         c1.blockAssert(n1)
 
         val c2 = host.joinChain("/asy", ChainPub(false, PUB0))
-        val n2 = c2.blockNew(H, PVT0, PVT0, false)
+        val n2 = c2.blockNew(H, PVT0, PVT0)
         c2.blockAssert(n2)
     }
 
@@ -438,7 +438,7 @@ class Tests {
         val host = Host_load("/tmp/freechains/tests/M2/")
         val c1 = host.loadChain("/sym")
         //println(c1.root)
-        val n1 = c1.blockNew(HC.copy(payload = "aaa"), null, SHA0, false)
+        val n1 = c1.blockNew(HC.copy(payload = "aaa"), null, SHA0)
         //println(n1.hash)
         val n2 = c1.fsLoadBlock(n1.hash, SHA0)
         assert(n2.immut.payload == "aaa")
@@ -554,7 +554,7 @@ class Tests {
 
         // noob post
         val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "bbba", "--sign=$PVT1"))
-        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1", h2, "--sign=$PVT0"))
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1", h2, "--sign=$PVT0")) // l1
         main_(arrayOf("chain", "heads", "pending",  "/xxx")).let {
             assert(it.startsWith("3_"))
         }
@@ -568,7 +568,7 @@ class Tests {
         assert( "1000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
         // give to myself
-        main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", h1, "--sign=$PVT0"))
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", h1, "--sign=$PVT0"))  // l2
         main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", PUB0, "--sign=$PVT0"))
         assert("29499" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
 
@@ -617,10 +617,11 @@ class Tests {
 
         // still the same
         main_(arrayOf(H1, "host", "now", "${2*hour}"))
-        val nx = main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331"))
-        assert(nx == "1 / 9") { nx }
-        val hs1 = main_(arrayOf(H1, "chain", "heads", "pending", "/xxx"))
-        assert(hs1.startsWith("3_"))
+        main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331")).let {
+            assert(it == "0 / 9")
+        }
+        //val hs1 = main_(arrayOf(H1, "chain", "heads", "pending", "/xxx"))
+        //assert(hs1.startsWith("3_"))
 
         // now ok
         main_(arrayOf(H1, "host", "now", "${1*day + 2*hour + 100}"))

@@ -22,7 +22,6 @@ fun Chain.blockState (blk: Block) : State {
         blk.immut.like != null -> State.ACCEPTED      // a like
 
         // changeable
-        blk.accepted           -> State.ACCEPTED      // TODO: remove
         repsPostReject()       -> State.REJECTED      // not enough reps
         ! hasTime()            -> State.PENDING       // not old enough
         else                   -> State.ACCEPTED      // enough reps, enough time

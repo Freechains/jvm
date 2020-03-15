@@ -233,8 +233,7 @@ class Daemon (host : Host) {
                                     emptyArray()
                                 ),
                                 if (sign.isEmpty()) null else sign,
-                                if (crypt.isEmpty()) null else crypt,
-                                false
+                                if (crypt.isEmpty()) null else crypt
                             )
                             writer.writeLineX(blk.hash)
                             System.err.println("chain post: ${blk.hash}")
@@ -382,7 +381,7 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
 
         xxx@for (j in 1..n2) {
             try {
-                val blk = reader.readLinesX().jsonToBlock().copy(accepted = false) // 6
+                val blk = reader.readLinesX().jsonToBlock() // 6
                 //println("recv ${blk.hash}")
                 chain.blockChain(blk)
                 Nmin++

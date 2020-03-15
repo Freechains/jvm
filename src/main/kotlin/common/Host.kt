@@ -46,7 +46,6 @@ fun Host.joinChain (name: String, pub: ChainPub?) : Chain {
         ),
         mutableListOf(),
         null,
-        true,
         chain.getGenesis()
     )
     chain.fsSaveBlock(genesis)

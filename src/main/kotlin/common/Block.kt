@@ -67,7 +67,6 @@ data class Block (
     val immut     : Immut,              // things to hash
     val fronts    : MutableList<Hash>,  // front links (next blocks)
     val sign      : Signature?,
-    val accepted  : Boolean,            // TODO: remove
     val hash      : Hash                // hash of immut
 ) {
     var localTime : Long = getNow()     // local time
