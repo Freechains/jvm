@@ -28,10 +28,10 @@ fun Chain.blockState (blk: Block) : State {
 fun Chain.blockChain (blk: Block) {
     // get old state of liked block
     val wasLiked=
-        if (!blk.immut.isLikeBlock())
+        if (blk.immut.like == null)
             null
         else
-            this.blockState(this.fsLoadBlock(blk.immut.like!!.ref,null))
+            this.blockState(this.fsLoadBlock(blk.immut.like.ref,null))
 
     this.blockAssert(blk)
     this.fsSaveBlock(blk)
@@ -80,10 +80,10 @@ fun Chain.backsAssert (blk: Block) {
         assert(this.fsExistsBlock(it)) { "back must exist" }
         this.fsLoadBlock(it,null).let {
             assert(it.immut.time <= blk.immut.time) { "back must be older"}
-            if (blk.immut.isLikeBlock()) {
-                assert(blk.immut.like!!.ref==it.hash && blk.immut.backs.size==1) { "like must back single ref only" }
-            } else {
+            if (blk.immut.like == null) {
                 assert(this.blockState(it) == State.ACCEPTED) { "backs must be accepted" }
+            } else {
+                assert(blk.immut.like.ref==it.hash && blk.immut.backs.size==1) { "like must back single ref only" }
             }
         }
     }
@@ -108,11 +108,14 @@ fun Chain.blockAssert (blk: Block) {
         assert(b.fronts.isEmpty() || b.fronts[0]==blk.hash) { "genesis is already referred" }
     }
 
-    if (imm.like != null) {                 // like has reputation
+    if (imm.like != null) {
         val n = imm.like.n
         val pub = blk.sign!!.pub
+        assert(this.fsExistsBlock(imm.like.ref)) {
+            "like target not found"         // like has target
+        }
         assert(this.fromOwner(blk) || n <= this.repsPub(pub, imm.time)) {
-            "not enough reputation"
+            "not enough reputation"         // like has reputation
         }
     }
 

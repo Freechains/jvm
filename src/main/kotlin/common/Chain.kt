@@ -83,7 +83,7 @@ fun Chain.blockNew (imm: Immut, sign: HKey?, crypt: HKey?) : Block {
     val heads = this.getHeads(State.ACCEPTED)
     val backs = when {
         imm.backs.isNotEmpty() -> imm.backs    // used in tests and likes
-        imm.isLikeBlock()      -> arrayOf(imm.like!!.ref)
+        (imm.like != null)     -> arrayOf(imm.like.ref)
         else                   -> heads.toTypedArray()
     }
 
@@ -122,7 +122,7 @@ fun Chain.getHeads (wanted: State) : List<Hash> {
                     val have = this.blockState(it)
                     when {
                         // if like block, go back until finds liked block
-                        it.immut.isLikeBlock()       -> recs( it.immut.backs.toList())
+                        (it.immut.like != null)     -> recs( it.immut.backs.toList())
 
                         // block has expected state, return it
                         (
@@ -221,7 +221,7 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
         .map { it.immut.like!! }
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
-    return Pair(pos,neg)
+    return Pair(pos/2,neg/2)    // half for post, half for author
 }
 
 fun Chain.repsPostSum (hash: String) : Int {
@@ -249,18 +249,22 @@ fun Chain.repsPub (pub: String, now: Long) : Int {
 
     val mines = b90s
         .filter { it.sign != null &&
-                it.sign.pub == pub }                       // all I signed
+                  it.sign.pub == pub }                       // all I signed
 
-    val (pos,neg) = mines                          // mines
+    val posts = mines                                   // mines
         .filter { it.immut.like == null }                    // not likes
+        .filter { this.blockState(it) == State.ACCEPTED }    // accepted
         .let {
+            val lks = it
+                .map { this.repsPostSum(it.hash) }
+                .sum()                                       // likes to my posts
             val pos = it
-                .filter { it.immut.time <= now - T1D_rep }   // older than 1 day
+                .filter { it.immut.time <= now - T1D_rep }   // posts older than 1 day
                 .count() * lk
             val neg = it
-                .filter { it.immut.time > now - T1D_rep }    // newer than 1 day
+                .filter { it.immut.time > now - T1D_rep }    // posts newer than 1 day
                 .count() * lk
-            Pair(min(LK30_max,pos),neg)
+            lks + max(gen,min(LK30_max,pos)) - neg
         }
 
     val gave = mines
@@ -268,15 +272,8 @@ fun Chain.repsPub (pub: String, now: Long) : Int {
         .map { it.immut.like!!.n.absoluteValue }
         .sum()
 
-    val got = b90s
-        .filter { it.immut.like != null &&                   // likes I got
-                it.immut.like.type == LikeType.PUBKEY &&
-                it.immut.like.ref == pub }
-        .map { it.immut.like!!.n }
-        .sum()
-
     //println("${max(gen,pos)} - $neg + $got - $gave")
-    return max(0, max(gen,pos) - neg + got - gave)
+    return max(0, posts-gave)
 }
 
 // TRAVERSE

@@ -77,7 +77,7 @@ import kotlin.concurrent.thread
 fun Immut.now (t: Long = getNow()) : Immut {
     return this.copy(time = t)
 }
-val H   = Immut(0, null,"",false, "", emptyArray(), emptyArray())
+val H   = Immut(0, null,"",false, "", emptyArray())
 val HC  = H.copy(code="utf8", crypt=true)
 
 const val PVT0 = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
@@ -568,8 +568,7 @@ class Tests {
         assert( "1000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
         // give to myself
-        main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", h1, "--sign=$PVT0"))  // l2
-        main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", PUB0, "--sign=$PVT0"))
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h1, "--sign=$PVT0"))  // l2
         assert("29499" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
 
         // h0 -> h1 -> h2 -> l1 -\

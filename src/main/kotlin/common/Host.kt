@@ -41,7 +41,6 @@ fun Host.joinChain (name: String, pub: ChainPub?) : Chain {
             "",
             false,
             "",
-            emptyArray(),
             emptyArray()
         ),
         mutableListOf(),

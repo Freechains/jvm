@@ -202,21 +202,23 @@ class Daemon (host : Host) {
 
                         "FC chain post" -> {
                             val time = reader.readLineX()
-                            val refs = reader.readLineX()
                             val sign = reader.readLineX()   // "" / <pvt>
                             val crypt= reader.readLineX()
-                            val like    = reader.readLineX().toInt()
+                            val lkn    = reader.readLineX().toInt()
+                            val lkr = reader.readLineX()
                             val code = reader.readLineX()
 
                             val cods = code.split(' ')
                             val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
 
-                            val refs_ =
-                                if (refs.isEmpty()) emptyArray() else refs.split(' ').toTypedArray()
-
-                            val like_ = if (refs_.isEmpty()) null else {
-                                Like(like, if (refs_[0].hashIsBlock()) LikeType.POST else LikeType.PUBKEY, refs_[0])
-                            }
+                            val like =
+                                if (lkn == 0) {
+                                    assert(lkr.isEmpty())
+                                    null
+                                } else {
+                                    assert(lkr.hashIsBlock()) { "expected block hash" }
+                                    Like(lkn, lkr)
+                                }
 
                             val blk = chain.blockNew (
                                 Immut (
@@ -225,16 +227,16 @@ class Daemon (host : Host) {
                                         chain.heads.map { chain.fsLoadBlock(it, null).immut.time }.max()!!
                                             // TODO: +1 prevents something that happened after to occur simultaneously (also, problem with TODO???)
                                     ),
-                                    like_,
+                                    like,
                                     cods[0],
                                     false,
                                     pay,
-                                    refs_,
                                     emptyArray()
                                 ),
                                 if (sign.isEmpty()) null else sign,
                                 if (crypt.isEmpty()) null else crypt
                             )
+
                             writer.writeLineX(blk.hash)
                             System.err.println("chain post: ${blk.hash}")
 

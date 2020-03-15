@@ -23,7 +23,7 @@ Usage:
     freechains [options] chain get <chain> <hash>
     freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
     freechains [options] chain like get <chain> <hash_or_pub>
-    freechains [options] chain like post <chain> (+|-) <integer> <hash_or_pub>
+    freechains [options] chain like post <chain> (+|-) <integer> <hash>
     freechains [options] chain ban <chain> <hash>
     freechains [options] chain unban <chain> <hash>
     freechains [options] chain listen <chain>
@@ -37,7 +37,6 @@ Options:
     --time=<ms>            [post|like]      sets block timestamp [default: now]
     --sign=<pvtkey>        [post|like]      signs post with given private key
     --crypt=<key>          [get|post]       (de|en)crypts post with given shared or private key
-    --ref=<hash>           [post]           refers to previous post
     --why=<text>           [like]           explains reason for the like
     --utf8-eof=<word>      [post]           sets word terminator for utf8 post
 
@@ -154,10 +153,10 @@ fun main_ (args: Array<String>) : String {
                             writer.writeLineX("FC chain post")
                             writer.writeLineX(opts["<chain>"] as String)
                             writer.writeLineX(opts["--time"] as String)
-                            writer.writeLineX((opts["<hash_or_pub>"] as String))
                             writer.writeLineX(opts["--sign"] as String)
                             writer.writeLineX("")   // crypt
                             writer.writeLineX(sig + (opts["<integer>"] as String))
+                            writer.writeLineX((opts["<hash>"] as String))
                             writer.writeLineX("utf8")
                             writer.writeLineX((opts["--why"] as String?).let {
                                 if (it == null) "" else it + "\n"
@@ -198,10 +197,10 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX("FC chain post")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["--time"] as String)
-                    writer.writeLineX(opts["--ref"] as String? ?: "")
                     writer.writeLineX(opts["--sign"] as String? ?: "")
                     writer.writeLineX((opts["--crypt"] as String? ?: "").toString())
                     writer.writeLineX("0")
+                    writer.writeLineX("")
                     writer.writeLineX(if (opts["utf8"] as Boolean) "utf8"+(if (eof.isEmpty()) "" else " "+eof) else "base64")
 
                     val bytes = when {

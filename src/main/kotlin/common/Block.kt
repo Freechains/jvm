@@ -38,9 +38,8 @@ enum class LikeType {
 
 @Serializable
 data class Like (
-    val n    : Int,       // +X: like, -X: dislike
-    val type : LikeType,
-    val ref  : String     // target public key or post hash
+    val n    : Int,     // +X: like, -X: dislike
+    val ref  : Hash     // target post hash
 )
 
 @Serializable
@@ -56,7 +55,6 @@ data class Immut (
     val code    : String,         // payload encoding
     val crypt   : Boolean,        // payload is encrypted (method depends on chain)
     val payload : String,
-    val refs    : Array<String>,  // post hash or user pubkey
     val backs   : Array<Hash>     // back links (previous blocks)
 ) {
     val height  : Int = this.backs.backsToHeight()
@@ -104,8 +102,4 @@ private fun Hash.toHeight () : Int {
 
 fun Hash.hashIsBlock () : Boolean {
     return this.contains('_')   // otherwise is pubkey
-}
-
-fun Immut.isLikeBlock () : Boolean {
-    return this.like!=null && this.like.ref.hashIsBlock()
 }
