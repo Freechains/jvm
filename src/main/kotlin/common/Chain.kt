@@ -179,20 +179,21 @@ fun Chain.blockRejectBan (hash: Hash, isBan: Boolean) {
     if (this.heads.contains(hash)) {
         this.heads.remove(hash)
         blk.immut.backs.forEach {
-            assert(!this.heads.contains(it))
-            this.heads.add(it)
-        }
-    }
-
-    // refronts: remove myself as front of all my backs
-    blk.immut.backs.forEach {
-        this.fsLoadBlock(it, null).let {
-            it.fronts.remove(hash)
-            this.fsSaveBlock(it)
+            if (!this.heads.contains(it)) {
+                this.heads.add(it)
+            }
         }
     }
 
     if (isBan) {
+        // refronts: remove myself as front of all my backs
+        blk.immut.backs.forEach {
+            this.fsLoadBlock(it, null).let {
+                it.fronts.remove(hash)
+                this.fsSaveBlock(it)
+            }
+        }
+
         blk.fronts.clear()
         this.fsSaveBlock(blk,"/banned/")
         this.fsRemBlock(blk.hash)

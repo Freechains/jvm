@@ -618,7 +618,7 @@ class Tests {
         // still the same
         main_(arrayOf(H1, "host", "now", "${2*hour}"))
         main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331")).let {
-            assert(it == "0 / 9")
+            assert(it == "1 / 9")
         }
         //val hs1 = main_(arrayOf(H1, "chain", "heads", "pending", "/xxx"))
         //assert(hs1.startsWith("3_"))
@@ -962,7 +962,6 @@ class Tests {
         }
 
         // dislike h22
-        println("===================")
         main_(arrayOf(H0,"chain","like","post","/","-","1",h22,"--sign=$PVT0"))
 
         // h0 -> h1 -> h21 -> l31
@@ -989,6 +988,37 @@ class Tests {
             assert(it.startsWith("2_"))  // h22
             it.split(' ').let {
                 assert(it.size == 1)
+            }
+        }
+
+        // like h22
+        main_(arrayOf(H0,"chain","like","post","/","+","1",h22,"--sign=$PVT0"))
+        main_(arrayOf(H0, "host", "now", "${4*hour}"))
+
+        // h0 -> h1 -> h21 -> l31
+        //          -> h22 -> l32 (+)
+        //                 -> l33 (-)
+        //                 -> l34 (+)
+
+        // h22 not yet accepted
+        main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
+            it.split(' ').let {
+                assert(it.size == 1)
+                it.forEach {
+                    assert(it.startsWith("3_"))     // l31
+                }
+            }
+        }
+
+        main_(arrayOf(H0, "host", "now", "${6*hour}"))
+
+        // h22 not yet accepted
+        main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
+            it.split(' ').let {
+                assert(it.size == 4)
+                it.forEach {
+                    assert(it.startsWith("3_"))     // l31
+                }
             }
         }
     }

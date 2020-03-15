@@ -61,7 +61,6 @@ fun Chain.blockChain (blk: Block) {
                 }
                 // changed state
                 (wasLiked==State.REJECTED && now==State.ACCEPTED) -> {
-                    error("2")
                     // change to PENDING
                     it.localTime = getNow()
                     this.fsSaveBlock(it)
