@@ -88,6 +88,8 @@ const val SHA0 = "64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63
 
 const val H0 = "--host=localhost:8330"
 const val H1 = "--host=localhost:8331"
+const val S0 = "--sign=$PVT0"
+const val S1 = "--sign=$PVT1"
 
 @TestMethodOrder(Alphanumeric::class)
 class Tests {
@@ -313,7 +315,7 @@ class Tests {
         assert(main_(arrayOf("chain", "genesis", "/xxx")).startsWith("0_"))
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("0_"))
 
-        main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", "--sign=$PVT0"))
+        main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", S0))
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("1_"))
         main_(arrayOf("chain", "heads", "rejected", "/xxx")).let {
             println("|$it|")
@@ -331,7 +333,7 @@ class Tests {
         assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("1_"))
         assert(main_(arrayOf("chain", "heads", "rejected", "/xxx")).startsWith("2_"))
 
-        main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", h2, "--sign=$PVT0"))
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h2, S0))
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("1_"))
         assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("3_"))
         assert(main_(arrayOf("chain", "heads", "rejected", "/xxx")).isEmpty())
@@ -483,7 +485,7 @@ class Tests {
         Thread.sleep(100)
         main(arrayOf("chain", "join", "/xxx", PUB0))
         main(arrayOf(H1, "chain", "join", "/xxx", PUB0))
-        val hash = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", "--sign=$PVT0", "--crypt=$PVT0"))
+        val hash = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", S0, "--crypt=$PVT0"))
 
         val json = main_(arrayOf("chain", "get", "/xxx", hash, "--crypt=$PVT0"))
         val blk = json.jsonToBlock()
@@ -494,7 +496,7 @@ class Tests {
         val blk2 = json2.jsonToBlock()
         assert(blk2.immut.crypt)
 
-        val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "bbbb", "--sign=$PVT1"))
+        val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "bbbb", S1))
         val j2 = main_(arrayOf("chain", "get", "/xxx", h2))
         val b2 = j2.jsonToBlock()
         assert(b2.immut.payload == "bbbb")
@@ -511,9 +513,9 @@ class Tests {
         Thread.sleep(100)
 
         main_(arrayOf(H0, "chain", "join", "/"))
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "first", "--sign=$PVT0"))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "first", S0))
         main_(arrayOf(H1, "chain", "join", "/"))
-        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "first", "--sign=$PVT1"))
+        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "first", S1))
 
         val r0 = main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
         val r1 = main_(arrayOf(H1, "chain", "send", "/", "localhost:8330"))
@@ -548,13 +550,13 @@ class Tests {
         main_(arrayOf(H0, "host", "now", "0"))
 
         // first post
-        val h1 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", "--sign=$PVT0"))
+        val h1 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", S0))
 
         // h0 -> h1
 
         // noob post
-        val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "bbba", "--sign=$PVT1"))
-        main_(arrayOf("chain", "like", "post", "/xxx", "+", "2", h2, "--sign=$PVT0")) // l1
+        val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "bbba", S1))
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h2, S0)) // l1
         main_(arrayOf("chain", "heads", "pending",  "/xxx")).let {
             assert(it.startsWith("3_"))
         }
@@ -564,29 +566,29 @@ class Tests {
         // like noob post
         main_(arrayOf(H0, "host", "now", (1*day+1*hour).toString()))
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("3_"))
-        assert("29998" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
-        assert( "1001" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+        assert("29000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
+        assert( "1500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
         // give to myself
-        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h1, "--sign=$PVT0"))  // l2
-        assert("29498" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h1, S0))  // l2
+        assert("28500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
 
         // h0 -> h1 -> h2 -> l1
         //          -> l2
 
         // give to other
-        val h3 = main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h2, "--sign=$PVT0"))
-        assert("28498" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
-        assert("1501" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+        val h3 = main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h2, S0))
+        assert("27500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
+        assert( "2000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
         //  0     1     2     3
         //                -> h3
         // h0 -> h1 -> h2 -> l1
         //          -> l2
 
-        main_(arrayOf("chain","like","post","/xxx","-","1000",h3,"--why=" + h3.substring(0,9),"--sign=$PVT1"))
-        assert("501" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
-        main_(arrayOf("chain","like","post","/xxx","+","500",h3,"--why=" + h3.substring(0,9),"--sign=$PVT1"))
+        main_(arrayOf("chain","like","post","/xxx","-","1000",h3,"--why=" + h3.substring(0,9),S1))
+        assert("1000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+        main_(arrayOf("chain","like","post","/xxx","+","500",h3,"--why=" + h3.substring(0,9),S1))
 
         //  0     1     2     3      4     5
         //                      /-> l42
@@ -594,8 +596,8 @@ class Tests {
         // h0 -> h1 -> h2 -> l1
         //          -> l2
 
-        assert("1" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
-        assert("28498" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
+        assert(  "500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+        assert("27500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
 
         main_(arrayOf("host", "create", "/tmp/freechains/tests/M81/", "8331"))
         thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M81/")) }
@@ -637,8 +639,8 @@ class Tests {
         }
 
         // post w/o reputation
-        assert("1" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
-        val hn = main_(arrayOf(H1, "chain", "post", "/xxx", "inline", "utf8", "no rep", "--sign=$PVT1"))
+        assert("500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+        val hn = main_(arrayOf(H1, "chain", "post", "/xxx", "inline", "utf8", "no rep", S1))
 
         main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
             assert(it == "0 / 0")
@@ -647,7 +649,7 @@ class Tests {
             assert(it.startsWith("5_"))
         }
 
-        main_(arrayOf(H1,"chain","like","post","/xxx","+","2",hn,"--sign=$PVT0"))
+        main_(arrayOf(H1,"chain","like","post","/xxx","+","1000",hn,S0))
         main_(arrayOf(H1, "chain", "heads", "pending", "/xxx")).let {
             assert(it.startsWith("6_"))
         }
@@ -699,19 +701,19 @@ class Tests {
         )
 
         // like post w/o pub
-        main_(arrayOf(H1,"chain","like","post","/xxx","+","1000",h7,"--sign=$PVT0"))
+        main_(arrayOf(H1,"chain","like","post","/xxx","+","1000",h7,S0))
         main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
             assert (it == "2 / 2")
         }
         main_(arrayOf(H1, "chain", "like", "get", "/xxx", PUB0)).let {
-            assert(it == "27496")
+            assert(it == "25500")
         }
         main_(arrayOf(H1, "host", "now", "${1*day + 7*hour}"))
         main_(arrayOf(H1, "chain", "like", "get", "/xxx", PUB0)).let {
-            assert(it == "27496")
+            assert(it == "25500")
         }
         main_(arrayOf(H0, "chain", "like", "get", "/xxx", PUB0)).let {
-            assert(it == "27496")
+            assert(it == "25500")
         }
 
         val ln = main_(arrayOf(H0, "chain", "like", "get", "/xxx", hn))
@@ -720,7 +722,7 @@ class Tests {
         val l3 = main_(arrayOf(H0, "chain", "like", "get", "/xxx", h3))
         val l4 = main_(arrayOf(H0, "chain", "like", "get", "/xxx", h7))
         println("$ln // $l1 // $l2 // $l3 // $l4")
-        assert(ln == "1" && l1 == "500" && l2 == "501" && l3 == "-250" && l4 == "500")
+        assert(ln == "500" && l1 == "500" && l2 == "1000" && l3 == "-250" && l4 == "500")
     }
 
     @Test
@@ -732,7 +734,7 @@ class Tests {
         Thread.sleep(100)
         main(arrayOf("chain", "join", "/"))
 
-        val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h0", "--sign=$PVT0"))
+        val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h0", S0))
         val h21 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h11"))
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
             assert(it.contains(h21) && !it.contains(h1))
@@ -755,7 +757,7 @@ class Tests {
 
         val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h12"))
         assert(h22.startsWith("2_"))
-        val l1 = main_(arrayOf(H0,"chain","like","post","/","+","2",h22,"--sign=$PVT0"))
+        val l1 = main_(arrayOf(H0,"chain","like","post","/","+","1000",h22,S0))
 
         val h23 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h22"))
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
@@ -832,14 +834,14 @@ class Tests {
         main(arrayOf(H0, "host", "now", "0"))
         main(arrayOf(H1, "host", "now", "0"))
 
-        val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1", "--sign=$PVT1"))
-        val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2", "--sign=$PVT1"))
-        val h3 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3", "--sign=$PVT0"))
+        val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1", S1))
+        val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2", S1))
+        val h3 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3", S0))
 
         // h1 (g) -> h2 (r)
         //        -> h3 (a)
 
-        //main_(arrayOf(H0, "chain", "like", "post", "/", "+", "1000", h2, "--sign=$PVT1"))
+        //main_(arrayOf(H0, "chain", "like", "post", "/", "+", "1000", h2, S1))
         val as1 = main_(arrayOf(H0, "chain", "heads", "accepted", "/"))
         val ps1 = main_(arrayOf(H0, "chain", "heads", "pending",  "/"))
         val rs1 = main_(arrayOf(H0, "chain", "heads", "rejected", "/"))
@@ -857,8 +859,8 @@ class Tests {
         // h1 (a) -> h2 (r)
         //        -> h3 (o) -> h4 (r)
 
-        main_(arrayOf(H0,"chain","like","post","/","+","2",h2,"--sign=$PVT0"))
-        main_(arrayOf(H1,"chain","like","post","/","+","2",h4,"--sign=$PVT0"))
+        main_(arrayOf(H0,"chain","like","post","/","+","1000",h2,S0))
+        main_(arrayOf(H1,"chain","like","post","/","+","1000",h4,S0))
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
 
         // h1 (g) -> h2 (r) -> l2
@@ -882,9 +884,9 @@ class Tests {
         main(arrayOf(H0, "chain", "join", "/"))
         main(arrayOf(H1, "chain", "join", "/"))
 
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1","--sign=$PVT0"))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1",S0))
         val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2"))
-        main_(arrayOf(H0,"chain","like","post","/","+","2",h2,"--sign=$PVT0"))
+        main_(arrayOf(H0,"chain","like","post","/","+","2",h2,S0))
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3"))
 
         // h0 -> h1 -> h2 -> h3
@@ -905,7 +907,7 @@ class Tests {
         main(arrayOf(H0, "chain", "join", "/"))
         main(arrayOf(H0, "host", "now", "0"))
 
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1","--sign=$PVT0"))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1",S0))
         val h21 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h21"))
         val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h22"))
 
@@ -922,8 +924,8 @@ class Tests {
             assert(it.startsWith("1_")) { it }
         }
 
-        main_(arrayOf(H0,"chain","like","post","/","+","2",h21,"--sign=$PVT0"))
-        main_(arrayOf(H0,"chain","like","post","/","+","2",h22,"--sign=$PVT0"))
+        main_(arrayOf(H0,"chain","like","post","/","+","1000",h21,S0))
+        main_(arrayOf(H0,"chain","like","post","/","+","1000",h22,S0))
 
         // h0 -> h1 -> h21 -> l31
         //          -> h22 -> l32
@@ -953,7 +955,7 @@ class Tests {
         }
 
         // dislike h22
-        main_(arrayOf(H0,"chain","like","post","/","-","2",h22,"--sign=$PVT0"))
+        main_(arrayOf(H0,"chain","like","post","/","-","2",h22,S0))
 
         // h0 -> h1 -> h21 -> l31
         //          -> h22 -> l32 (+)
@@ -983,7 +985,7 @@ class Tests {
         }
 
         // like h22
-        main_(arrayOf(H0,"chain","like","post","/","+","2",h22,"--sign=$PVT0"))
+        main_(arrayOf(H0,"chain","like","post","/","+","2",h22,S0))
         main_(arrayOf(H0, "host", "now", "${4*hour}"))
 
         // h0 -> h1 -> h21 -> l31
@@ -1011,6 +1013,42 @@ class Tests {
                     assert(it.startsWith("3_"))     // l31
                 }
             }
+        }
+    }
+
+
+    @Test
+    fun m13_reps () {
+        a_reset()
+
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M13/"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M13/")) }
+        Thread.sleep(100)
+        main(arrayOf(H0, "chain", "join", "/"))
+
+        main(arrayOf(H0, "host", "now", "0"))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1", S0))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2", S1)).let {
+            main_(arrayOf(H0,"chain","like","post","/","+","1000",it,S0))
+        }
+
+        main(arrayOf(H0, "host", "now", "${3*hour}"))
+        main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
+            println(it)
+        }
+
+        main(arrayOf(H0, "host", "now", "${25*hour}"))
+        main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
+            println(it)
+        }
+
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2", S1)).let {
+            main_(arrayOf(H0,"chain","like","post","/","+","500",it,S1))
+        }
+
+        main(arrayOf(H0, "host", "now", "${50*hour}"))
+        main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
+            println(it)
         }
     }
 }

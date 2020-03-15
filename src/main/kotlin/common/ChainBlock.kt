@@ -19,7 +19,7 @@ fun Chain.blockState (blk: Block) : State {
         blk.immut.like != null  -> State.ACCEPTED      // a like
 
         // changeable
-        LK23_rej(rep)           -> State.REJECTED      // not enough reps
+        LK23_500_rej(rep)       -> State.REJECTED      // not enough reps
         ! hasTime()             -> State.PENDING       // not old enough
         else                    -> State.ACCEPTED      // enough reps, enough time
     }

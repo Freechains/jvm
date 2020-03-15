@@ -17,9 +17,9 @@ const val mlk = 1
 const val lk  = 1000*mlk                // rewards for post after 24h
 const val LK30_max = 30*lk
 
-fun LK23_rej (rep : Pair<Int,Int>) : Boolean {
+fun LK23_500_rej (rep : Pair<Int,Int>) : Boolean {
     val (pos,neg) = rep
-    return -neg*3 >= pos*2
+    return (-neg*3 >= pos*2) || (pos+neg < 500)
 }
 
 fun dbg (v: String) : String {
