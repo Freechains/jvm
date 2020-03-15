@@ -174,7 +174,7 @@ class Daemon (host : Host) {
                                 if (ref.hashIsBlock()) {
                                     chain.repsPostSum(ref)
                                 } else {
-                                    chain.repsPub(ref, getNow())
+                                    chain.repsAuthor(ref, null)
                                 }
 
                             writer.writeLineX(likes.toString())

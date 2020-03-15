@@ -114,7 +114,7 @@ fun Chain.blockAssert (blk: Block) {
         assert(this.fsExistsBlock(imm.like.ref)) {
             "like target not found"         // like has target
         }
-        assert(this.fromOwner(blk) || n <= this.repsPub(pub, imm.time)) {
+        assert(this.fromOwner(blk) || n <= this.repsAuthor(pub,imm)) {
             "not enough reputation"         // like has reputation
         }
     }

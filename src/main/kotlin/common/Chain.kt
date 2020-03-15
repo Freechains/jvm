@@ -229,7 +229,13 @@ fun Chain.repsPostSum (hash: String) : Int {
     return pos + neg
 }
 
-fun Chain.repsPub (pub: String, now: Long) : Int {
+fun Chain.repsAuthor (pub: String, imm: Immut?) : Int {
+    val (heads,now) =
+        if (imm == null)
+            Pair(this.heads, getNow())
+        else
+            Pair(imm.backs.toList(), imm.time)
+
     val gen = this.fsLoadBlock(this.getGenesis(), null).fronts.let {
         if (it.isEmpty())
             LK30_max
@@ -243,7 +249,7 @@ fun Chain.repsPub (pub: String, now: Long) : Int {
             }
     }
 
-    val b90s = this.traverseFromHeads(this.heads) {
+    val b90s = this.traverseFromHeads(heads) {
         it.immut.time >= now - T90D_rep
     }
 
