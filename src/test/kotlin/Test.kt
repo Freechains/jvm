@@ -249,12 +249,12 @@ class Tests {
          */
 
         var n = 0
-        for (blk in chain.traverseFromHeads { true }) {
+        for (blk in chain.traverseFromHeads(chain.heads) { true }) {
             n++
         }
         assert(n == 7)
 
-        val x = chain.traverseFromHeads { it.immut.height > 2 }
+        val x = chain.traverseFromHeads(chain.heads) { it.immut.height > 2 }
         assert(x.size == 3)
 
         fun Chain.getMaxTime(): Long {
@@ -264,7 +264,7 @@ class Tests {
                 .max()!!
         }
 
-        val y = chain.traverseFromHeads { true }.filter { it.immut.time >= chain.getMaxTime() - 30 * day }
+        val y = chain.traverseFromHeads(chain.heads) { true }.filter { it.immut.time >= chain.getMaxTime() - 30 * day }
         //println(y.map { it.hash })
         assert(y.size == 4)
 
@@ -710,11 +710,16 @@ class Tests {
 
         // like post w/o pub
         main_(arrayOf(H1,"chain","like","post","/xxx","+","1000",h4,"--sign=$PVT0"))
-        assert (
-            main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330"))
-                .equals("2 / 2")
-        )
-        assert("27248" == main_(arrayOf(H1, "chain", "like", "get", "/xxx", PUB0)))
+        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
+            assert (it == "2 / 2")
+        }
+        main_(arrayOf(H1, "chain", "like", "get", "/xxx", PUB0)).let {
+            assert(it == "28248")
+        }
+        main_(arrayOf(H1, "host", "now", "${1*day + 7*hour}"))
+        main_(arrayOf(H1, "chain", "like", "get", "/xxx", PUB0)).let {
+            assert(it == "27248")
+        }
         assert("27248" == main_(arrayOf(H0, "chain", "like", "get", "/xxx", PUB0)))
 
         val ln = main_(arrayOf(H0, "chain", "like", "get", "/xxx", hn))

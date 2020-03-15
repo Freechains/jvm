@@ -238,7 +238,7 @@ fun Chain.repsPub (pub: String, now: Long) : Int {
             }
     }
 
-    val b90s = this.traverseFromHeads {
+    val b90s = this.traverseFromHeads(this.getHeads(State.ACCEPTED)) {
         it.immut.time >= now - T90D_rep
     }
 
@@ -278,7 +278,7 @@ fun Chain.repsPub (pub: String, now: Long) : Int {
 // TODO: State
 
 internal fun Chain.traverseFromHeads (
-    heads: List<Hash> = this.heads,
+    heads: List<Hash>,
     f: (Block) -> Boolean
 ) : Array<Block> {
     val pending = LinkedList<String>()
