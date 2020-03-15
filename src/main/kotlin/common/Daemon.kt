@@ -216,6 +216,7 @@ class Daemon (host : Host) {
                                     assert(lkr.isEmpty())
                                     null
                                 } else {
+                                    assert(lkn%2 == 0) { "like must be even "}
                                     assert(lkr.hashIsBlock()) { "expected block hash" }
                                     Like(lkn, lkr)
                                 }

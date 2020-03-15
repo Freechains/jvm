@@ -52,7 +52,7 @@ fun Chain.blockChain (blk: Block) {
     if (wasLiked != null) {
         this.fsLoadBlock(blk.immut.like!!.ref,null).let {
             val now = this.blockState(it)
-            println("${it.hash} : $wasLiked -> $now")
+            //println("${it.hash} : $wasLiked -> $now")
             when {
                 // changed from ACC -> REJ
                 (wasLiked==State.ACCEPTED && now==State.REJECTED) -> {

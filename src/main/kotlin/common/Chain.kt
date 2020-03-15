@@ -243,7 +243,7 @@ fun Chain.repsPub (pub: String, now: Long) : Int {
             }
     }
 
-    val b90s = this.traverseFromHeads(this.getHeads(State.ACCEPTED)) {
+    val b90s = this.traverseFromHeads(this.heads) {
         it.immut.time >= now - T90D_rep
     }
 
@@ -251,9 +251,10 @@ fun Chain.repsPub (pub: String, now: Long) : Int {
         .filter { it.sign != null &&
                   it.sign.pub == pub }                       // all I signed
 
+    //println("=== $pub")
     val posts = mines                                   // mines
         .filter { it.immut.like == null }                    // not likes
-        .filter { this.blockState(it) == State.ACCEPTED }    // accepted
+        //.filter { this.blockState(it) != State.REJECTED }    // accepted
         .let {
             val lks = it
                 .map { this.repsPostSum(it.hash) }
@@ -264,6 +265,7 @@ fun Chain.repsPub (pub: String, now: Long) : Int {
             val neg = it
                 .filter { it.immut.time > now - T1D_rep }    // posts newer than 1 day
                 .count() * lk
+            //println(">> lks=$lks // pos=$pos // neg=$neg")
             lks + max(gen,min(LK30_max,pos)) - neg
         }
 
@@ -271,6 +273,7 @@ fun Chain.repsPub (pub: String, now: Long) : Int {
         .filter { it.immut.like != null }                    // likes I gave
         .map { it.immut.like!!.n.absoluteValue }
         .sum()
+    //println(">> gave=$gave")
 
     //println("${max(gen,pos)} - $neg + $got - $gave")
     return max(0, posts-gave)
