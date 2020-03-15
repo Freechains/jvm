@@ -114,7 +114,15 @@ fun Chain.blockAssert (blk: Block) {
         assert(this.fsExistsBlock(imm.like.ref)) {
             "like target not found"         // like has target
         }
-        assert(this.fromOwner(blk) || n <= this.repsAuthor(pub,imm)) {
+        assert (
+            this.fromOwner(blk) ||   // owner has infinite reputation
+            (
+                // global no // local ok  --> double spend
+                // global ok // local no  --> use + from cousins (which may be rejected)
+                n <= this.repsAuthor(pub,imm) &&        // local reputation (backs)
+                n <= this.repsAuthor(pub,null)    // global reputation (heads)
+            )
+        ) {
             "not enough reputation"         // like has reputation
         }
     }
