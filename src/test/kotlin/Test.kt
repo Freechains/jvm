@@ -832,34 +832,45 @@ class Tests {
         Thread.sleep(100)
         main(arrayOf(H0, "chain", "join", "/", PUB0))
         main(arrayOf(H1, "chain", "join", "/", PUB0))
+        main(arrayOf(H0, "host", "now", "0"))
+        main(arrayOf(H1, "host", "now", "0"))
 
         val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1", "--sign=$PVT1"))
         val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2", "--sign=$PVT1"))
         val h3 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3", "--sign=$PVT0"))
 
-        // h1 (g) -> h2 (y)
-        //        -> h3 (r)
+        // h1 (g) -> h2 (r)
+        //        -> h3 (a)
 
         //main_(arrayOf(H0, "chain", "like", "post", "/", "+", "1000", h2, "--sign=$PVT1"))
         val as1 = main_(arrayOf(H0, "chain", "heads", "accepted", "/"))
         val ps1 = main_(arrayOf(H0, "chain", "heads", "pending",  "/"))
         val rs1 = main_(arrayOf(H0, "chain", "heads", "rejected", "/"))
-        println(as1)
-        assert( as1.contains(h1) && !as1.contains(h2) && !as1.contains(h3))
-        assert(!ps1.contains(h1) &&  ps1.contains(h2) &&  ps1.contains(h3))
-        assert(!rs1.contains(h1) && !rs1.contains(h2) && !rs1.contains(h3))
+        assert(!as1.contains(h1) && !as1.contains(h2) &&  as1.contains(h3))
+        assert(!ps1.contains(h1) && !ps1.contains(h2) &&  ps1.contains(h3))
+        assert(!rs1.contains(h1) &&  rs1.contains(h2) && !rs1.contains(h3))
 
         // h2 will not be accepted, even if h3 is
         // so, h4, will be put in front of h1
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
         val h4 = main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h4"))
-        assert(h4.startsWith("2_"))
+        assert(h4.startsWith("3_"))
 
-        main_(arrayOf(H1, "chain", "accept", "/", h2))
-        main_(arrayOf(H1, "chain", "accept", "/", h4))
-        val h5 = main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h5"))
-        assert(h5.startsWith("3_"))
+        // h1 (a) -> h2 (r)
+        //        -> h3 (o) -> h4 (r)
+
+        main_(arrayOf(H0,"chain","like","post","/","+","1",h2,"--sign=$PVT0"))
+        main_(arrayOf(H1,"chain","like","post","/","+","1",h4,"--sign=$PVT0"))
+        main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+
+        // h1 (g) -> h2 (r) -> l2
+        //        -> h3 (a) -> h4 (r) -> l4
+
+        main_(arrayOf(H1, "host", "now", "${2*hour+1*min}"))
+        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h5")).let {
+            assert(it.startsWith("5_"))
+        }
     }
     @Test
     fun m11_send_after_tine() {
