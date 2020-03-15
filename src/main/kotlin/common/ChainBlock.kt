@@ -10,21 +10,18 @@ fun Chain.blockState (blk: Block) : State {
         return blk.localTime <= getNow()-T2H_past   // old enough
     }
 
-    fun repsPostReject () : Boolean {
-        val (pos,neg) = this.repsPost(blk.hash)
-        return neg*LK23_rej + pos <= 0
-    }
+    val rep = this.repsPost(blk.hash)
 
     return when {
         // unchangeable
-        blk.immut.height <= 1  -> State.ACCEPTED      // first two blocks
-        this.fromOwner(blk)    -> State.ACCEPTED      // owner signature
-        blk.immut.like != null -> State.ACCEPTED      // a like
+        blk.immut.height <= 1   -> State.ACCEPTED      // first two blocks
+        this.fromOwner(blk)     -> State.ACCEPTED      // owner signature
+        blk.immut.like != null  -> State.ACCEPTED      // a like
 
         // changeable
-        repsPostReject()       -> State.REJECTED      // not enough reps
-        ! hasTime()            -> State.PENDING       // not old enough
-        else                   -> State.ACCEPTED      // enough reps, enough time
+        LK23_rej(rep)           -> State.REJECTED      // not enough reps
+        ! hasTime()             -> State.PENDING       // not old enough
+        else                    -> State.ACCEPTED      // enough reps, enough time
     }
 }
 
@@ -55,10 +52,10 @@ fun Chain.blockChain (blk: Block) {
     if (wasLiked != null) {
         this.fsLoadBlock(blk.immut.like!!.ref,null).let {
             val now = this.blockState(it)
+            println("${it.hash} : $wasLiked -> $now")
             when {
                 // changed from ACC -> REJ
                 (wasLiked==State.ACCEPTED && now==State.REJECTED) -> {
-                    error("1")
                     // remove each front recursively from this.heads
                     it.fronts.forEach { this.blockRejectBan(it,false) }
                 }

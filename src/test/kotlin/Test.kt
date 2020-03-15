@@ -912,12 +912,13 @@ class Tests {
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M12/")) }
         Thread.sleep(100)
         main(arrayOf(H0, "chain", "join", "/"))
+        main(arrayOf(H0, "host", "now", "0"))
 
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1","--sign=$PVT0"))
-        val h21 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2"))
-        val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3"))
+        val h21 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h21"))
+        val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h22"))
 
-        // h0 -> h1 -> h21 -> l3
+        // h0 -> h1 -> h21
         //          -> h22
 
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
@@ -926,11 +927,69 @@ class Tests {
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
             assert(it.startsWith("1_")) { it }
         }
-        println("=============")
         main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
             assert(it.startsWith("1_")) { it }
         }
 
         main_(arrayOf(H0,"chain","like","post","/","+","1",h21,"--sign=$PVT0"))
+        main_(arrayOf(H0,"chain","like","post","/","+","1",h22,"--sign=$PVT0"))
+
+        // h0 -> h1 -> h21 -> l31
+        //          -> h22 -> l32
+
+        // all still pending, only h1 accepted
+        main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
+            it.split(' ').let {
+                assert(it.size == 2)
+                it.forEach {
+                    assert(it.startsWith("3_"))
+                }
+            }
+        }
+        main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
+            it.startsWith("1_")
+        }
+
+        // all accepted
+        main_(arrayOf(H0, "host", "now", "${3*hour}"))
+        main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
+            it.split(' ').let {
+                assert(it.size == 2)
+                it.forEach {
+                    assert(it.startsWith("3_"))
+                }
+            }
+        }
+
+        // dislike h22
+        println("===================")
+        main_(arrayOf(H0,"chain","like","post","/","-","1",h22,"--sign=$PVT0"))
+
+        // h0 -> h1 -> h21 -> l31
+        //          -> h22 -> l32 (+)
+        //                 -> l33 (-)
+
+        main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
+            it.split(' ').let {
+                assert(it.size == 1)
+                it.forEach {
+                    assert(it.startsWith("3_"))     // l31
+                }
+            }
+        }
+        main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
+            it.split(' ').let {
+                assert(it.size == 1)
+                it.forEach {
+                    assert(it.startsWith("3_"))     // l31
+                }
+            }
+        }
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.startsWith("2_"))  // h22
+            it.split(' ').let {
+                assert(it.size == 1)
+            }
+        }
     }
 }
