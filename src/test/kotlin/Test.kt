@@ -884,9 +884,9 @@ class Tests {
         main(arrayOf(H0, "chain", "join", "/"))
         main(arrayOf(H1, "chain", "join", "/"))
 
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1"))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1","--sign=$PVT0"))
         val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2"))
-        main_(arrayOf(H0, "chain", "accept", "/", h2))
+        main_(arrayOf(H0,"chain","like","post","/","+","1",h2,"--sign=$PVT0"))
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3"))
 
         // h0 -> h1 -> h2 -> h3
