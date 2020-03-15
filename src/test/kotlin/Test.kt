@@ -755,7 +755,7 @@ class Tests {
 
         val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h12"))
         assert(h22.startsWith("2_"))
-        val l1 = main_(arrayOf(H0,"chain","like","post","/","+","1",h22,"--sign=$PVT0"))
+        val l1 = main_(arrayOf(H0,"chain","like","post","/","+","2",h22,"--sign=$PVT0"))
 
         val h23 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h22"))
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
@@ -857,8 +857,8 @@ class Tests {
         // h1 (a) -> h2 (r)
         //        -> h3 (o) -> h4 (r)
 
-        main_(arrayOf(H0,"chain","like","post","/","+","1",h2,"--sign=$PVT0"))
-        main_(arrayOf(H1,"chain","like","post","/","+","1",h4,"--sign=$PVT0"))
+        main_(arrayOf(H0,"chain","like","post","/","+","2",h2,"--sign=$PVT0"))
+        main_(arrayOf(H1,"chain","like","post","/","+","2",h4,"--sign=$PVT0"))
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
 
         // h1 (g) -> h2 (r) -> l2
@@ -884,7 +884,7 @@ class Tests {
 
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1","--sign=$PVT0"))
         val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2"))
-        main_(arrayOf(H0,"chain","like","post","/","+","1",h2,"--sign=$PVT0"))
+        main_(arrayOf(H0,"chain","like","post","/","+","2",h2,"--sign=$PVT0"))
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3"))
 
         // h0 -> h1 -> h2 -> h3
@@ -922,8 +922,8 @@ class Tests {
             assert(it.startsWith("1_")) { it }
         }
 
-        main_(arrayOf(H0,"chain","like","post","/","+","1",h21,"--sign=$PVT0"))
-        main_(arrayOf(H0,"chain","like","post","/","+","1",h22,"--sign=$PVT0"))
+        main_(arrayOf(H0,"chain","like","post","/","+","2",h21,"--sign=$PVT0"))
+        main_(arrayOf(H0,"chain","like","post","/","+","2",h22,"--sign=$PVT0"))
 
         // h0 -> h1 -> h21 -> l31
         //          -> h22 -> l32
@@ -953,7 +953,7 @@ class Tests {
         }
 
         // dislike h22
-        main_(arrayOf(H0,"chain","like","post","/","-","1",h22,"--sign=$PVT0"))
+        main_(arrayOf(H0,"chain","like","post","/","-","2",h22,"--sign=$PVT0"))
 
         // h0 -> h1 -> h21 -> l31
         //          -> h22 -> l32 (+)
@@ -983,7 +983,7 @@ class Tests {
         }
 
         // like h22
-        main_(arrayOf(H0,"chain","like","post","/","+","1",h22,"--sign=$PVT0"))
+        main_(arrayOf(H0,"chain","like","post","/","+","2",h22,"--sign=$PVT0"))
         main_(arrayOf(H0, "host", "now", "${4*hour}"))
 
         // h0 -> h1 -> h21 -> l31
