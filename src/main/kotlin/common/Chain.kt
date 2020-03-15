@@ -267,7 +267,7 @@ fun Chain.repsAuthor (pub: String, imm: Immut?) : Int {
                 .sum()                                       // likes to my posts
             val pos = it
                 .filter { it.immut.time <= now - T1D_rep }   // posts older than 1 day
-                .count() * lk
+                .count() * lk + lk/2
             val neg = it
                 .filter { it.immut.time > now - T1D_rep }    // posts newer than 1 day
                 .count() * lk
@@ -281,7 +281,6 @@ fun Chain.repsAuthor (pub: String, imm: Immut?) : Int {
         .sum()
     //println(">> gave=$gave")
 
-    //println("${max(gen,pos)} - $neg + $got - $gave")
     return max(0, posts-gave)
 }
 

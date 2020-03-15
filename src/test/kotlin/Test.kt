@@ -1034,21 +1034,48 @@ class Tests {
 
         main(arrayOf(H0, "host", "now", "${3*hour}"))
         main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
-            println(it)
+            assert(it == "0")
         }
 
         main(arrayOf(H0, "host", "now", "${25*hour}"))
         main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
-            println(it)
+            assert(it == "2000")
         }
 
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2", S1)).let {
-            main_(arrayOf(H0,"chain","like","post","/","+","500",it,S1))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3", S1)).let {
+            main_(arrayOf(H0,"chain","like","post","/","+","1000",it,S1))
+        }
+        main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
+            assert(it == "500")
         }
 
         main(arrayOf(H0, "host", "now", "${50*hour}"))
         main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
-            println(it)
+            assert(it == "2500")
+        }
+
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h4", S1)).let {
+            main_(arrayOf(H0,"chain","like","post","/","+","1000",it,S1))
+        }
+        main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
+            assert(it == "1000")
+        }
+
+        main(arrayOf(H0, "host", "now", "${75*hour}"))
+        main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
+            assert(it == "3000")
+        }
+
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h5", S1)).let {
+            main_(arrayOf(H0,"chain","like","post","/","+","1000",it,S1))
+        }
+        main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
+            assert(it == "1500")
+        }
+
+        main(arrayOf(H0, "host", "now", "${1000*hour}"))
+        main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
+            assert(it == "3500")
         }
     }
 }
