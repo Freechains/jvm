@@ -327,8 +327,8 @@ class Tests {
         }
 
         val h2 = main_(arrayOf("chain", "post", "/xxx", "file", "utf8", "/tmp/freechains/tests/M1/host"))
-        assert(dbg(main_(arrayOf("chain", "heads", "accepted", "/xxx"))).startsWith("1_"))
-        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).isEmpty())
+        assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("1_"))
+        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("1_"))
         assert(main_(arrayOf("chain", "heads", "rejected", "/xxx")).startsWith("2_"))
 
         main_(arrayOf("chain", "like", "post", "/xxx", "+", "500", h2, "--sign=$PVT0"))
@@ -878,6 +878,7 @@ class Tests {
             assert(it.startsWith("5_"))
         }
     }
+
     @Test
     fun m11_send_after_tine() {
         a_reset()
@@ -901,5 +902,35 @@ class Tests {
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
 
         // this all to test an assertion
+    }
+
+    @Test
+    fun m12_state () {
+        a_reset()
+
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M12/"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M12/")) }
+        Thread.sleep(100)
+        main(arrayOf(H0, "chain", "join", "/"))
+
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1","--sign=$PVT0"))
+        val h21 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2"))
+        val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3"))
+
+        // h0 -> h1 -> h21 -> l3
+        //          -> h22
+
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.startsWith("2_")) { it }
+        }
+        main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
+            assert(it.startsWith("1_")) { it }
+        }
+        println("=============")
+        main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
+            assert(it.startsWith("1_")) { it }
+        }
+
+        main_(arrayOf(H0,"chain","like","post","/","+","1",h21,"--sign=$PVT0"))
     }
 }

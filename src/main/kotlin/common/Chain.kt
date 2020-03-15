@@ -113,37 +113,41 @@ fun Chain.blockNew (imm: Immut, sign: HKey?, crypt: HKey?) : Block {
 
 // HEADS
 
-fun Chain.getHeads (state: State) : List<Hash> {
-    fun recs (state: State, hs: List<Hash>) : List<Hash> {
+fun Chain.getHeads (wanted: State) : List<Hash> {
+    fun recs (hs: List<Hash>) : List<Hash> {
         return hs
             .map {
                 this.fsLoadBlock(it,null).let {
                     //println("${it.hash} -> ${this.blockState(it)}")
+                    val have = this.blockState(it)
                     when {
                         // if like block, go back until finds liked block
-                        it.immut.isLikeBlock()         -> recs(state, it.immut.backs.toList())
+                        it.immut.isLikeBlock()       -> recs( it.immut.backs.toList())
 
                         // block has expected state, return it
-                        (this.blockState(it) == state) -> listOf(it.hash)
-                        (this.blockState(it) == State.ACCEPTED &&
-                         state == State.PENDING)       -> listOf(it.hash)
+                        (
+                            have == wanted ||
+                            have == State.ACCEPTED && wanted == State.PENDING
+                        )                           -> listOf(it.hash)
 
-                        // I want accepted blocks, go back to find them
-                        (state == State.ACCEPTED)      -> recs(state, it.immut.backs.toList())
+                        // did not find rejected block in this branch
+                        (wanted == State.REJECTED)  -> emptyList()
 
-                        // did not find
-                        else                           -> emptyList()
+                        // found rejected, go back until find non rejecteds
+                        (wanted != State.REJECTED)  -> recs( it.immut.backs.toList())
+
+                        else -> error("impossible case")
                     }
                 }
             }
             .flatten()
     }
-    val ret = recs(state, this.heads)
+    val ret = recs(this.heads)
 
     fun fronts (hs: List<Hash>) : List<Hash> {
         return hs
             .map    { this.fsLoadBlock(it,null) }
-            .filter { this.blockState(it) <= state }
+            .filter { this.blockState(it) <= wanted }
             .map    {
                 val blk = it
                 fronts(blk.fronts).let {
@@ -153,7 +157,7 @@ fun Chain.getHeads (state: State) : List<Hash> {
             .flatten()
     }
 
-    return when (state) {
+    return when (wanted) {
         State.ACCEPTED -> fronts(ret).toSet().toList()      // go to the tips of accepteds
         State.PENDING  -> fronts(ret).toSet().toList()      // go to the tips of accepteds
         State.REJECTED -> ret                               // just want lis of rejected
