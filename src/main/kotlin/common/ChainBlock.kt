@@ -30,10 +30,12 @@ fun Chain.blockState (blk: Block) : State {
 }
 
 fun Chain.blockChain (blk: Block) {
-    // check if state of liked block was ACCEPTED
-    val wasLikedAccept=
-        blk.immut.isLikeBlock() &&
-        this.blockState(this.fsLoadBlock(blk.immut.like!!.ref,null)) == State.ACCEPTED
+    // get old state of liked block
+    val wasLiked=
+        if (!blk.immut.isLikeBlock())
+            null
+        else
+            this.blockState(this.fsLoadBlock(blk.immut.like!!.ref,null))
 
     this.blockAssert(blk)
     this.fsSaveBlock(blk)
@@ -50,12 +52,24 @@ fun Chain.blockChain (blk: Block) {
         }
     }
 
-    // check if state of liked block changed to REJECTED
-    if (wasLikedAccept) {
+    // check if state of liked block changed
+    if (wasLiked != null) {
         this.fsLoadBlock(blk.immut.like!!.ref,null).let {
-            if (this.blockState(it) == State.REJECTED) {
-                // remove each front recursively from this.heads
-                it.fronts.forEach { this.blockRejectBan(it,false) }
+            val now = this.blockState(it)
+            when {
+                // changed from ACC -> REJ
+                (wasLiked==State.ACCEPTED && now==State.REJECTED) -> {
+                    error("1")
+                    // remove each front recursively from this.heads
+                    it.fronts.forEach { this.blockRejectBan(it,false) }
+                }
+                // changed state
+                (wasLiked==State.REJECTED && now==State.ACCEPTED) -> {
+                    error("2")
+                    // change to PENDING
+                    it.localTime = getNow()
+                    this.fsSaveBlock(it)
+                }
             }
         }
     }

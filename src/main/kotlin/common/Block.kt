@@ -70,7 +70,7 @@ data class Block (
     val accepted  : Boolean,            // TODO: remove
     val hash      : Hash                // hash of immut
 ) {
-    val localTime : Long = getNow()     // local time
+    var localTime : Long = getNow()     // local time
 }
 
 fun Array<Hash>.backsToHeight () : Int {
