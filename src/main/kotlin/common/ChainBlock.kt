@@ -4,6 +4,10 @@ import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 
+fun Chain.fromOwner (blk: Block) : Boolean {
+    return (this.pub != null) && (blk.sign != null) && (blk.sign.pub == this.pub.key)
+}
+
 fun Chain.blockState (blk: Block) : State {
     // TODO: sqrt
     fun hasTime () : Boolean {
@@ -134,10 +138,4 @@ fun Chain.blockAssert (blk: Block) {
         val key = Key.fromHexString(blk.sign.pub).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
     }
-}
-
-// LIKE
-
-fun Chain.fromOwner (blk: Block) : Boolean {
-    return (this.pub != null) && (blk.sign != null) && (blk.sign.pub == this.pub.key)
 }
