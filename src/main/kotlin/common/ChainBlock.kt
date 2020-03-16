@@ -114,6 +114,7 @@ fun Chain.blockAssert (blk: Block) {
         assert(this.fsExistsBlock(imm.like.ref)) {
             "like target not found"         // like has target
         }
+        //println("n=$n // loc=${this.repsAuthor(pub,imm)} // glb=${this.repsAuthor(pub,null)}")
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
             (
