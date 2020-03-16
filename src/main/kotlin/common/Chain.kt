@@ -204,8 +204,8 @@ fun Chain.blockRejectBan (hash: Hash, isBan: Boolean) {
 
 fun Chain.unban (hash: Hash) {
     val blk = this.fsLoadBlock(hash, null,"/banned/")
-    this.blockChain(blk)
     this.fsRemBlock(blk.hash,"/banned/")
+    this.blockChain(blk)
 }
 
 // REPUTATION

@@ -25,16 +25,15 @@ import kotlin.concurrent.thread
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1453/1366 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 KB
  *  - Simulation.kt
- *  - /home, table/shared/trusted column, docs, fred, ppt
+ *  - liferea, /home, table/shared/trusted column, docs, fred, ppt
+ *  - DESIGN:
+ *    - prunning (hash of bases, starts with genesis), if they don't match, permanent fork
  *  - HOST: "create" receives pub/pvt args
  *    - creates pvt chain oo (for logs)
  *    - save CFG in a chain
  *    - join reputation system (evaluate continue@xxx)
  *    - replicate command (all state)
  *    - all conns start with pubs from both ends
- *  - REPUTATION
- *    - lks rewards proportional to childs
- *    - liferea: likes in title // get rep in menu and each post owner
  *  - TEST
  *    - --utf8-eof
  *    - oonly
@@ -45,24 +44,26 @@ import kotlin.concurrent.thread
  *  - CMDS
  *    - freechains now s/ time (retorna now)
  *    - freechains host restart
- *    - freechains host trust (green edges, keeps blk.accept)
  *    - freechains crypto w/o passphrase (to self generate)
  *    - --ref=<hash> [post] sets back reference to post (currently only auto w/ likes)
- *  - QUARANTINE
+ *  - REPS
  *    - signal remote as soon as local detects the first rejected in the chain (to avoid many others in the same chain)
- *    - limit tines per IP
+ *    - limit rejecteds per IP
+ *    - likes in n-depth tree (vs 1-depth)
  *  - VERSIONS
  *    - jvm,android,lua
  *    - remove jar from repo, use github releases
  *  - LIFEREA
+ *    - likes in title // get rep in menu and each post owner
  *    - autochain, first post introducing itself (ID/photo?)
  *    - menu:
  *      - dot
  *      - like w/ ui for nick/pub
+ *  - IMPL:
+ *    - fix getNow() per handle()
  *  - IDEAS:
  *    - chain for restauration of state in other host holding all necessary commands
  *  - all use cases (chain cfg e usos da industria)
- *    - stack overflow
  *  - commands with auth. ip port time to avoid reuse
  *  - RX Kotlin
  *  - pipes / filtros

@@ -8,6 +8,14 @@ fun Chain.fromOwner (blk: Block) : Boolean {
     return (this.pub != null) && (blk.sign != null) && (blk.sign.pub == this.pub.key)
 }
 
+fun Chain.hashState (hash: Hash) : State {
+    return when {
+        this.fsExistsBlock(hash,"/banned/") -> State.BANNED
+        ! this.fsExistsBlock(hash)               -> State.MISSING
+        else -> this.blockState(this.fsLoadBlock(hash,null))
+    }
+}
+
 fun Chain.blockState (blk: Block) : State {
     // TODO: sqrt
     fun hasTime () : Boolean {
@@ -94,6 +102,8 @@ fun Chain.backsAssert (blk: Block) {
 }
 
 fun Chain.blockAssert (blk: Block) {
+    assert(! this.fsExistsBlock(blk.hash,"/banned/")) { "block is banned" }
+
     val imm = blk.immut
     assert(blk.hash == imm.toHash()) { "hash must verify" }
     this.backsAssert(blk)                   // backs exist and are older

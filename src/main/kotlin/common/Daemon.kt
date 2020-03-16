@@ -368,12 +368,7 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
             if (hash.isEmpty()) {                   // 4
                 break                               // nothing else to answer
             } else {
-                val state = when {
-                    chain.fsExistsBlock(hash,"/banned/") -> "banned"
-                    ! chain.fsExistsBlock(hash)               -> "missing"
-                    else -> chain.blockState(chain.fsLoadBlock(hash,null)).toString_()
-                }
-                writer.writeLineX(state)   // 3: have or not block
+                writer.writeLineX(chain.hashState(hash).toString_())   // 3: have or not block
             }
         }
 

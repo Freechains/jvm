@@ -17,7 +17,8 @@ fun State.toString_ () : String {
         State.ACCEPTED -> "accepted"
         State.PENDING  -> "pending"
         State.REJECTED -> "rejected"
-        else -> error("bug found: unexpected state")
+        State.BANNED   -> "banned"
+        State.MISSING  -> "missing"
     }
 }
 
