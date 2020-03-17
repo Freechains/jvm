@@ -32,7 +32,7 @@ freechains $H0 $SIG1 chain like post / + 6000 $b2
 
 # 2500
 v1=`freechains $H0 chain like get / $PUB0`
-diff <(echo $v1) <(echo 2500) || exit 1
+diff <(echo $v1) <(echo 2000) || exit 1
 
 # fail
 f1=`freechains $H0 $SIG0 chain like post / + 1000 $b1`
