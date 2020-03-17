@@ -20,7 +20,7 @@ class Daemon (host : Host) {
     val local = host
 
     fun getLock (chain: Chain? = null) : String {
-        return local.root.intern() + (if (chain == null) "" else chain.hash.intern())
+        return (local.root + (if (chain == null) "" else chain.hash)).intern()
     }
 
     fun daemon () {
