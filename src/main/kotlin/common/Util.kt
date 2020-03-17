@@ -15,7 +15,7 @@ const val T1D_rep     = 1*day           // account to reputation posts older tha
 
 const val mlk = 1
 const val lk  = 1000*mlk                // rewards for post after 24h
-const val LK30_max = 30*lk/2
+const val LK30_max = 30*lk
 
 fun LK23_500_rej (rep : Pair<Int,Int>) : Boolean {
     val (pos,neg) = rep
