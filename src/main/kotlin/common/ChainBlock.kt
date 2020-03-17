@@ -69,7 +69,7 @@ fun Chain.blockChain (blk: Block) {
                 // changed from ACC -> REJ
                 (wasLiked==State.ACCEPTED && now==State.REJECTED) -> {
                     // remove each front recursively from this.heads
-                    it.fronts.forEach { this.blockRejectBan(it,false) }
+                    it.fronts.forEach { this.blockReject(it) }
                 }
                 // changed state
                 (wasLiked==State.REJECTED && now==State.ACCEPTED) -> {

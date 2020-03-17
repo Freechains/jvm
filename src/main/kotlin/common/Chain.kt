@@ -160,45 +160,80 @@ fun Chain.getHeads (wanted: State) : List<Hash> {
     return when (wanted) {
         State.ACCEPTED -> fronts(ret).toSet().toList()      // go to the tips of accepteds
         State.PENDING  -> fronts(ret).toSet().toList()      // go to the tips of accepteds
-        State.REJECTED -> ret                               // just want lis of rejected
+        State.REJECTED -> ret .toSet().toList()             // just want list of rejected
         else           -> error("bug found")
     }
 }
 
 // BAN / REJECT
 
-fun Chain.blockRejectBan (hash: Hash, isBan: Boolean) {
+fun Chain.blockReject (hash: Hash) {
+    fun rec (fronts: List<Hash>) {
+        fronts.forEach {
+            this.fsLoadBlock(it, null).let {
+                rec(it.fronts)          // first adjust tips, then
+                this.reheads(it.hash)
+            }
+        }
+    }
+
+    this.fsLoadBlock(hash, null).let {
+        // start after my likes
+        it.fronts.forEach {
+            this.fsLoadBlock(it, null).let {
+                assert(it.immut.like != null && it.immut.like.ref == hash)
+                rec(it.fronts) // remove all my fronts from heads
+            }
+        }
+    }
+
+    this.fsSave()
+}
+
+// remove myself and add backs
+private fun Chain.reheads (hash: Hash) {
+    fun leadsToHeads (hash: Hash) : Boolean {
+        return (
+            this.heads.contains(hash) ||
+            this.fsLoadBlock(hash,null).let {
+                it.fronts.any { leadsToHeads(it) }
+            }
+        )
+    }
+
+    if (this.heads.contains(hash)) {
+        this.heads.remove(hash)
+        this.fsLoadBlock(hash,null).let {
+            it.immut.backs.forEach {
+                if (!leadsToHeads(it)) {
+                    this.heads.add(it)
+                }
+            }
+        }
+    }
+}
+
+fun Chain.blockBan (hash: Hash) {
     val blk = this.fsLoadBlock(hash, null)
 
     // remove all my fronts as well
     blk.fronts.forEach {
-        this.blockRejectBan(it,isBan)
+        this.blockBan(it)
     }
 
-    // reheads: remove myself // add all backs
-    if (this.heads.contains(hash)) {
-        this.heads.remove(hash)
-        blk.immut.backs.forEach {
-            if (!this.heads.contains(it)) {
-                this.heads.add(it)
-            }
+    this.reheads(hash)
+
+    // refronts: remove myself as front of all my backs
+    blk.immut.backs.forEach {
+        this.fsLoadBlock(it, null).let {
+            it.fronts.remove(hash)
+            this.fsSaveBlock(it)
         }
     }
 
-    if (isBan) {
-        // refronts: remove myself as front of all my backs
-        blk.immut.backs.forEach {
-            this.fsLoadBlock(it, null).let {
-                it.fronts.remove(hash)
-                this.fsSaveBlock(it)
-            }
-        }
-
-        blk.fronts.clear()
-        this.fsSaveBlock(blk,"/banned/")
-        this.fsRemBlock(blk.hash)
-    }
-
+    blk.fronts.clear()
+    this.fsSaveBlock(blk,"/banned/")
+    this.fsRemBlock(blk.hash)
     this.fsSave()
 }
 

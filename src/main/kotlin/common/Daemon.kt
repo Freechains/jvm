@@ -186,7 +186,7 @@ class Daemon (host : Host) {
                             if (! chain.fsExistsBlock(hash)) {
                                 writer.writeLineX("false")
                             } else {
-                                chain.blockRejectBan(hash, true)
+                                chain.blockBan(hash)
                                 writer.writeLineX("true")
                             }
                         }
