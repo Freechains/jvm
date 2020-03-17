@@ -529,8 +529,8 @@ class Tests {
         val r10 = main_(arrayOf(H0, "chain", "like", "get", "/", PUB1))
         val r11 = main_(arrayOf(H1, "chain", "like", "get", "/", PUB1))
         assert(r00.toInt() == 29000)
-        assert(r01.toInt() == 500)
-        assert(r10.toInt() == 500)
+        assert(r01.toInt() == 0)
+        assert(r10.toInt() == 0)
         assert(r11.toInt() == 29000)
 
         main_(arrayOf(H0, "host", "now", (getNow() + 1*day).toString()))
@@ -570,7 +570,7 @@ class Tests {
         main_(arrayOf(H0, "host", "now", (1*day+1*hour).toString()))
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("3_"))
         assert("29000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
-        assert( "2000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+        assert( "1500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
         // give to myself
         main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h1, S0))  // l2
@@ -582,7 +582,7 @@ class Tests {
         // give to other
         val h3 = main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h2, S0))
         assert("27500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
-        assert( "2500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+        assert( "2000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
         //  0     1     2     3
         //                -> h3
@@ -590,7 +590,7 @@ class Tests {
         //          -> l2
 
         main_(arrayOf("chain","like","post","/xxx","-","1000",h3,"--why=" + h3.substring(0,9),S1))
-        assert("1500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+        assert("1000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
         main_(arrayOf("chain","like","post","/xxx","+","500",h3,"--why=" + h3.substring(0,9),S1))
 
         //  0     1     2     3      4     5
@@ -599,7 +599,7 @@ class Tests {
         // h0 -> h1 -> h2 -> l1
         //          -> l2
 
-        assert( "1000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+        assert(  "500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
         assert("27500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
 
         main_(arrayOf("host", "create", "/tmp/freechains/tests/M81/", "8331"))
@@ -642,7 +642,7 @@ class Tests {
         }
 
         // post w/o reputation
-        assert("1000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+        assert("500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
         val hn = main_(arrayOf(H1, "chain", "post", "/xxx", "inline", "utf8", "no rep", S1))
 
         main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
@@ -1043,43 +1043,43 @@ class Tests {
 
         main(arrayOf(H0, "host", "now", "${25*hour}"))
         main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
-            assert(it == "2000")
+            assert(it == "1500")
         }
 
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3", S1)).let {
             main_(arrayOf(H0,"chain","like","post","/","+","1000",it,S1))
         }
         main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
-            assert(it == "500")
+            assert(it == "0")
         }
 
         main(arrayOf(H0, "host", "now", "${50*hour}"))
         main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
-            assert(it == "2500")
+            assert(it == "2000")
         }
 
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h4", S1)).let {
             main_(arrayOf(H0,"chain","like","post","/","+","1000",it,S1))
         }
         main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
-            assert(it == "1000")
+            assert(it == "500")
         }
 
         main(arrayOf(H0, "host", "now", "${75*hour}"))
         main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
-            assert(it == "3000")
+            assert(it == "2500")
         }
 
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h5", S1)).let {
             main_(arrayOf(H0,"chain","like","post","/","+","1000",it,S1))
         }
         main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
-            assert(it == "1500")
+            assert(it == "1000")
         }
 
         main(arrayOf(H0, "host", "now", "${1000*hour}"))
         main_(arrayOf(H0, "chain", "like", "get", "/", PUB1)).let {
-            assert(it == "3500")
+            assert(it == "3000")
         }
     }
 }

@@ -136,13 +136,23 @@ fun Chain.blockAssert (blk: Block) {
             "like target not found"         // like has target
         }
         //println("n=$n // loc=${this.repsAuthor(pub,imm)} // glb=${this.repsAuthor(pub,null)}")
+
+        val n_ = this.fsLoadBlock(imm.like.ref,null).let {
+            when {
+                (it.sign == null)             -> n
+                (it.sign.pub == blk.sign.pub) -> n - n/2
+                (it.sign.pub != blk.sign.pub) -> n
+                else -> error("impossible case")
+            }
+        }
+
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
             (
                 // global no // local ok  --> double spend
                 // global ok // local no  --> use + from cousins (which may be rejected)
-                n <= this.repsAuthor(pub,imm) &&        // local reputation (backs)
-                n <= this.repsAuthor(pub,null)    // global reputation (heads)
+                n_ <= this.repsAuthor(pub,imm) &&        // local reputation (backs)
+                n_ <= this.repsAuthor(pub,null)    // global reputation (heads)
             )
         ) {
             "not enough reputation"         // like has reputation
