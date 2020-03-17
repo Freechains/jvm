@@ -737,8 +737,8 @@ class Tests {
         Thread.sleep(100)
         main(arrayOf("chain", "join", "/"))
 
-        val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h0", S0))
-        val h21 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h11"))
+        val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1", S0))
+        val h21 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h21"))
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
             assert(it.contains(h21) && !it.contains(h1))
         }
@@ -758,18 +758,18 @@ class Tests {
         // h1
         // h21
 
-        val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h12"))
+        val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h22"))
         assert(h22.startsWith("2_"))
         val l1 = main_(arrayOf(H0,"chain","like","post","/","+","1000",h22,S0))
 
-        val h23 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h22"))
+        val h23 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h23"))
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
             assert(it.contains(h23) && !it.contains(h21))
         }
 
 
         // h1 -> h22 -> l1
-        //    -> h22
+        //    -> h23
         // h21
 
         main_(arrayOf(H0, "chain", "ban", "/", h22)).let {
@@ -787,13 +787,13 @@ class Tests {
             assert(it == "true")
         }
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
-            assert(it.contains(h22))
-        }
-        main_(arrayOf(H0, "chain", "unban", "/", l1)).let {
-            assert(it == "true")
+            assert(!it.contains(h22))
         }
         main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
             assert(it.contains(l1))
+        }
+        main_(arrayOf(H0, "chain", "unban", "/", l1)).let {
+            assert(it == "false")
         }
 
         // h1 -> h22 -> l1
@@ -1093,29 +1093,29 @@ class Tests {
         main(arrayOf("chain", "join", "/"))
 
         main(arrayOf(H0, "host", "now", "0"))
-        val h1  = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h0"))
+        /*val h1  =*/ main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h0"))
         val h21 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h21"))
         val h22 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h22"))
 
         // h0 -> h1 --> h21
         //          \-> h22
 
-        val l32 = main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h22))
+        /*val l32 =*/ main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h22))
 
         // h0 -> h1 --> h21
         //          \-> h22 --> l32
 
         main(arrayOf(H0, "host", "now", "${3*hour}"))
         val h42 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h42"))
-        val l31 = main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h21))
+        /*val l31 =*/ main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h21))
 
         // h0 -> h1 --> h21 --> l31
         //          \-> h22 --> l32 -> h42
 
         main(arrayOf(H0, "host", "now", "${6*hour}"))
         val h41 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h41"))
-        val l51 = main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h41))
-        val l52 = main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h42))
+        /*val l51 =*/ main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h41))
+        /*val l52 =*/ main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h42))
 
         //          /-> h21 --> l31 -\
         // h0 -> h1                   > h41 --> l51
@@ -1123,7 +1123,7 @@ class Tests {
         //                          \-> h42 --> l52
 
         main(arrayOf(H0, "host", "now", "${9*hour}"))
-        val h6 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h6"))
+        /*val h6 =*/ main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h6"))
 
         //          /-> h21 --> l31 -\
         // h0 -> h1                   > h41 --> l51 -\
@@ -1134,9 +1134,9 @@ class Tests {
             assert(it.startsWith("6_"))
         }
 
-        val lr = main_(arrayOf(H0, S0, "chain", "like", "post", "/", "-", "1000", h21))
+        /*val ldec =*/ main_(arrayOf(H0, S0, "chain", "like", "post", "/", "-", "1000", h21))
 
-        //                  /-> lr
+        //                  /-> l-
         //          /-> h21 --> l31 -\
         // h0 -> h1                   > h41 --> l51 -\
         //          \-> h22 --> l32 -/                > h6
@@ -1147,6 +1147,19 @@ class Tests {
                 assert(it.size == 1) { it.size }
             }
             assert(it.startsWith("5_"))
+        }
+
+        /*val linc =*/ main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h21))
+
+        //                   /-> l+
+        //                  /--> l-
+        //          /-> h21 --> l31 -\
+        // h0 -> h1                   > h41 --> l51 -\
+        //          \-> h22 --> l32 -/                > h6
+        //                          \-> h42 --> l52 -/
+
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.startsWith("6_"))
         }
     }
 }

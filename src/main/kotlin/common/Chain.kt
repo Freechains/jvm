@@ -168,79 +168,104 @@ fun Chain.getHeads (wanted: State) : List<Hash> {
 // BAN / REJECT
 
 fun Chain.blockReject (hash: Hash) {
-    fun rec (fronts: List<Hash>) {
-        fronts.forEach {
-            this.fsLoadBlock(it, null).let {
-                rec(it.fronts)          // first adjust tips, then
-                this.reheads(it.hash)
-            }
-        }
-    }
+    val blk = this.fsLoadBlock(hash, null)
 
-    this.fsLoadBlock(hash, null).let {
-        // start after my likes
-        it.fronts.forEach {
-            this.fsLoadBlock(it, null).let {
-                assert(it.immut.like!=null && it.immut.like.ref==hash) { "should be like to myself" }
-                rec(it.fronts) // remove all my fronts from heads
-            }
+    // start after my likes
+    for (fr in blk.fronts) {
+        val lk = this.fsLoadBlock(fr, null)
+        assert(lk.immut.like!=null && lk.immut.like.ref==hash) { "bug found: should be like to myself" }
+        assert(lk.immut.backs.size == 1) { "bug found: should only point to liked" }
+
+        // reject all my like fronts
+        for (fr2 in lk.fronts) {
+            this.blockRemove(fr2, false)
         }
+
+        // fronts removed in nested refronts will be restored here
+        this.fsSaveBlock(lk)
     }
 
     this.fsSave()
 }
 
-// remove myself and add backs
-private fun Chain.reheads (hash: Hash) {
-    fun leadsToHeads (hash: Hash) : Boolean {
-        return (
-            this.heads.contains(hash) ||
-            this.fsLoadBlock(hash,null).let {
-                it.fronts.any { leadsToHeads(it) }
-            }
-        )
-    }
+fun Chain.blockUnReject (hash: Hash) {
+    val blk = this.fsLoadBlock(hash, null)
 
-    if (this.heads.contains(hash)) {
-        this.heads.remove(hash)
-        this.fsLoadBlock(hash,null).let {
-            it.immut.backs.forEach {
-                if (!leadsToHeads(it)) {
-                    this.heads.add(it)
-                }
-            }
+    // change to PENDING
+    blk.localTime = getNow()
+    this.fsSaveBlock(blk)
+
+    // start after my likes
+    for (fr in blk.fronts) {
+        val lk = this.fsLoadBlock(fr, null)
+        assert(lk.immut.like!=null && lk.immut.like.ref==hash) { "should be like to myself" }
+        assert(lk.immut.backs.size == 1) { "bug found: should only point to liked" }
+
+        // unreject all my like fronts
+        for (fr2 in lk.fronts) {
+            this.blockUnRemove(fr2, false)
         }
     }
 }
 
-fun Chain.blockBan (hash: Hash) {
+fun Chain.blockRemove (hash: Hash, isBan: Boolean) {
     val blk = this.fsLoadBlock(hash, null)
 
-    // remove all my fronts as well
-    blk.fronts.forEach {
-        this.blockBan(it)
+    // ban all my fronts as well
+    for (it in blk.fronts) {
+        this.blockRemove(it, isBan)
     }
 
-    this.reheads(hash)
+    // - remove myself from heads
+    // - add my backs as heads, unless they lead to a head
+    if (this.heads.contains(hash)) {
+        fun leadsToHeads (hash: Hash) : Boolean {
+            return (
+                this.heads.contains(hash) ||
+                    this.fsLoadBlock(hash,null).let {
+                        it.fronts.any { leadsToHeads(it) }
+                    }
+                )
+        }
+        this.heads.remove(hash)
+        for (it in blk.immut.backs) {
+            if (!leadsToHeads(it)) {
+                this.heads.add(it)
+            }
+        }
+    }
 
     // refronts: remove myself as front of all my backs
-    blk.immut.backs.forEach {
-        this.fsLoadBlock(it, null).let {
+    for (bk in blk.immut.backs) {
+        this.fsLoadBlock(bk, null).let {
             it.fronts.remove(hash)
             this.fsSaveBlock(it)
         }
     }
 
-    blk.fronts.clear()
-    this.fsSaveBlock(blk,"/banned/")
-    this.fsRemBlock(blk.hash)
+    val dir = if (isBan) "/banned/" else "/blocks/"
+    if (isBan) {
+        this.fsSaveBlock(blk,dir)
+        this.fsRemBlock(blk.hash)
+    }
+
+    // fronts removed in nested refronts will be restored here
+    this.fsSaveBlock(blk, dir)
     this.fsSave()
 }
 
-fun Chain.unban (hash: Hash) {
-    val blk = this.fsLoadBlock(hash, null,"/banned/")
-    this.fsRemBlock(blk.hash,"/banned/")
+fun Chain.blockUnRemove (hash: Hash, isBan: Boolean) {
+    val dir = if (isBan) "/banned/" else "/blocks/"
+    val blk = this.fsLoadBlock(hash, null, dir)
+    if (isBan) {
+        println("unban: ${blk.hash}")
+        this.fsSaveBlock(blk)
+        this.fsRemBlock(blk.hash, dir)
+    }
     this.blockChain(blk)
+    for (fr in blk.fronts) {
+        this.blockUnRemove(fr, isBan)
+    }
 }
 
 // REPUTATION

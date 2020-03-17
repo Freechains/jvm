@@ -50,10 +50,10 @@ fun Chain.blockChain (blk: Block) {
     this.heads.add(blk.hash)
 
     // add new front of backs
-    blk.immut.backs.forEach {
-        this.heads.remove(it)
-        this.fsLoadBlock(it, null).let {
-            assert(!it.fronts.contains(blk.hash)) { it.hash + " -> " + blk.hash }
+    for (bk in blk.immut.backs) {
+        this.heads.remove(bk)
+        this.fsLoadBlock(bk, null).let {
+            //assert(!it.fronts.contains(blk.hash)) { it.hash + " -> " + blk.hash }
             it.fronts.add(blk.hash)
             it.fronts.sort()
             this.fsSaveBlock(it)
@@ -70,11 +70,9 @@ fun Chain.blockChain (blk: Block) {
                 (wasLiked==State.ACCEPTED && now==State.REJECTED) -> {
                     this.blockReject(it.hash)
                 }
-                // changed state
+                // changed from REJ -> ACC
                 (wasLiked==State.REJECTED && now==State.ACCEPTED) -> {
-                    // change to PENDING
-                    it.localTime = getNow()
-                    this.fsSaveBlock(it)
+                    this.blockUnReject(it.hash)
                 }
             }
         }
