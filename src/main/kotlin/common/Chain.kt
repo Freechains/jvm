@@ -181,7 +181,7 @@ fun Chain.blockReject (hash: Hash) {
         // start after my likes
         it.fronts.forEach {
             this.fsLoadBlock(it, null).let {
-                assert(it.immut.like != null && it.immut.like.ref == hash)
+                assert(it.immut.like!=null && it.immut.like.ref==hash) { "should be like to myself" }
                 rec(it.fronts) // remove all my fronts from heads
             }
         }
