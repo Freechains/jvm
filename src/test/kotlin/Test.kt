@@ -61,6 +61,8 @@ import kotlin.concurrent.thread
  *      - like w/ ui for nick/pub
  *  - IMPL:
  *    - fix getNow() per handle()
+ *    - sqrt
+ *    - blockAssert: verify symmetric auth
  *  - IDEAS:
  *    - chain for restauration of state in other host holding all necessary commands
  *  - all use cases (chain cfg e usos da industria)
@@ -526,18 +528,18 @@ class Tests {
         val r01 = main_(arrayOf(H1, "chain", "like", "get", "/", PUB0))
         val r10 = main_(arrayOf(H0, "chain", "like", "get", "/", PUB1))
         val r11 = main_(arrayOf(H1, "chain", "like", "get", "/", PUB1))
-        assert(r00.toInt() == 29000)
+        assert(r00.toInt() == 14000)
         assert(r01.toInt() == 500)
         assert(r10.toInt() == 500)
-        assert(r11.toInt() == 29000)
+        assert(r11.toInt() == 14000)
 
         main_(arrayOf(H0, "host", "now", (getNow() + 1*day).toString()))
         main_(arrayOf(H1, "host", "now", (getNow() + 1*day).toString()))
 
         val x0 = main_(arrayOf(H0, "chain", "like", "get", "/", PUB0))
         val x1 = main_(arrayOf(H1, "chain", "like", "get", "/", PUB1))
-        assert(x0.toInt() == 30000)
-        assert(x1.toInt() == 30000)
+        assert(x0.toInt() == 15000)
+        assert(x1.toInt() == 15000)
     }
 
     @Test
@@ -567,19 +569,19 @@ class Tests {
         // like noob post
         main_(arrayOf(H0, "host", "now", (1*day+1*hour).toString()))
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("3_"))
-        assert("29000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
+        assert("14000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
         assert( "2000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
         // give to myself
         main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h1, S0))  // l2
-        assert("28500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
+        assert("13500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
 
         // h0 -> h1 -> h2 -> l1
         //          -> l2
 
         // give to other
         val h3 = main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h2, S0))
-        assert("27500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
+        assert("12500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
         assert( "2500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
         //  0     1     2     3
@@ -598,7 +600,7 @@ class Tests {
         //          -> l2
 
         assert( "1000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
-        assert("27500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
+        assert("12500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
 
         main_(arrayOf("host", "create", "/tmp/freechains/tests/M81/", "8331"))
         thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M81/")) }
@@ -707,14 +709,14 @@ class Tests {
             assert (it == "2 / 2")
         }
         main_(arrayOf(H1, "chain", "like", "get", "/xxx", PUB0)).let {
-            assert(it == "25500")
+            assert(it == "10500")
         }
         main_(arrayOf(H1, "host", "now", "${1*day + 7*hour}"))
         main_(arrayOf(H1, "chain", "like", "get", "/xxx", PUB0)).let {
-            assert(it == "25500")
+            assert(it == "10500")
         }
         main_(arrayOf(H0, "chain", "like", "get", "/xxx", PUB0)).let {
-            assert(it == "25500")
+            assert(it == "10500")
         }
 
         val ln = main_(arrayOf(H0, "chain", "like", "get", "/xxx", hn))

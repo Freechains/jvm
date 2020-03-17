@@ -112,14 +112,21 @@ fun Chain.blockAssert (blk: Block) {
     assert(imm.time <= now+T30M_future) { "from the future" }
     assert(imm.time >= now-T120D_past) { "too old" }
 
-    if (this.pub != null && this.pub.oonly) {
-        assert(this.fromOwner(blk)) { "must be from owner" }
-    }
-
     val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
     if (blk.immut.backs.contains(gen)) {
         val b = this.fsLoadBlock(gen, null)
         assert(b.fronts.isEmpty() || b.fronts[0]==blk.hash) { "genesis is already referred" }
+    }
+
+    if (this.pub != null && this.pub.oonly) {
+        assert(this.fromOwner(blk)) { "must be from owner" }
+    }
+
+    if (blk.sign != null) {                 // sig.hash/blk.hash/sig.pubkey all match
+        val sig = LazySodium.toBin(blk.sign.hash)
+        val msg = lazySodium.bytes(blk.hash)
+        val key = Key.fromHexString(blk.sign.pub).asBytes
+        assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
     }
 
     if (imm.like != null) {
@@ -140,12 +147,5 @@ fun Chain.blockAssert (blk: Block) {
         ) {
             "not enough reputation"         // like has reputation
         }
-    }
-
-    if (blk.sign != null) {                 // sig.hash/blk.hash/sig.pubkey all match
-        val sig = LazySodium.toBin(blk.sign.hash)
-        val msg = lazySodium.bytes(blk.hash)
-        val key = Key.fromHexString(blk.sign.pub).asBytes
-        assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
     }
 }
