@@ -3,6 +3,7 @@ package org.freechains.common
 import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import kotlin.math.sqrt
 
 fun Chain.fromOwner (blk: Block) : Boolean {
     return (this.pub != null) && (blk.sign != null) && (blk.sign.pub == this.pub.key)
@@ -17,9 +18,10 @@ fun Chain.hashState (hash: Hash) : State {
 }
 
 fun Chain.blockState (blk: Block) : State {
-    // TODO: sqrt
     fun hasTime () : Boolean {
-        return blk.localTime <= getNow()-T2H_past   // old enough
+        val now = getNow()
+        val dt = now - blk.immut.time
+        return blk.localTime <= now - (T2H_past + sqrt(dt.toFloat()))   // old enough
     }
 
     val rep = this.repsPost(blk.hash)

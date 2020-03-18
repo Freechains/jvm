@@ -61,7 +61,6 @@ import kotlin.concurrent.thread
  *      - like w/ ui for nick/pub
  *  - IMPL:
  *    - fix getNow() per handle()
- *    - sqrt
  *    - blockAssert: verify symmetric auth
  *  - IDEAS:
  *    - chain for restauration of state in other host holding all necessary commands

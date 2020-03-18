@@ -74,7 +74,7 @@ data class Block (
 fun Array<Hash>.backsToHeight () : Int {
     return when {
         this.isEmpty() -> 0
-        else -> this.fold(0, { cur, hash -> max(cur, hash.toHeight()) }) + 1
+        else -> 1 + this.map { it.toHeight() }.max()!!
     }
 }
 
