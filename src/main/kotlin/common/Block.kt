@@ -96,7 +96,7 @@ fun String.jsonToBlock (): Block {
     return json.parse(Block.serializer(), this)
 }
 
-private fun Hash.toHeight () : Int {
+fun Hash.toHeight () : Int {
     val (height,_) = this.split("_")
     return height.toInt()
 }

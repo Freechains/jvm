@@ -290,7 +290,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
     writer.writeLineX(chain.name)
 
     val visited = HashSet<Hash>()
-    val toSend  = ArrayDeque<Hash>()
+    val toSend = mutableSetOf<Hash>()
     var Nmin    = 0
     var Nmax    = 0
     //println("[send] $maxTime")
@@ -320,7 +320,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
             }
 
             // sends this one and visits children
-            toSend.push(hash)
+            toSend.add(hash)
             for (back in blk.immut.backs) {
                 pending.push(back)
             }
@@ -329,8 +329,8 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
         writer.writeLineX("")                     // 4: will start sending nodes
         writer.writeLineX(toSend.size.toString())    // 5: how many
         val n2 = toSend.size
-        while (toSend.isNotEmpty()) {
-            val hash = toSend.pop()
+        val sorted = toSend.sortedWith(compareBy{it.toHeight()})
+        for (hash in sorted) {
             val blk = chain.fsLoadBlock(hash, null)
             blk.fronts.clear()
             writer.writeBytes(blk.toJson())          // 6
@@ -364,7 +364,7 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
         // for each head path of blocks
         while (true) {
             val hash = reader.readLineX()   // 2: receives hash in the path
-            //println("[recv] $hash")
+            //println("[recv-1] $hash")
             if (hash.isEmpty()) {                   // 4
                 break                               // nothing else to answer
             } else {
@@ -380,12 +380,13 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
         xxx@for (j in 1..n2) {
             try {
                 val blk = reader.readLinesX().jsonToBlock() // 6
-                //println("recv ${blk.hash}")
+                //println("[recv-2] ${blk.hash}")
                 chain.blockChain(blk)
                 Nmin++
                 n2_++
             } catch (e: Throwable) {
                 System.err.println(e.message)
+                //System.err.println(e.stackTrace.contentToString())
             }
         }
         writer.writeLineX(n2_.toString())             // 7
