@@ -176,7 +176,7 @@ class Tests {
         var ok = false
         try {
             val n = n3.copy(immut = n3.immut.copy(payload = "xxx"))
-            chain.blockAssert(n)
+            chain.blockAssert(n, null)
         } catch (e: Throwable) {
             ok = true
         }
@@ -437,11 +437,11 @@ class Tests {
 
         val c1 = host.joinChain("/sym", false, null)
         val n1 = c1.blockNew(HC, null, null)
-        c1.blockAssert(n1)
+        c1.blockAssert(n1, null)
 
         val c2 = host.joinChain("/asy", false, ChainPub(false, PUB0))
         val n2 = c2.blockNew(H, PVT0, PVT0)
-        c2.blockAssert(n2)
+        c2.blockAssert(n2, null)
     }
 
     @Test
@@ -1108,11 +1108,18 @@ class Tests {
 
         main(arrayOf(H0, "host", "now", "0"))
         /*val h1  =*/ main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h0"))
-        val h21 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h21"))
+        val h21 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h21"))
         val h22 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h22"))
 
-        // h0 -> h1 --> h21
-        //          \-> h22
+        // no double spend
+        var ok = false
+        try {
+            main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h22"))
+        } catch (e: Throwable) {
+            ok = true
+            // "must lead back to author's previous post"
+        }
+        assert(ok)
 
         /*val l32 =*/ main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h22))
 
@@ -1120,10 +1127,10 @@ class Tests {
         //          \-> h22 --> l32
 
         main(arrayOf(H0, "host", "now", "${3*hour}"))
-        val h42 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h42"))
         /*val l31 =*/ main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h21))
+        val h42 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h42"))
 
-        // h0 -> h1 --> h21 --> l31
+        // h0 -> h1 --> h21 --> l31 \
         //          \-> h22 --> l32 -> h42
 
         main(arrayOf(H0, "host", "now", "${6*hour}"))

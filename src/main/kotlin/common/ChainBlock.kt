@@ -94,7 +94,7 @@ fun Chain.blockChain (blk: Block) {
         else
             this.blockState(this.fsLoadBlock(blk.immut.like.ref,null), null)
 
-    this.blockAssert(blk)
+    this.blockAssert(blk, null)
     this.fsSaveBlock(blk)
     this.heads.add(blk.hash)
     this.addBlockAsFrontOfBacks(blk)
@@ -122,25 +122,25 @@ fun Chain.blockChain (blk: Block) {
     this.fsSave()
 }
 
-fun Chain.backsAssert (blk: Block) {
+fun Chain.backsAssert (blk: Block, who: HKey?) {
     for (bk in blk.immut.backs) {
         //println("$it <- ${blk.hash}")
         assert(this.fsExistsBlock(bk)) { "back must exist" }
         this.fsLoadBlock(bk,null).let {
             assert(it.immut.time <= blk.immut.time) { "back must be older"}
             if (blk.immut.like == null) {
-                assert(this.blockState(it,null) == State.ACCEPTED) { "backs must be accepted" }
+                assert(this.blockState(it,who) == State.ACCEPTED) { "backs must be accepted" }
             }
         }
     }
 }
 
-fun Chain.blockAssert (blk: Block) {
+fun Chain.blockAssert (blk: Block, who: HKey?) {
     assert(! this.fsExistsBlock(blk.hash,"/banned/")) { "block is banned" }
 
     val imm = blk.immut
     assert(blk.hash == imm.toHash()) { "hash must verify" }
-    this.backsAssert(blk)                   // backs exist and are older
+    this.backsAssert(blk, who)               // backs exist and are older
 
     val now = getNow()
     assert(imm.time <= now+T30M_future) { "from the future" }

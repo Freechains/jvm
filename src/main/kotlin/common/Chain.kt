@@ -81,7 +81,8 @@ fun Immut.toHash () : Hash {
 // BLOCK
 
 fun Chain.blockNew (imm: Immut, sign: HKey?, crypt: HKey?) : Block {
-    val heads = this.getHeads(State.ACCEPTED, if (sign == null) null else sign.pvtToPub())
+    val who = if (sign == null) null else sign.pvtToPub()
+    val heads = this.getHeads(State.ACCEPTED, who)
     val backs = when {
         imm.backs.isNotEmpty() -> imm.backs //error("TODO") //    // used in tests and likes
         (imm.like == null)     -> heads.toTypedArray()
@@ -116,7 +117,7 @@ fun Chain.blockNew (imm: Immut, sign: HKey?, crypt: HKey?) : Block {
         }
 
     val new = Block(h_, mutableListOf(), signature, hash)
-    this.blockAssert(new)
+    this.blockAssert(new, who)
     this.blockChain(new)
     return new
 }
