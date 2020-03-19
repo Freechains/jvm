@@ -128,16 +128,8 @@ fun Chain.blockAssert (blk: Block) {
         val prvs = this.traverseFromHeads(this.heads,true) {
             it.sign == null || it.sign.pub != blk.sign.pub
         }
-        println(prvs.contentToString())
-        fun leadsTo (cur: Block) : Boolean {
-            return (
-                (cur.hash == prvs.last().hash)    ||
-                cur.immut.backs.any {
-                        leadsTo(this.fsLoadBlock(it,null))
-                }
-            )
-        }
-        assert(leadsTo(blk)) { "must lead to author's previous post" }
+        //println("old = ${prvs.last()}")
+        assert(this.newBacksToOld(blk, prvs.last())) { "must lead back to author's previous post" }
     }
 
     if (imm.like != null) {
@@ -170,4 +162,23 @@ fun Chain.blockAssert (blk: Block) {
             "not enough reputation"         // like has reputation
         }
     }
+}
+
+// if old leadsTo new
+fun Chain.oldHeadsToNew (old: Block, new: Block) : Boolean {
+    return (
+        (old.hash == new.hash)    ||
+        old.fronts.any {
+            this.oldHeadsToNew(this.fsLoadBlock(it,null), new)
+        }
+    )
+}
+
+fun Chain.newBacksToOld (new: Block, old: Block) : Boolean {
+    return (
+        (new.hash == old.hash)    ||
+        new.immut.backs.any {
+            this.newBacksToOld(this.fsLoadBlock(it,null), old)
+        }
+    )
 }

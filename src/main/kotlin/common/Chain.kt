@@ -82,13 +82,20 @@ fun Immut.toHash () : Hash {
 
 fun Chain.blockNew (imm: Immut, sign: HKey?, crypt: HKey?) : Block {
     val heads = this.getHeads(State.ACCEPTED)
-    val backs =
-        if (imm.backs.isNotEmpty()) {
-            imm.backs    // used in tests and likes
-        } else {
-            heads.toTypedArray() +
-                if (imm.like == null) emptyArray<Hash>() else arrayOf(imm.like.ref)
-        }
+    val backs = when {
+        imm.backs.isNotEmpty() -> imm.backs //error("TODO") //    // used in tests and likes
+        (imm.like == null)     -> heads.toTypedArray()
+        else                   -> heads
+            .filter {
+                val old = this.fsLoadBlock(it,null)
+                val new = this.fsLoadBlock(imm.like.ref, null)
+                //println("${old.hash} -> ${new.hash} : ${this.oldHeadsToNew(old,new)}")
+                !this.oldHeadsToNew(old, new)
+            }
+            .plus(imm.like.ref)
+            .toTypedArray()
+    }
+    //println(backs.contentToString())
 
     val pay = if (crypt == null) imm.payload else imm.payload.encrypt(crypt)
 

@@ -37,7 +37,7 @@ class Daemon (host : Host) {
                         System.err.println(
                             e.message ?: e.toString()
                         )
-                        //println(e.stackTrace.contentToString())
+                        //System.err.println(e.stackTrace.contentToString())
                     }
                 }
             } catch (e: SocketException) {

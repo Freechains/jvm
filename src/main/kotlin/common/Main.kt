@@ -58,6 +58,7 @@ fun main_ (args: Array<String>) : String {
         System.err.println(
             e!!.message ?: e.toString()
         )
+        //System.err.println(e.stackTrace.contentToString())
     }
 
     fun optHost(): Pair<String, Int> {
