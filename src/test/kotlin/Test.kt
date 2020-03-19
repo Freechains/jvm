@@ -62,6 +62,8 @@ import kotlin.concurrent.thread
  *  - IMPL:
  *    - fix getNow() per handle()
  *    - blockAssert: verify symmetric auth
+ *    - sends in parallel
+ *    - blk/hash variations for all functions (avoid extra blockLoads)
  *  - IDEAS:
  *    - chain for restauration of state in other host holding all necessary commands
  *  - all use cases (chain cfg e usos da industria)
@@ -236,7 +238,7 @@ class Tests {
         val ab0 = chain.blockNew(HC.now(1*day), PVT0, null)
         setNow(2*day)
         chain.blockNew(HC.now(2*day-1).copy(payload = "a1"), PVT0, null)
-        val b1 = chain.blockNew(HC.now().copy(backs=arrayOf(ab0.hash)), PVT0, null)
+        val b1 = chain.blockNew(HC.now().copy(backs=arrayOf(ab0.hash)), PVT1, null)
         setNow(27*day)
         val ab2 = chain.blockNew(HC.now(), PVT0, null)
         setNow(28*day)
@@ -253,12 +255,12 @@ class Tests {
          */
 
         var n = 0
-        for (blk in chain.traverseFromHeads(chain.heads) { true }) {
+        for (blk in chain.traverseFromHeads(chain.heads,false) { true }) {
             n++
         }
         assert(n == 7)
 
-        val x = chain.traverseFromHeads(chain.heads) { it.immut.height > 2 }
+        val x = chain.traverseFromHeads(chain.heads,false) { it.immut.height > 2 }
         assert(x.size == 3)
 
         fun Chain.getMaxTime(): Long {
@@ -268,11 +270,11 @@ class Tests {
                 .max()!!
         }
 
-        val y = chain.traverseFromHeads(chain.heads) { true }.filter { it.immut.time >= chain.getMaxTime() - 30 * day }
+        val y = chain.traverseFromHeads(chain.heads,false) { true }.filter { it.immut.time >= chain.getMaxTime() - 30 * day }
         //println(y.map { it.hash })
         assert(y.size == 4)
 
-        val z = chain.traverseFromHeads(listOf(ab2.hash), { it.immut.time > 1 * day })
+        val z = chain.traverseFromHeads(listOf(ab2.hash),false, { it.immut.time > 1 * day })
         assert(z.size == 3)
     }
 

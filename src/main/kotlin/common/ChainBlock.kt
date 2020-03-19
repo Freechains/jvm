@@ -84,17 +84,13 @@ fun Chain.blockChain (blk: Block) {
 }
 
 fun Chain.backsAssert (blk: Block) {
-    // TODO 90d
-
-    blk.immut.backs.forEach {
+    for (bk in blk.immut.backs) {
         //println("$it <- ${blk.hash}")
-        assert(this.fsExistsBlock(it)) { "back must exist" }
-        this.fsLoadBlock(it,null).let {
+        assert(this.fsExistsBlock(bk)) { "back must exist" }
+        this.fsLoadBlock(bk,null).let {
             assert(it.immut.time <= blk.immut.time) { "back must be older"}
             if (blk.immut.like == null) {
                 assert(this.blockState(it) == State.ACCEPTED) { "backs must be accepted" }
-            } else {
-                assert(blk.immut.like.ref==it.hash && blk.immut.backs.size==1) { "like must back single ref only" }
             }
         }
     }
@@ -126,6 +122,21 @@ fun Chain.blockAssert (blk: Block) {
         val msg = lazySodium.bytes(blk.hash)
         val key = Key.fromHexString(blk.sign.pub).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
+
+        // check if new post leads to latest post from author currently in the chain
+        val prvs = this.traverseFromHeads(this.heads,true) {
+            it.sign == null || it.sign.pub != blk.sign.pub
+        }
+        println(prvs.contentToString())
+        fun leadsTo (cur: Block) : Boolean {
+            return (
+                (cur.hash == prvs.last().hash)    ||
+                cur.immut.backs.any {
+                        leadsTo(this.fsLoadBlock(it,null))
+                }
+            )
+        }
+        assert(leadsTo(blk)) { "must lead to author's previous post" }
     }
 
     if (imm.like != null) {

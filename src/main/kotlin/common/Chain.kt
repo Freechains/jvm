@@ -81,11 +81,13 @@ fun Immut.toHash () : Hash {
 
 fun Chain.blockNew (imm: Immut, sign: HKey?, crypt: HKey?) : Block {
     val heads = this.getHeads(State.ACCEPTED)
-    val backs = when {
-        imm.backs.isNotEmpty() -> imm.backs    // used in tests and likes
-        (imm.like != null)     -> arrayOf(imm.like.ref)
-        else                   -> heads.toTypedArray()
-    }
+    val backs =
+        if (imm.backs.isNotEmpty()) {
+            imm.backs    // used in tests and likes
+        } else {
+            heads.toTypedArray() +
+                if (imm.like == null) emptyArray<Hash>() else arrayOf(imm.like.ref)
+        }
 
     val pay = if (crypt == null) imm.payload else imm.payload.encrypt(crypt)
 
@@ -309,7 +311,7 @@ fun Chain.repsAuthor (pub: String, imm: Immut?) : Int {
             }
     }
 
-    val b90s = this.traverseFromHeads(heads) {
+    val b90s = this.traverseFromHeads(heads,false) {
         it.immut.time >= now - T90D_rep
     }
 
@@ -347,10 +349,7 @@ fun Chain.repsAuthor (pub: String, imm: Immut?) : Int {
 // TRAVERSE
 // TODO: State
 
-internal fun Chain.traverseFromHeads (
-    heads: List<Hash>,
-    f: (Block) -> Boolean
-) : Array<Block> {
+internal fun Chain.traverseFromHeads (heads: List<Hash>, inc: Boolean, f: (Block) -> Boolean) : Array<Block> {
     val pending = LinkedList<String>()
     val visited = mutableSetOf<String>()
     val ret = mutableListOf<Block>()
@@ -363,6 +362,9 @@ internal fun Chain.traverseFromHeads (
         val hash = pending.removeFirst()
         val blk = this.fsLoadBlock(hash, null)
         if (!f(blk)) {
+            if (inc) {
+                ret.add(blk)
+            }
             break
         }
         for (back in blk.immut.backs) {
