@@ -153,7 +153,7 @@ class Tests {
     fun b1_chain() {
         //a_reset()
         val h = Host_create("/tmp/freechains/tests/local/")
-        val c1 = h.joinChain("/uerj", null)
+        val c1 = h.joinChain("/uerj", false, null)
         //println("Chain /uerj: ${chain1.toHash()}")
         c1.fsSave()
 
@@ -168,7 +168,7 @@ class Tests {
     @Test
     fun c1_post() {
         val host = Host_load("/tmp/freechains/tests/local/")
-        val chain = host.joinChain("/", ChainPub(false,PUB0))
+        val chain = host.joinChain("/", false, ChainPub(false,PUB0))
         val n1 = chain.blockNew(H.now(), PVT0, null)
         val n2 = chain.blockNew(H.now(), PVT0, null)
         val n3 = chain.blockNew(H.now(), null, null)
@@ -206,14 +206,14 @@ class Tests {
 
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
-        val src_chain = src.joinChain("/d3", ChainPub(false,PUB1))
+        val src_chain = src.joinChain("/d3", false, ChainPub(false,PUB1))
         src_chain.blockNew(HC.now(), PVT1, null)
         src_chain.blockNew(HC.now(), PVT1, null)
         thread { Daemon(src).daemon() }
 
         // DESTINY
         val dst = Host_create("/tmp/freechains/tests/dst/", 8331)
-        dst.joinChain("/d3", null)
+        dst.joinChain("/d3", false, null)
         thread { Daemon(dst).daemon() }
         Thread.sleep(100)
 
@@ -232,7 +232,7 @@ class Tests {
     fun e1_graph() {
         a_reset()
         val h = Host_create("/tmp/freechains/tests/graph/")
-        val chain = h.joinChain("/", ChainPub(true,PUB0))
+        val chain = h.joinChain("/", true, ChainPub(false,PUB0))
 
         setNow(1*day)
         val ab0 = chain.blockNew(HC.now(1*day), PVT0, null)
@@ -243,7 +243,7 @@ class Tests {
         val ab2 = chain.blockNew(HC.now(), PVT0, null)
         setNow(28*day)
         //assert(chain.blockState(b1) == BlockState.REJECTED)
-        chain.blockNew(HC.now().copy(backs = arrayOf(b1.hash)), PVT0, null)
+        chain.blockNew(HC.now().copy(backs = arrayOf(b1.hash)), PVT1, null)
         setNow(32*day)
         chain.blockNew(HC.now(), PVT0, null)
 
@@ -283,12 +283,12 @@ class Tests {
         //a_reset()
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
-        val h1_chain = h1.joinChain("/xxx", ChainPub(false,PUB1))
+        val h1_chain = h1.joinChain("/xxx", false, ChainPub(false,PUB1))
         h1_chain.blockNew(H, PVT1, null)
         h1_chain.blockNew(H, PVT1, null)
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
-        val h2_chain = h2.joinChain("/xxx", null)
+        val h2_chain = h2.joinChain("/xxx", false, null)
         h2_chain.blockNew(H, PVT1, null)
         h2_chain.blockNew(H, PVT1, null)
 
@@ -322,7 +322,6 @@ class Tests {
         main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", S0))
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("1_"))
         main_(arrayOf("chain", "heads", "rejected", "/xxx")).let {
-            println("|$it|")
             assert(it.isEmpty())
         }
         main_(arrayOf("chain", "heads", "pending", "/xxx")).let {
@@ -430,11 +429,11 @@ class Tests {
         //main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
         val host = Host_load("/tmp/freechains/tests/M2/")
 
-        val c1 = host.joinChain("/sym", null)
+        val c1 = host.joinChain("/sym", false, null)
         val n1 = c1.blockNew(HC, null, null)
         c1.blockAssert(n1)
 
-        val c2 = host.joinChain("/asy", ChainPub(false, PUB0))
+        val c2 = host.joinChain("/asy", false, ChainPub(false, PUB0))
         val n2 = c2.blockNew(H, PVT0, PVT0)
         c2.blockAssert(n2)
     }

@@ -109,6 +109,7 @@ class Daemon (host : Host) {
             }
             "FC chain join" -> {
                 val name= reader.readLineX().nameCheck()
+                val trusted= reader.readLineX().toBoolean()
                 val type= reader.readLineX()
                 val pub =
                     if (type.isEmpty()) {
@@ -119,7 +120,7 @@ class Daemon (host : Host) {
                         ChainPub(oonly, pub)
                     }
                 val chain = synchronized (getLock()) {
-                    local.joinChain(name,pub)
+                    local.joinChain(name, trusted, pub)
                 }
                 writer.writeLineX(chain.hash)
                 System.err.println("chain join: $name (${chain.hash})")

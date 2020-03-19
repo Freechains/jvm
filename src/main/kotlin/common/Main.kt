@@ -17,7 +17,7 @@ Usage:
     freechains host start <dir>
     freechains [options] host stop
     freechains [options] host now <time>
-    freechains [options] chain join <chain> [ [owner-only] <pub> ]
+    freechains [options] chain join <chain> [trusted] [ [owner-only] <pub> ]
     freechains [options] chain genesis <chain>
     freechains [options] chain heads (accepted | pending | rejected) <chain>
     freechains [options] chain get <chain> <hash>
@@ -112,6 +112,7 @@ fun main_ (args: Array<String>) : String {
                 opts["join"] as Boolean -> {
                     writer.writeLineX("FC chain join")
                     writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX(if (opts["trusted"] is String) "true" else "false")
                     if (opts["<pub>"] != null) {
                         writer.writeLineX((opts["owner-only"] as Boolean? ?: false).toString())
                         writer.writeLineX(opts["<pub>"] as String)

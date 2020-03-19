@@ -30,6 +30,7 @@ fun Chain.blockState (blk: Block) : State {
         // unchangeable
         blk.immut.height <= 1   -> State.ACCEPTED      // first two blocks
         this.fromOwner(blk)     -> State.ACCEPTED      // owner signature
+        this.trusted            -> State.ACCEPTED      // chain with trusted hosts/authors
         blk.immut.like != null  -> State.ACCEPTED      // a like
 
         // changeable
@@ -113,7 +114,7 @@ fun Chain.blockAssert (blk: Block) {
         assert(b.fronts.isEmpty() || b.fronts[0]==blk.hash) { "genesis is already referred" }
     }
 
-    if (this.pub != null && this.pub.oonly) {
+    if (this.pub!=null && this.pub.oonly) {
         assert(this.fromOwner(blk)) { "must be from owner" }
     }
 
@@ -158,6 +159,7 @@ fun Chain.blockAssert (blk: Block) {
 
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
+            this.trusted               ||   // dont check reps (private chain)
             (
                 // global no // local ok  --> double spend
                 // global ok // local no  --> use + from cousins (which may be rejected)

@@ -27,12 +27,13 @@ data class ChainPub (
 
 @Serializable
 data class Chain (
-    val root   : String,
-    val name   : String,
-    val pub    : ChainPub?
+    val root    : String,
+    val name    : String,
+    val trusted : Boolean,
+    val pub     : ChainPub?
 ) {
-    val hash   : String = this.toHash()
-    val heads  : ArrayList<Hash> = arrayListOf(this.getGenesis())
+    val hash    : String = this.toHash()
+    val heads   : ArrayList<Hash> = arrayListOf(this.getGenesis())
 }
 
 // TODO: change to contract/constructor assertion
@@ -70,7 +71,7 @@ private fun String.calcHash () : String {
 
 private fun Chain.toHash () : String {
     val pub = if (this.pub == null) "" else this.pub.oonly.toString()+"_"+this.pub.key
-    return (this.name+pub).calcHash()
+    return (this.name+this.trusted.toString()+pub).calcHash()
 }
 
 fun Immut.toHash () : Hash {
