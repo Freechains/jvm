@@ -3,6 +3,7 @@ package org.freechains.common
 import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import kotlin.math.absoluteValue
 import kotlin.math.sqrt
 
 fun Chain.fromOwner (blk: Block) : Boolean {
@@ -26,17 +27,23 @@ fun Chain.blockState (blk: Block, who: HKey?) : State {
 
     // if I liked this block, assumes it will be accepted soon (prevents likes in parallel = double spend)
     fun iLikedIt () : Boolean {
-        val ret = who!=null &&
+        return who!=null &&
+            blk.fronts.any {
+                this.fsLoadBlock(it,null).let {
+                    (it.immut.like!=null && it.sign!!.pub==who)
+                }
+            }
+        /*
             blk.fronts.map {
                 this.fsLoadBlock(it,null).let {
                     if (it.immut.like==null || it.sign!!.pub!=who)
                         0
                     else
-                        it.immut.like.n
+                        it.immut.like.n.absoluteValue
                 }
             }
             .sum() > 0
-        return ret
+         */
     }
 
     val rep = this.repsPost(blk.hash)
@@ -61,6 +68,24 @@ fun Chain.blockState (blk: Block, who: HKey?) : State {
     return ret
 }
 
+fun Chain.addBlockAsFrontOfBacks (blk: Block, chk: Boolean = false) {
+    for (bk in blk.immut.backs) {
+        this.heads.remove(bk)
+        this.fsLoadBlock(bk, null).let {
+            if (chk) {
+                if (!it.fronts.contains((blk.hash))) {     // Chain.unRemove
+                    it.fronts.add(blk.hash)
+                }
+            } else {
+                assert(!it.fronts.contains(blk.hash)) { it.hash + " -> " + blk.hash }
+                it.fronts.add(blk.hash)
+            }
+            it.fronts.sort()
+            this.fsSaveBlock(it)
+        }
+    }
+}
+
 fun Chain.blockChain (blk: Block) {
     // get old state of liked block
     val wasLiked=
@@ -72,19 +97,7 @@ fun Chain.blockChain (blk: Block) {
     this.blockAssert(blk)
     this.fsSaveBlock(blk)
     this.heads.add(blk.hash)
-
-    // add new front of backs
-    for (bk in blk.immut.backs) {
-        this.heads.remove(bk)
-        this.fsLoadBlock(bk, null).let {
-            //assert(!it.fronts.contains(blk.hash)) { it.hash + " -> " + blk.hash }
-            if (!it.fronts.contains((blk.hash))) {
-                it.fronts.add(blk.hash)     // Chain.unRemove
-            }
-            it.fronts.sort()
-            this.fsSaveBlock(it)
-        }
-    }
+    this.addBlockAsFrontOfBacks(blk)
 
     // check if state of liked block changed
     if (wasLiked != null) {

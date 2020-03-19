@@ -343,9 +343,7 @@ class Tests {
 
         // h0 -> h1 -> h2 -> l3
 
-        println(">>>")
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("1_"))
-        println("<<<")
         assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("3_"))
         assert(main_(arrayOf("chain", "heads", "rejected", "/xxx")).isEmpty())
 
@@ -981,7 +979,6 @@ class Tests {
         //          -> h22 ------/        /
         //               \---------------/
 
-        println(">>>")
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
             it.split(' ').let {
                 assert(it.size == 1)
@@ -1009,10 +1006,10 @@ class Tests {
         main_(arrayOf(H0,"chain","like","post","/","+","2",h22,S0))
         main_(arrayOf(H0, "host", "now", "${4*hour}"))
 
-        // h0 -> h1 -> h21 -> l31
-        //          -> h22 -> l32 (+)
-        //                 -> l33 (-)
-        //                 -> l34 (+)
+        // h0 -> h1 -> h21 -> l3 -> l4 -> l5 -> l6
+        //          -> h22 ------/        /    /
+        //               \---------------/    /
+        //                \------------------/
 
         // h22 not yet accepted
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
@@ -1029,7 +1026,7 @@ class Tests {
         // h22 not yet accepted
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
             it.split(' ').let {
-                assert(it.size == 4)
+                assert(it.size == 1)
                 it.forEach {
                     assert(it.startsWith("3_"))     // l31
                 }

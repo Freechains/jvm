@@ -85,15 +85,22 @@ fun Chain.blockRemove (hash: Hash, isBan: Boolean) {
 fun Chain.blockUnRemove (hash: Hash, isBan: Boolean, f: (Block) -> Boolean = {true}) {
     val dir = if (isBan) "/banned/" else "/blocks/"
     val blk = this.fsLoadBlock(hash, null, dir)
+
     if (!f(blk)) {
         return
     }
+
     if (isBan) {
         //println("unban: ${blk.hash}")
         this.fsSaveBlock(blk)
         this.fsRemBlock(blk.hash, dir)
     }
-    this.blockChain(blk)
+
+    this.heads.add(blk.hash)
+    this.addBlockAsFrontOfBacks(blk, true)
+    this.fsSaveBlock(blk)
+    this.fsSave()
+
     for (fr in blk.fronts) {
         this.blockUnRemove(fr, isBan, f)
     }

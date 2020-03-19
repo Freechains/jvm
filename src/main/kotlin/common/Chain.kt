@@ -95,12 +95,12 @@ fun Chain.blockNew (imm: Immut, sign: HKey?, crypt: HKey?) : Block {
             .plus(imm.like.ref)
             .toTypedArray()
     }
-    //println(backs.contentToString())
 
     val pay = if (crypt == null) imm.payload else imm.payload.encrypt(crypt)
 
     val h_ = imm.copy(crypt=crypt!=null, payload=pay, backs=backs)
     val hash = h_.toHash()
+    //println("NEW $hash // ${backs.contentToString()}")
 
     // signs message if requested (pvt provided or in pvt chain)
     val signature=
@@ -131,6 +131,9 @@ fun Chain.getHeads (wanted: State, who: HKey?) : List<Hash> {
                 //println("${it.hash} -> ${this.blockState(it)}")
                 val have = this.blockState(blk,who)
                 when {
+                    // if like block, go back until finds liked block
+                    (blk.immut.like != null)    -> recs( blk.immut.backs.toList())
+
                     // block has expected state, return it
                     (
                         have == wanted ||
@@ -166,7 +169,7 @@ fun Chain.getHeads (wanted: State, who: HKey?) : List<Hash> {
     return when (wanted) {
         State.ACCEPTED -> fronts(ret).toSet().toList()      // go to the tips of accepteds
         State.PENDING  -> fronts(ret).toSet().toList()      // go to the tips of accepteds
-        State.REJECTED -> ret .toSet().toList()             // just want list of rejected
+        State.REJECTED -> ret.toSet().toList()             // just want list of rejected
         else           -> error("bug found")
     }
 }
