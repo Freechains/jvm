@@ -13,31 +13,52 @@ fun Chain.hashState (hash: Hash) : State {
     return when {
         this.fsExistsBlock(hash,"/banned/") -> State.BANNED
         ! this.fsExistsBlock(hash)               -> State.MISSING
-        else -> this.blockState(this.fsLoadBlock(hash,null))
+        else -> this.blockState(this.fsLoadBlock(hash,null), null)
     }
 }
 
-fun Chain.blockState (blk: Block) : State {
+fun Chain.blockState (blk: Block, who: HKey?) : State {
     fun hasTime () : Boolean {
         val now = getNow()
         val dt = now - blk.immut.time
         return blk.localTime <= now - (T2H_past + sqrt(dt.toFloat()))   // old enough
     }
 
+    // if I liked this block, assumes it will be accepted soon (prevents likes in parallel = double spend)
+    fun iLikedIt () : Boolean {
+        val ret = who!=null &&
+            blk.fronts.map {
+                this.fsLoadBlock(it,null).let {
+                    if (it.immut.like==null || it.sign!!.pub!=who)
+                        0
+                    else
+                        it.immut.like.n
+                }
+            }
+            .sum() > 0
+        return ret
+    }
+
     val rep = this.repsPost(blk.hash)
 
-    return when {
+    val ret = when {
         // unchangeable
-        blk.immut.height <= 1   -> State.ACCEPTED      // first two blocks
-        this.fromOwner(blk)     -> State.ACCEPTED      // owner signature
-        this.trusted            -> State.ACCEPTED      // chain with trusted hosts/authors
-        blk.immut.like != null  -> State.ACCEPTED      // a like
+        blk.immut.height <= 1  -> State.ACCEPTED      // first two blocks
+        this.fromOwner(blk)    -> State.ACCEPTED      // owner signature
+        this.trusted           -> State.ACCEPTED      // chain with trusted hosts/authors
+        blk.immut.like != null ->  this.blockState (  // a like follows liked
+            this.fsLoadBlock(blk.immut.like.ref,null),
+            who
+        )
 
         // changeable
-        LK23_500_rej(rep)       -> State.REJECTED      // not enough reps
-        ! hasTime()             -> State.PENDING       // not old enough
-        else                    -> State.ACCEPTED      // enough reps, enough time
+        iLikedIt()             -> State.ACCEPTED      // assumes it will be accepted soon
+        LK23_500_rej(rep)      -> State.REJECTED      // not enough reps
+        ! hasTime()            -> State.PENDING       // not old enough
+        else                   -> State.ACCEPTED      // enough reps, enough time
     }
+    //println("ST ${blk.hash} = $ret")
+    return ret
 }
 
 fun Chain.blockChain (blk: Block) {
@@ -46,7 +67,7 @@ fun Chain.blockChain (blk: Block) {
         if (blk.immut.like == null)
             null
         else
-            this.blockState(this.fsLoadBlock(blk.immut.like.ref,null))
+            this.blockState(this.fsLoadBlock(blk.immut.like.ref,null), null)
 
     this.blockAssert(blk)
     this.fsSaveBlock(blk)
@@ -57,7 +78,9 @@ fun Chain.blockChain (blk: Block) {
         this.heads.remove(bk)
         this.fsLoadBlock(bk, null).let {
             //assert(!it.fronts.contains(blk.hash)) { it.hash + " -> " + blk.hash }
-            it.fronts.add(blk.hash)
+            if (!it.fronts.contains((blk.hash))) {
+                it.fronts.add(blk.hash)     // Chain.unRemove
+            }
             it.fronts.sort()
             this.fsSaveBlock(it)
         }
@@ -66,12 +89,14 @@ fun Chain.blockChain (blk: Block) {
     // check if state of liked block changed
     if (wasLiked != null) {
         this.fsLoadBlock(blk.immut.like!!.ref,null).let {
-            val now = this.blockState(it)
+            val now = this.blockState(it, null)
             //println("${it.hash} : $wasLiked -> $now")
             when {
                 // changed from ACC -> REJ
                 (wasLiked==State.ACCEPTED && now==State.REJECTED) -> {
+                    //println("REJ ${it.hash}")
                     this.blockReject(it.hash)
+                    //println(this.heads)
                 }
                 // changed from REJ -> ACC
                 (wasLiked==State.REJECTED && now==State.ACCEPTED) -> {
@@ -91,7 +116,7 @@ fun Chain.backsAssert (blk: Block) {
         this.fsLoadBlock(bk,null).let {
             assert(it.immut.time <= blk.immut.time) { "back must be older"}
             if (blk.immut.like == null) {
-                assert(this.blockState(it) == State.ACCEPTED) { "backs must be accepted" }
+                assert(this.blockState(it,null) == State.ACCEPTED) { "backs must be accepted" }
             }
         }
     }

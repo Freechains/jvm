@@ -81,7 +81,7 @@ fun Immut.toHash () : Hash {
 // BLOCK
 
 fun Chain.blockNew (imm: Immut, sign: HKey?, crypt: HKey?) : Block {
-    val heads = this.getHeads(State.ACCEPTED)
+    val heads = this.getHeads(State.ACCEPTED, if (sign == null) null else sign.pvtToPub())
     val backs = when {
         imm.backs.isNotEmpty() -> imm.backs //error("TODO") //    // used in tests and likes
         (imm.like == null)     -> heads.toTypedArray()
@@ -123,31 +123,27 @@ fun Chain.blockNew (imm: Immut, sign: HKey?, crypt: HKey?) : Block {
 
 // HEADS
 
-fun Chain.getHeads (wanted: State) : List<Hash> {
+fun Chain.getHeads (wanted: State, who: HKey?) : List<Hash> {
     fun recs (hs: List<Hash>) : List<Hash> {
         return hs
             .map {
-                this.fsLoadBlock(it,null).let {
-                    //println("${it.hash} -> ${this.blockState(it)}")
-                    val have = this.blockState(it)
-                    when {
-                        // if like block, go back until finds liked block
-                        (it.immut.like != null)     -> recs( it.immut.backs.toList())
+                val blk = this.fsLoadBlock(it,null)
+                //println("${it.hash} -> ${this.blockState(it)}")
+                val have = this.blockState(blk,who)
+                when {
+                    // block has expected state, return it
+                    (
+                        have == wanted ||
+                        have == State.ACCEPTED && wanted == State.PENDING
+                    )                           -> listOf(blk.hash)
 
-                        // block has expected state, return it
-                        (
-                            have == wanted ||
-                            have == State.ACCEPTED && wanted == State.PENDING
-                        )                           -> listOf(it.hash)
+                    // did not find rejected block in this branch
+                    (wanted == State.REJECTED)  -> emptyList()
 
-                        // did not find rejected block in this branch
-                        (wanted == State.REJECTED)  -> emptyList()
+                    // found rejected, go back until find non rejecteds
+                    (wanted != State.REJECTED)  -> recs( blk.immut.backs.toList())
 
-                        // found rejected, go back until find non rejecteds
-                        (wanted != State.REJECTED)  -> recs( it.immut.backs.toList())
-
-                        else -> error("impossible case")
-                    }
+                    else -> error("impossible case")
                 }
             }
             .flatten()
@@ -157,7 +153,7 @@ fun Chain.getHeads (wanted: State) : List<Hash> {
     fun fronts (hs: List<Hash>) : List<Hash> {
         return hs
             .map    { this.fsLoadBlock(it,null) }
-            .filter { this.blockState(it) <= wanted }
+            .filter { this.blockState(it,who) <= wanted }
             .map    {
                 val blk = it
                 fronts(blk.fronts).let {
@@ -175,109 +171,6 @@ fun Chain.getHeads (wanted: State) : List<Hash> {
     }
 }
 
-// BAN / REJECT
-
-fun Chain.blockReject (hash: Hash) {
-    val blk = this.fsLoadBlock(hash, null)
-
-    // start after my likes
-    for (fr in blk.fronts) {
-        val lk = this.fsLoadBlock(fr, null)
-        assert(lk.immut.like!=null && lk.immut.like.ref==hash) { "bug found: should be like to myself" }
-        assert(lk.immut.backs.size == 1) { "bug found: should only point to liked" }
-
-        // reject all my like fronts
-        for (fr2 in lk.fronts) {
-            this.blockRemove(fr2, false)
-        }
-
-        // fronts removed in nested refronts will be restored here
-        this.fsSaveBlock(lk)
-    }
-
-    this.fsSave()
-}
-
-fun Chain.blockUnReject (hash: Hash) {
-    val blk = this.fsLoadBlock(hash, null)
-
-    // change to PENDING
-    blk.localTime = getNow()
-    this.fsSaveBlock(blk)
-
-    // start after my likes
-    for (fr in blk.fronts) {
-        val lk = this.fsLoadBlock(fr, null)
-        assert(lk.immut.like!=null && lk.immut.like.ref==hash) { "should be like to myself" }
-        assert(lk.immut.backs.size == 1) { "bug found: should only point to liked" }
-
-        // unreject all my like fronts
-        for (fr2 in lk.fronts) {
-            this.blockUnRemove(fr2, false)
-        }
-    }
-}
-
-fun Chain.blockRemove (hash: Hash, isBan: Boolean) {
-    val blk = this.fsLoadBlock(hash, null)
-
-    // ban all my fronts as well
-    for (it in blk.fronts) {
-        this.blockRemove(it, isBan)
-    }
-
-    // - remove myself from heads
-    // - add my backs as heads, unless they lead to a head
-    if (this.heads.contains(hash)) {
-        fun leadsToHeads (hash: Hash) : Boolean {
-            return (
-                this.heads.contains(hash) ||
-                    this.fsLoadBlock(hash,null).let {
-                        it.fronts.any { leadsToHeads(it) }
-                    }
-                )
-        }
-        this.heads.remove(hash)
-        for (it in blk.immut.backs) {
-            if (!leadsToHeads(it)) {
-                this.heads.add(it)
-            }
-        }
-    }
-
-    // refronts: remove myself as front of all my backs
-    for (bk in blk.immut.backs) {
-        this.fsLoadBlock(bk, null).let {
-            it.fronts.remove(hash)
-            this.fsSaveBlock(it)
-        }
-    }
-
-    val dir = if (isBan) "/banned/" else "/blocks/"
-    if (isBan) {
-        this.fsSaveBlock(blk,dir)
-        this.fsRemBlock(blk.hash)
-    }
-
-    // fronts removed in nested refronts will be restored here
-    this.fsSaveBlock(blk, dir)
-    this.fsSave()
-}
-
-fun Chain.blockUnRemove (hash: Hash, isBan: Boolean) {
-    val dir = if (isBan) "/banned/" else "/blocks/"
-    val blk = this.fsLoadBlock(hash, null, dir)
-    if (isBan) {
-        println("unban: ${blk.hash}")
-        this.fsSaveBlock(blk)
-        this.fsRemBlock(blk.hash, dir)
-    }
-    this.blockChain(blk)
-    for (fr in blk.fronts) {
-        this.blockUnRemove(fr, isBan)
-    }
-}
-
 // REPUTATION
 
 fun Chain.repsPost (hash: String) : Pair<Int,Int> {
@@ -291,6 +184,7 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
         .map { it.immut.like!! }
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
+    //println("REPS $hash = $pos-$neg")
     return Pair(pos/2,neg/2)    // half for post, half for author
 }
 

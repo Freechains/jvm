@@ -150,7 +150,7 @@ class Daemon (host : Host) {
                         }
                         "FC chain heads" -> {
                             val state = reader.readLineX().toState()
-                            val heads = chain.getHeads(state)
+                            val heads = chain.getHeads(state,null)
                             val hs = heads.joinToString(" ")
                             writer.writeLineX(hs)
                             System.err.println("chain heads: $heads")
@@ -297,7 +297,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
     //println("[send] $maxTime")
 
     // for each local head
-    val heads = chain.getHeads(State.PENDING)
+    val heads = chain.getHeads(State.PENDING,null)
     val n1 = heads.size
     writer.writeLineX(n1.toString())                              // 1
     for (head in heads) {
