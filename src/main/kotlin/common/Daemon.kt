@@ -173,7 +173,7 @@ class Daemon (host : Host) {
 
                             val likes =
                                 if (ref.hashIsBlock()) {
-                                    chain.repsPostSum(ref)
+                                    chain.repsPost(ref)
                                 } else {
                                     chain.repsAuthor(ref, getNow())
                                 }

@@ -23,22 +23,17 @@ fun Chain.blockState (blk: Block) : State {
         val dt = now - blk.immut.time
         return blk.localTime <= now - (T2H_past + sqrt(dt.toFloat()))   // old enough
     }
-
-    val rep = this.repsPost(blk.hash)
-
-    val ret = when {
+    return when {
         // unchangeable
-        blk.hash.toHeight() <= 1 -> State.ACCEPTED      // first two blocks
-        this.fromOwner(blk)      -> State.ACCEPTED      // owner signature
-        this.trusted             -> State.ACCEPTED      // chain with trusted hosts/authors
+        (blk.hash.toHeight() <= 1)     -> State.ACCEPTED      // first two blocks
+        this.fromOwner(blk)            -> State.ACCEPTED      // owner signature
+        this.trusted                   -> State.ACCEPTED      // chain with trusted hosts/authors
 
         // changeable
-        LK23_500_rej(rep)        -> State.REJECTED      // not enough reps
-        ! hasTime()              -> State.PENDING       // not old enough
-        else                     -> State.ACCEPTED      // enough reps, enough time
+        (this.repsPost(blk.hash) <= 0) -> State.REJECTED      // not enough reps
+        (! hasTime())                  -> State.PENDING       // not old enough
+        else                           -> State.ACCEPTED      // enough reps, enough time
     }
-    //println("ST ${blk.hash} = $ret")
-    return ret
 }
 
 fun Chain.blockChain (blk: Block) {
@@ -125,9 +120,15 @@ fun Chain.blockAssert (blk: Block) {
         // check if new post leads to latest post from author currently in the chain
         this
             .bfsFromHeads(this.heads,true) { !it.isFrom(blk.sign.pub) }
+            .last()
             .let {
                 //println("old = ${it.last()}")
-                assert(imm.prev == it.last().hash) { "must point to author's previous post" }
+                assert (
+                    if (it.hash == this.getGenesis())
+                        (imm.prev == null)
+                    else
+                        (imm.prev == it.hash)
+                ) { "must point to author's previous post" }
             }
     }
 

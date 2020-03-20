@@ -101,7 +101,8 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
         payload = if (crypt == null) imm_.payload else imm_.payload.encrypt(crypt),
         prev    = if (sign == null) null else this
             .bfsFromHeads(this.heads,true) { !it.isFrom(sign.pvtToPub()) }
-            .last().hash,
+            .last()
+            .let { if (it.hash == this.getGenesis()) null else it.hash },
         backs   = backs
     )
     val hash = imm.toHash()
@@ -126,7 +127,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
 
 // REPUTATION
 
-fun Chain.repsPost (hash: String) : Pair<Int,Int> {
+fun Chain.repsPost (hash: String) : Int {
     val blk = this.fsLoadBlock(hash,null)
 
     val likes = this
@@ -137,23 +138,18 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
 
-    val ath =
-        if (blk.sign == null)
-            0
-        else
-            this.repsAuthor (
-                blk.sign.pub,
-                this.fsLoadBlock(blk.immut.prev!!,null).immut.time,
-                listOf(blk.immut.prev)
-            )
-    //println("${blk.sign!=null} = $ath")
+    val prev = blk.immut.prev
+    val ath = when {
+        (blk.sign == null) -> 0     // anon post, no author reps
+        (prev == null)     -> 0     // no prev post, no author reps
+        else -> this.repsAuthor (
+            blk.sign.pub,
+            this.fsLoadBlock(prev,null).immut.time,
+            listOf(prev)
+        )
+    }
 
-    return Pair(pos+ath,neg)
-}
-
-fun Chain.repsPostSum (hash: String) : Int {
-    val (pos,neg) = this.repsPost(hash)
-    return pos + neg
+    return pos + ath + neg
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : Int {
@@ -178,7 +174,7 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : 
         .filter { it.immut.like == null }                    // not likes
         .let {
             val lks = it
-                .map { this.repsPostSum(it.hash) }
+                .map { this.repsPost(it.hash) }
                 .sum()                                       // likes to my posts
             val pos = it
                 .filter { it.immut.time <= now - T1D_rep }   // posts older than 1 day
@@ -199,16 +195,16 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : 
 
 // TRAVERSE
 
-fun Chain.getHeads (wanted: State, heads: List<Hash> = this.heads) : Array<Hash> {
+fun Chain.getHeads (want: State, heads: List<Hash> = this.heads) : Array<Hash> {
     return heads
         .map {
             val have = this.hashState(it)
             when {
-                (wanted == have)        -> arrayOf(it)
-                (wanted==State.PENDING &&
-                 have==State.ACCEPTED)  -> arrayOf(it)
-                wanted > have           -> this.getHeads(wanted, this.fsLoadBlock(it,null).immut.backs.toList())
-                else                    -> emptyArray()
+                (want == have)         -> arrayOf(it)
+                (want==State.PENDING &&
+                 have==State.ACCEPTED) -> arrayOf(it)
+                want > have            -> this.getHeads(want, this.fsLoadBlock(it,null).immut.backs.toList())
+                else                   -> emptyArray()
             }
         }
         .toTypedArray()
