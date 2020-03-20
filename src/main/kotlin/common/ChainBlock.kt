@@ -108,7 +108,7 @@ fun Chain.blockAssert (blk: Block) {
             .bfsFromHeads(this.heads, false) { true }
             .filter { it.hash.toHeight() == 1 }
             .let {
-                assert(it.size <= 1) { "genesis is already referred" }
+                assert(it.size == 0) { "genesis is already referred" }
             }
     }
 

@@ -182,10 +182,10 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : 
                 .sum()                                       // likes to my posts
             val pos = it
                 .filter { it.immut.time <= now - T1D_rep }   // posts older than 1 day
-                .count() * lk
+                .count()
             val neg = it
                 .filter { it.immut.time > now - T1D_rep }    // posts newer than 1 day
-                .count() * lk
+                .count()
             lks + max(gen,min(LK30_max,pos)) - neg
         }
 

@@ -13,9 +13,7 @@ const val T120D_past  = 4*T90D_rep/3    // reject posts +120d in the past
 const val T2H_past    = 2*hour          // refuse posts +2h in the past, add to quarantine
 const val T1D_rep     = 1*day           // account to reputation posts older than 1 day only (count negatively otherwise)
 
-const val mlk = 1
-const val lk  = 1000*mlk                // rewards for post after 24h
-const val LK30_max = 30*lk
+const val LK30_max = 30
 
 fun LK23_500_rej (rep : Pair<Int,Int>) : Boolean {
     val (pos,neg) = rep

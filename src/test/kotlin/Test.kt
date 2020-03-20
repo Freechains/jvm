@@ -426,14 +426,12 @@ class Tests {
         //a_reset()
         //main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
         val host = Host_load("/tmp/freechains/tests/M2/")
-
-        val c1 = host.joinChain("/sym", false, null)
-        val n1 = c1.blockNew(HC, null, null)
-        c1.blockAssert(n1)
-
-        val c2 = host.joinChain("/asy", false, ChainPub(false, PUB0))
-        val n2 = c2.blockNew(H, PVT0, PVT0)
-        c2.blockAssert(n2)
+        host.joinChain("/sym", false, null).let {
+            it.blockNew(HC, null, null)
+        }
+        host.joinChain("/asy", false, ChainPub(false, PUB0)).let {
+            it.blockNew(H, PVT0, PVT0)
+        }
     }
 
     @Test
@@ -514,30 +512,35 @@ class Tests {
         Thread.sleep(100)
 
         main_(arrayOf(H0, "chain", "join", "/"))
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "first", S0))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "first-0", S0))
         main_(arrayOf(H1, "chain", "join", "/"))
-        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "first", S1))
+        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "first-1", S1))
+        Thread.sleep(100)
+
+        // H0: g <- f0
+        // H1: g <- f1
 
         val r0 = main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
         val r1 = main_(arrayOf(H1, "chain", "send", "/", "localhost:8330"))
         assert(r0 == r1 && r0 == "0 / 1")
 
-        val r00 = main_(arrayOf(H0, "chain", "like", "get", "/", PUB0))
-        val r01 = main_(arrayOf(H1, "chain", "like", "get", "/", PUB0))
-        val r10 = main_(arrayOf(H0, "chain", "like", "get", "/", PUB1))
-        val r11 = main_(arrayOf(H1, "chain", "like", "get", "/", PUB1))
-        assert(r00.toInt() == 29000)
+        val r00 = main_(arrayOf(H0, "chain", "reps", "/", PUB0))
+        val r01 = main_(arrayOf(H1, "chain", "reps", "/", PUB0))
+        error("oi")
+        val r10 = main_(arrayOf(H0, "chain", "reps", "/", PUB1))
+        val r11 = main_(arrayOf(H1, "chain", "reps", "/", PUB1))
+        assert(r00.toInt() == 29)
         assert(r01.toInt() == 0)
         assert(r10.toInt() == 0)
-        assert(r11.toInt() == 29000)
+        assert(r11.toInt() == 29)
 
         main_(arrayOf(H0, "host", "now", (getNow() + 1*day).toString()))
         main_(arrayOf(H1, "host", "now", (getNow() + 1*day).toString()))
 
-        val x0 = main_(arrayOf(H0, "chain", "like", "get", "/", PUB0))
-        val x1 = main_(arrayOf(H1, "chain", "like", "get", "/", PUB1))
-        assert(x0.toInt() == 30000)
-        assert(x1.toInt() == 30000)
+        val x0 = main_(arrayOf(H0, "chain", "reps", "/", PUB0))
+        val x1 = main_(arrayOf(H1, "chain", "reps", "/", PUB1))
+        assert(x0.toInt() == 30)
+        assert(x1.toInt() == 30)
     }
 
     @Test
