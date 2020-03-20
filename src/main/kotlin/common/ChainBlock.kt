@@ -24,6 +24,19 @@ fun Chain.blockState (blk: Block) : State {
         val dt = now - blk.immut.time
         return blk.localTime <= now - (T2H_past + sqrt(dt.toFloat()))   // old enough
     }
+
+    val prev = blk.immut.prev
+    val ath = when {
+        (blk.sign == null) -> 0     // anon post, no author reps
+        (prev == null)     -> 0     // no prev post, no author reps
+        else -> this.repsAuthor (
+            blk.sign.pub,
+            this.fsLoadBlock(prev,null).immut.time,
+            listOf(prev)
+        )
+    }
+    val reps = this.repsPost(blk.hash)
+
     return when {
         // unchangeable
         (blk.hash.toHeight() <= 1)  -> State.ACCEPTED      // first two blocks
