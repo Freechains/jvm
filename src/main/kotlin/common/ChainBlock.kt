@@ -49,16 +49,9 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
         else
             this.getHeads(State.ACCEPTED)
 
-    val prev =
-        if (sign == null)
-            null
-        else
-            this.findFirst(this.heads) { !it.isFrom(sign.pvtToPub()) }.let {
-                if (it == null)
-                    null
-                else
-                    it.hash
-            }
+    val prev= sign?.let { s ->
+        this.findFirst(this.heads) { !it.isFrom(s.pvtToPub()) } ?.hash
+    }
 
     val imm = imm_.copy (
         crypt   = (crypt != null),

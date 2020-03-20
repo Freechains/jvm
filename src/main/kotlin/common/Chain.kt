@@ -70,7 +70,7 @@ private fun String.calcHash () : String {
 }
 
 private fun Chain.toHash () : String {
-    val pub = if (this.pub == null) "" else this.pub.oonly.toString()+"_"+this.pub.key
+    val pub = this.pub?.let { it.oonly.toString()+"_"+it.key } ?: ""
     return (this.name+this.trusted.toString()+pub).calcHash()
 }
 
