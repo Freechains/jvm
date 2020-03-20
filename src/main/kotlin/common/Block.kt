@@ -90,3 +90,7 @@ fun Hash.toHeight () : Int {
 fun Hash.hashIsBlock () : Boolean {
     return this.contains('_')   // otherwise is pubkey
 }
+
+fun Block.isFrom (pub: HKey) : Boolean {
+    return (this.sign!=null && this.sign.pub==pub)
+}

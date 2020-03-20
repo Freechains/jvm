@@ -6,7 +6,7 @@ import org.freechains.platform.lazySodium
 import kotlin.math.sqrt
 
 fun Chain.fromOwner (blk: Block) : Boolean {
-    return (this.pub != null) && (blk.sign != null) && (blk.sign.pub == this.pub.key)
+    return (this.pub != null) && blk.isFrom(this.pub.key)
 }
 
 fun Chain.hashState (hash: Hash) : State {
@@ -106,7 +106,7 @@ fun Chain.blockAssert (blk: Block) {
             .bfsFromHeads(this.heads, false) { true }
             .filter { it.hash.toHeight() == 1 }
             .let {
-                assert(it.size == 1) { "genesis is already referred" }
+                assert(it.size <= 1) { "genesis is already referred" }
             }
     }
 
@@ -121,36 +121,23 @@ fun Chain.blockAssert (blk: Block) {
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
 
         // check if new post leads to latest post from author currently in the chain
-        val prvs = this.bfsFromHeads(this.heads,true) {
-            it.sign==null || it.sign.pub!=blk.sign.pub
-        }
-        //println("old = ${prvs.last()}")
-        assert(imm.prev == prvs.last().hash) { "must point to author's previous post" }
+        this
+            .bfsFromHeads(this.heads,true) {!it.isFrom(blk.sign.pub) }
+            .let {
+                //println("old = ${it.last()}")
+                assert(imm.prev == it.last().hash) { "must point to author's previous post" }
+            }
     }
 
     if (imm.like != null) {
-        val n = imm.like.n
-        val pub = blk.sign!!.pub
-        assert(this.fsExistsBlock(imm.like.hash)) {
-            "like target not found"         // like has target
-        }
-        //println("n=$n // loc=${this.repsAuthor(pub,imm)} // glb=${this.repsAuthor(pub,null)}")
-
-        val n_ = this.fsLoadBlock(imm.like.hash,null).let {
-            when {
-                (it.sign == null)             -> n
-                (it.sign.pub == blk.sign.pub) -> n - n/2
-                (it.sign.pub != blk.sign.pub) -> n
-                else -> error("impossible case")
-            }
-        }
-
+        assert(blk.sign != null) { "like must be signed"}
+        assert(this.fsExistsBlock(imm.like.hash)) { "like must have valid target" }
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
             this.trusted               ||   // dont check reps (private chain)
-            n_ <= this.repsAuthor(pub, imm.time)
+            this.repsAuthor(blk.sign!!.pub,imm.time) > 0
         ) {
-            "not enough reputation"         // like has reputation
+            "like author must have reputation"
         }
     }
 }

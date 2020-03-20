@@ -99,6 +99,9 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
     val imm = imm_.copy (
         crypt   = (crypt != null),
         payload = if (crypt == null) imm_.payload else imm_.payload.encrypt(crypt),
+        prev    = if (sign == null) null else this
+            .bfsFromHeads(this.heads,true) { it.isFrom(sign.pvtToPub()) }
+            .last().hash,
         backs   = backs
     )
     val hash = imm.toHash()
@@ -143,16 +146,10 @@ fun Chain.repsAuthor (pub: String, now: Long) : Int {
     val gen = this
         .bfsFromHeads(this.heads,true) { it.hash.toHeight() > 1 }
         .last()
-        .let {
-            when {
-                (it.sign == null)    -> 0
-                (it.sign.pub == pub) -> LK30_max
-                else                 -> 0
-            }
-        }
+        .let { if (it.isFrom(pub)) LK30_max else 0 }
 
     val mines = this
-        .bfsFromHeads(this.heads,false) { it.sign!=null && it.sign.pub==pub }
+        .bfsFromHeads(this.heads,false) { it.isFrom(pub) }
         .let {
             assert(it.size == 1) { "bug found: multiple author's chains?" }
             fun f (blk: Block) : List<Block> {
