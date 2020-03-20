@@ -108,6 +108,7 @@ fun Chain.repsPost (hash: String) : Int {
         )
     }
 
+    //println("$hash // pos=$pos // ath=$ath // neg=$neg")
     return pos + ath + neg
 }
 
@@ -121,12 +122,16 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : 
         .bfsFromHeads(heads,true) { !it.isFrom(pub) }
         .last()
         .let {
-            fun f (blk: Block) : List<Block> {
-                return listOf(blk) + blk.immut.prev.let {
-                    if (it == null) emptyList() else f(this.fsLoadBlock(it,null))
+            if (it.hash == this.getGenesis()) {
+                emptyList()
+            } else {
+                fun f (blk: Block) : List<Block> {
+                    return listOf(blk) + blk.immut.prev.let {
+                        if (it == null) emptyList() else f(this.fsLoadBlock(it,null))
+                    }
                 }
+                f(it)
             }
-            f(it)
         }
 
     val posts = mines                                   // mines
