@@ -21,8 +21,8 @@ import kotlin.concurrent.thread
 
 /*
  *  TODO:
- *                                reps             28-02    29-02    17-03
- *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 LOC
+ *                                reps             28-02    29-02    17-03   19-03
+ *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 KB
  *  - Simulation.kt
  *  - liferea, /home, table/shared/trusted column, docs, fred, ppt
@@ -81,7 +81,7 @@ import kotlin.concurrent.thread
 fun Immut.now (t: Long = getNow()) : Immut {
     return this.copy(time = t)
 }
-val H   = Immut(0, null,"",false, "", emptyArray())
+val H   = Immut(0, "",false, "", null, null, emptyArray())
 val HC  = H.copy(code="utf8", crypt=true)
 
 const val PVT0 = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
@@ -176,7 +176,7 @@ class Tests {
         var ok = false
         try {
             val n = n3.copy(immut = n3.immut.copy(payload = "xxx"))
-            chain.blockAssert(n, null)
+            chain.blockAssert(n)
         } catch (e: Throwable) {
             ok = true
         }
@@ -260,7 +260,7 @@ class Tests {
         }
         assert(n == 7)
 
-        val x = chain.traverseFromHeads(chain.heads,false) { it.immut.height > 2 }
+        val x = chain.traverseFromHeads(chain.heads,false) { it.hash.toHeight() > 2 }
         assert(x.size == 3)
 
         fun Chain.getMaxTime(): Long {
@@ -339,7 +339,7 @@ class Tests {
         assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("1_"))
         assert(main_(arrayOf("chain", "heads", "rejected", "/xxx")).startsWith("2_"))
 
-        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h2, S0))
+        main_(arrayOf("chain", "like", "/xxx", h2, S0))
 
         // h0 -> h1 -> h2 -> l3
 
@@ -437,11 +437,11 @@ class Tests {
 
         val c1 = host.joinChain("/sym", false, null)
         val n1 = c1.blockNew(HC, null, null)
-        c1.blockAssert(n1, null)
+        c1.blockAssert(n1)
 
         val c2 = host.joinChain("/asy", false, ChainPub(false, PUB0))
         val n2 = c2.blockNew(H, PVT0, PVT0)
-        c2.blockAssert(n2, null)
+        c2.blockAssert(n2)
     }
 
     @Test

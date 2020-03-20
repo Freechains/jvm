@@ -22,8 +22,8 @@ Usage:
     freechains [options] chain heads (accepted | pending | rejected) <chain>
     freechains [options] chain get <chain> <hash>
     freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
-    freechains [options] chain like get <chain> <hash_or_pub>
-    freechains [options] chain like post <chain> (+|-) <integer> <hash>
+    freechains [options] chain (like | dislike) <chain> <hash>
+    freechains [options] chain reps <chain> <hash_or_pub>
     freechains [options] chain ban <chain> <hash>
     freechains [options] chain unban <chain> <hash>
     freechains [options] chain listen <chain>
@@ -141,34 +141,12 @@ fun main_ (args: Array<String>) : String {
                     val ret = reader.readLineX()
                     return ret
                 }
-                opts["like"] as Boolean -> {
-                    when {
-                        opts["get"] as Boolean -> {
-                            writer.writeLineX("FC chain reps")
-                            writer.writeLineX(opts["<chain>"] as String)
-                            writer.writeLineX(opts["<hash_or_pub>"] as String)
-                            return reader.readLineX()
-                        }
-                        opts["post"] as Boolean -> {
-                            assert(opts["--sign"] is String) { "expected `--sign`" }
-                            val sig = if (opts["-"] as Boolean) "-" else "+"
-                            writer.writeLineX("FC chain post")
-                            writer.writeLineX(opts["<chain>"] as String)
-                            writer.writeLineX(opts["--time"] as String)
-                            writer.writeLineX(opts["--sign"] as String)
-                            writer.writeLineX("")   // crypt
-                            writer.writeLineX(sig + (opts["<integer>"] as String))
-                            writer.writeLineX((opts["<hash>"] as String))
-                            writer.writeLineX("utf8")
-                            writer.writeLineX((opts["--why"] as String?).let {
-                                if (it == null) "" else it + "\n"
-                            })
-
-                            return reader.readLineX()
-                        }
-                    }
+                opts["reps"] as Boolean -> {
+                    writer.writeLineX("FC chain reps")
+                    writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX(opts["<hash_or_pub>"] as String)
+                    return reader.readLineX()
                 }
-
                 opts["ban"] as Boolean -> {
                     writer.writeLineX("FC chain ban")
                     writer.writeLineX(opts["<chain>"] as String)
@@ -193,7 +171,24 @@ fun main_ (args: Array<String>) : String {
                     }
                     return json
                 }
-                // freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
+
+                opts["like"]    as Boolean ||
+                opts["dislike"] as Boolean -> {
+                    val lk = if (opts["like"] as Boolean) "+1" else "-1"
+                    assert(opts["--sign"] is String) { "expected `--sign`" }
+                    writer.writeLineX("FC chain post")
+                    writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX(opts["--time"] as String)
+                    writer.writeLineX(opts["--sign"] as String)
+                    writer.writeLineX("")   // crypt
+                    writer.writeLineX(lk)
+                    writer.writeLineX((opts["<hash>"] as String))
+                    writer.writeLineX("utf8")
+                    writer.writeLineX((opts["--why"] as String?).let {
+                        if (it == null) "" else it + "\n"
+                    })
+                    return reader.readLineX()
+                }
                 opts["post"] as Boolean -> {
                     val eof = opts["--utf8-eof"] as String? ?: ""
                     writer.writeLineX("FC chain post")

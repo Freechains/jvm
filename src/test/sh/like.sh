@@ -46,7 +46,7 @@ l5=`freechains $H0 $SIG0 chain like post / + 1000 $b4`
 # b0 <- b1 <- b2 <- l3 <- b4 <- l5
 
 j5=`freechains $H0 chain get / $l5`
-d31=`jq ".immut.like.ref" <(echo $j5)`
+d31=`jq ".immut.like.like" <(echo $j5)`
 d32="\"$b4\""
 diff <(echo $d31) <(echo $d32) || exit 1
 

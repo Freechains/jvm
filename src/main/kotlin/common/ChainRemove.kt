@@ -22,7 +22,7 @@ fun Chain.blockReject (hash: Hash) {
 
     // unremove myself and all likes to it
     this.blockUnRemove(hash, false, {
-        (it.hash == hash) || (it.immut.like!=null && it.immut.like.ref==hash)
+        (it.hash == hash) || (it.immut.like!=null && it.immut.like.hash==hash)
     })
 }
 

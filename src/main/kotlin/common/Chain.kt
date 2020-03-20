@@ -75,33 +75,33 @@ private fun Chain.toHash () : String {
 }
 
 fun Immut.toHash () : Hash {
+    fun Array<Hash>.backsToHeight () : Int {
+        return when {
+            this.isEmpty() -> 0
+            else -> 1 + this.map { it.toHeight() }.max()!!
+        }
+    }
     return this.backs.backsToHeight().toString() + "_" + this.toJson().calcHash()
 }
 
 // BLOCK
 
-fun Chain.blockNew (imm: Immut, sign: HKey?, crypt: HKey?) : Block {
-    val who = if (sign == null) null else sign.pvtToPub()
-    val heads = this.getHeads(State.ACCEPTED, who)
-    val backs = when {
-        imm.backs.isNotEmpty() -> imm.backs //error("TODO") //    // used in tests and likes
-        (imm.like == null)     -> heads.toTypedArray()
-        else                   -> heads
-            .filter {
-                val old = this.fsLoadBlock(it,null)
-                val new = this.fsLoadBlock(imm.like.ref, null)
-                //println("${old.hash} -> ${new.hash} : ${this.oldHeadsToNew(old,new)}")
-                !this.oldHeadsToNew(old, new)
-            }
-            .plus(imm.like.ref)
-            .toTypedArray()
-    }
+fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
+    assert(imm_.prev == null) { "prev must be null" }
 
-    val pay = if (crypt == null) imm.payload else imm.payload.encrypt(crypt)
+    //assert(imm_.backs.isEmpty()) { "backs must be empty" }
+    val backs =
+        if (!imm_.backs.isEmpty())
+            imm_.backs
+        else
+            this.getHeads(State.ACCEPTED).toTypedArray()
 
-    val h_ = imm.copy(crypt=crypt!=null, payload=pay, backs=backs)
-    val hash = h_.toHash()
-    //println("NEW $hash // ${backs.contentToString()}")
+    val imm = imm_.copy (
+        crypt   = (crypt != null),
+        payload = if (crypt == null) imm_.payload else imm_.payload.encrypt(crypt),
+        backs   = backs
+    )
+    val hash = imm.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
     val signature=
@@ -116,21 +116,21 @@ fun Chain.blockNew (imm: Immut, sign: HKey?, crypt: HKey?) : Block {
             Signature(sig_hash, sign.pvtToPub())
         }
 
-    val new = Block(h_, mutableListOf(), signature, hash)
-    this.blockAssert(new, who)
+    val new = Block(imm, mutableListOf(), signature, hash)
+    this.blockAssert(new)
     this.blockChain(new)
     return new
 }
 
 // HEADS
 
-fun Chain.getHeads (wanted: State, who: HKey?) : List<Hash> {
+fun Chain.getHeads (wanted: State) : List<Hash> {
     fun recs (hs: List<Hash>) : List<Hash> {
         return hs
             .map {
                 val blk = this.fsLoadBlock(it,null)
                 //println("${it.hash} -> ${this.blockState(it)}")
-                val have = this.blockState(blk,who)
+                val have = this.blockState(blk)
                 when {
                     // if like block, go back until finds liked block
                     (blk.immut.like != null)    -> recs( blk.immut.backs.toList())
@@ -157,7 +157,7 @@ fun Chain.getHeads (wanted: State, who: HKey?) : List<Hash> {
     fun fronts (hs: List<Hash>) : List<Hash> {
         return hs
             .map    { this.fsLoadBlock(it,null) }
-            .filter { this.blockState(it,who) <= wanted }
+            .filter { this.blockState(it) <= wanted }
             .map    {
                 val blk = it
                 fronts(blk.fronts).let {
@@ -183,7 +183,7 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
         .map { this.fsLoadBlock(it,null) }
         .filter {
             it.immut.like != null &&
-            it.immut.like.ref == hash
+            it.immut.like.hash == hash
         }
         .map { it.immut.like!! }
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()

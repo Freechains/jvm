@@ -37,10 +37,11 @@ fun Host.joinChain (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
     val genesis = Block (
         Immut (
             0,
-            null,
             "",
             false,
             "",
+            null,
+            null,
             emptyArray()
         ),
         mutableListOf(),

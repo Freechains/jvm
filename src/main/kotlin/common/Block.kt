@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
-import kotlin.math.max
 
 typealias Hash = String
 
@@ -33,14 +32,10 @@ fun String.toState () : State {
     }
 }
 
-enum class LikeType {
-    POST, PUBKEY
-}
-
 @Serializable
 data class Like (
-    val n    : Int,     // +X: like, -X: dislike
-    val ref  : Hash     // target post hash
+    val n    : Int,     // +1: like, -1: dislike
+    val hash : Hash     // target post hash
 )
 
 @Serializable
@@ -51,15 +46,14 @@ data class Signature (
 
 @Serializable
 data class Immut (
-    val time    : Long,           // TODO: ULong
-    val like    : Like?,
-    val code    : String,         // payload encoding
-    val crypt   : Boolean,        // payload is encrypted (method depends on chain)
+    val time    : Long,         // author's timestamp
+    val code    : String,       // payload encoding
+    val crypt   : Boolean,      // payload is encrypted (method depends on chain)
     val payload : String,
-    val backs   : Array<Hash>     // back links (previous blocks)
-) {
-    val height  : Int = this.backs.backsToHeight()
-}
+    val prev    : Hash?,        // previous author's post (null if anonymous // gen if first post)
+    val like    : Like?,        // point to liked post
+    val backs   : Array<Hash>   // back links (happened-before blocks)
+)
 
 @Serializable
 data class Block (
@@ -69,13 +63,6 @@ data class Block (
     val hash      : Hash                // hash of immut
 ) {
     var localTime : Long = getNow()     // local time
-}
-
-fun Array<Hash>.backsToHeight () : Int {
-    return when {
-        this.isEmpty() -> 0
-        else -> 1 + this.map { it.toHeight() }.max()!!
-    }
 }
 
 fun Immut.toJson (): String {

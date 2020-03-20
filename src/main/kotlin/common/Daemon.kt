@@ -150,7 +150,7 @@ class Daemon (host : Host) {
                         }
                         "FC chain heads" -> {
                             val state = reader.readLineX().toState()
-                            val heads = chain.getHeads(state,null)
+                            val heads = chain.getHeads(state)
                             val hs = heads.joinToString(" ")
                             writer.writeLineX(hs)
                             System.err.println("chain heads: $heads")
@@ -217,7 +217,7 @@ class Daemon (host : Host) {
                                     assert(lkr.isEmpty())
                                     null
                                 } else {
-                                    assert(lkn%2 == 0) { "like must be even "}
+                                    assert(lkn==-1 || lkn==1) { "invalid like"}
                                     assert(lkr.hashIsBlock()) { "expected block hash" }
                                     Like(lkn, lkr)
                                 }
@@ -229,10 +229,11 @@ class Daemon (host : Host) {
                                         chain.heads.map { chain.fsLoadBlock(it, null).immut.time }.max()!!
                                             // TODO: +1 prevents something that happened after to occur simultaneously (also, problem with TODO???)
                                     ),
-                                    like,
                                     cods[0],
                                     false,
                                     pay,
+                                    null,
+                                    like,
                                     emptyArray()
                                 ),
                                 if (sign.isEmpty()) null else sign,
@@ -297,7 +298,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
     //println("[send] $maxTime")
 
     // for each local head
-    val heads = chain.getHeads(State.PENDING,null)
+    val heads = chain.getHeads(State.PENDING)
     val n1 = heads.size
     writer.writeLineX(n1.toString())                              // 1
     for (head in heads) {

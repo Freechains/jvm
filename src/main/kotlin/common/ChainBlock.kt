@@ -14,55 +14,29 @@ fun Chain.hashState (hash: Hash) : State {
     return when {
         this.fsExistsBlock(hash,"/banned/") -> State.BANNED
         ! this.fsExistsBlock(hash)               -> State.MISSING
-        else -> this.blockState(this.fsLoadBlock(hash,null), null)
+        else -> this.blockState(this.fsLoadBlock(hash,null))
     }
 }
 
-fun Chain.blockState (blk: Block, who: HKey?) : State {
+fun Chain.blockState (blk: Block) : State {
     fun hasTime () : Boolean {
         val now = getNow()
         val dt = now - blk.immut.time
         return blk.localTime <= now - (T2H_past + sqrt(dt.toFloat()))   // old enough
     }
 
-    // if I liked this block, assumes it will be accepted soon (prevents likes in parallel = double spend)
-    fun iLikedIt () : Boolean {
-        return who!=null &&
-            blk.fronts.any {
-                this.fsLoadBlock(it,null).let {
-                    (it.immut.like!=null && it.sign!!.pub==who)
-                }
-            }
-        /*
-            blk.fronts.map {
-                this.fsLoadBlock(it,null).let {
-                    if (it.immut.like==null || it.sign!!.pub!=who)
-                        0
-                    else
-                        it.immut.like.n.absoluteValue
-                }
-            }
-            .sum() > 0
-         */
-    }
-
     val rep = this.repsPost(blk.hash)
 
     val ret = when {
         // unchangeable
-        blk.immut.height <= 1  -> State.ACCEPTED      // first two blocks
-        this.fromOwner(blk)    -> State.ACCEPTED      // owner signature
-        this.trusted           -> State.ACCEPTED      // chain with trusted hosts/authors
-        blk.immut.like != null ->  this.blockState (  // a like follows liked
-            this.fsLoadBlock(blk.immut.like.ref,null),
-            who
-        )
+        blk.hash.toHeight() <= 1 -> State.ACCEPTED      // first two blocks
+        this.fromOwner(blk)      -> State.ACCEPTED      // owner signature
+        this.trusted             -> State.ACCEPTED      // chain with trusted hosts/authors
 
         // changeable
-        iLikedIt()             -> State.ACCEPTED      // assumes it will be accepted soon
-        LK23_500_rej(rep)      -> State.REJECTED      // not enough reps
-        ! hasTime()            -> State.PENDING       // not old enough
-        else                   -> State.ACCEPTED      // enough reps, enough time
+        LK23_500_rej(rep)        -> State.REJECTED      // not enough reps
+        ! hasTime()              -> State.PENDING       // not old enough
+        else                     -> State.ACCEPTED      // enough reps, enough time
     }
     //println("ST ${blk.hash} = $ret")
     return ret
@@ -92,17 +66,17 @@ fun Chain.blockChain (blk: Block) {
         if (blk.immut.like == null)
             null
         else
-            this.blockState(this.fsLoadBlock(blk.immut.like.ref,null), null)
+            this.blockState(this.fsLoadBlock(blk.immut.like.hash,null))
 
-    this.blockAssert(blk, null)
+    this.blockAssert(blk)
     this.fsSaveBlock(blk)
     this.heads.add(blk.hash)
     this.addBlockAsFrontOfBacks(blk)
 
     // check if state of liked block changed
     if (wasLiked != null) {
-        this.fsLoadBlock(blk.immut.like!!.ref,null).let {
-            val now = this.blockState(it, null)
+        this.fsLoadBlock(blk.immut.like!!.hash,null).let {
+            val now = this.blockState(it)
             //println("${it.hash} : $wasLiked -> $now")
             when {
                 // changed from ACC -> REJ
@@ -122,25 +96,25 @@ fun Chain.blockChain (blk: Block) {
     this.fsSave()
 }
 
-fun Chain.backsAssert (blk: Block, who: HKey?) {
+fun Chain.backsAssert (blk: Block) {
     for (bk in blk.immut.backs) {
         //println("$it <- ${blk.hash}")
         assert(this.fsExistsBlock(bk)) { "back must exist" }
         this.fsLoadBlock(bk,null).let {
             assert(it.immut.time <= blk.immut.time) { "back must be older"}
             if (blk.immut.like == null) {
-                assert(this.blockState(it,who) == State.ACCEPTED) { "backs must be accepted" }
+                assert(this.blockState(it) == State.ACCEPTED) { "backs must be accepted" }
             }
         }
     }
 }
 
-fun Chain.blockAssert (blk: Block, who: HKey?) {
+fun Chain.blockAssert (blk: Block) {
     assert(! this.fsExistsBlock(blk.hash,"/banned/")) { "block is banned" }
 
     val imm = blk.immut
     assert(blk.hash == imm.toHash()) { "hash must verify" }
-    this.backsAssert(blk, who)               // backs exist and are older
+    this.backsAssert(blk)               // backs exist and are older
 
     val now = getNow()
     assert(imm.time <= now+T30M_future) { "from the future" }
@@ -173,12 +147,12 @@ fun Chain.blockAssert (blk: Block, who: HKey?) {
     if (imm.like != null) {
         val n = imm.like.n
         val pub = blk.sign!!.pub
-        assert(this.fsExistsBlock(imm.like.ref)) {
+        assert(this.fsExistsBlock(imm.like.hash)) {
             "like target not found"         // like has target
         }
         //println("n=$n // loc=${this.repsAuthor(pub,imm)} // glb=${this.repsAuthor(pub,null)}")
 
-        val n_ = this.fsLoadBlock(imm.like.ref,null).let {
+        val n_ = this.fsLoadBlock(imm.like.hash,null).let {
             when {
                 (it.sign == null)             -> n
                 (it.sign.pub == blk.sign.pub) -> n - n/2
