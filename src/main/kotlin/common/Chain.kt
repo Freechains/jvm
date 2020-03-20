@@ -128,13 +128,27 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
 
 fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     val blk = this.fsLoadBlock(hash,null)
+
     val likes = this
         .bfsFromHeads(this.heads,false) { it.immut.time > blk.immut.time }
         .filter { it.immut.like!=null && it.immut.like.hash==hash }
         .map { it.immut.like!! }
+
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
-    return Pair(pos,neg)
+
+    val ath =
+        if (blk.sign == null)
+            0
+        else
+            this.repsAuthor (
+                blk.sign.pub,
+                this.fsLoadBlock(blk.immut.prev!!,null).immut.time,
+                listOf(blk.immut.prev)
+            )
+    //println("${blk.sign!=null} = $ath")
+
+    return Pair(pos+ath,neg)
 }
 
 fun Chain.repsPostSum (hash: String) : Int {
@@ -142,22 +156,22 @@ fun Chain.repsPostSum (hash: String) : Int {
     return pos + neg
 }
 
-fun Chain.repsAuthor (pub: String, now: Long) : Int {
+fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : Int {
     val gen = this
-        .bfsFromHeads(this.heads,true) { it.hash.toHeight() > 1 }
+        .bfsFromHeads(heads,true) { it.hash.toHeight() > 1 }
         .last()
         .let { if (it.isFrom(pub)) LK30_max else 0 }
 
     val mines = this
-        .bfsFromHeads(this.heads,false) { it.isFrom(pub) }
+        .bfsFromHeads(heads,true) { !it.isFrom(pub) }
+        .last()
         .let {
-            assert(it.size == 1) { "bug found: multiple author's chains?" }
             fun f (blk: Block) : List<Block> {
                 return listOf(blk) + blk.immut.prev.let {
                     if (it == null) emptyList() else f(this.fsLoadBlock(it,null))
                 }
             }
-            f(it[0])
+            f(it)
         }
 
     val posts = mines                                   // mines

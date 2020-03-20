@@ -331,20 +331,12 @@ class Tests {
             }
         }
 
-        val h2 = main_(arrayOf("chain", "post", "/xxx", "file", "utf8", "/tmp/freechains/tests/M1/host"))
+        /*val h2 =*/ main_(arrayOf(S0, "chain", "post", "/xxx", "file", "utf8", "/tmp/freechains/tests/M1/host"))
 
         // h0 -> h1 -> h2
 
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("1_"))
-        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("1_"))
-        assert(main_(arrayOf("chain", "heads", "rejected", "/xxx")).startsWith("2_"))
-
-        main_(arrayOf("chain", "like", "/xxx", h2, S0))
-
-        // h0 -> h1 -> h2 -> l3
-
-        assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("1_"))
-        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("3_"))
+        assert(main_(arrayOf("chain", "heads", "pending",  "/xxx")).startsWith("2_"))
         assert(main_(arrayOf("chain", "heads", "rejected", "/xxx")).isEmpty())
 
         main(arrayOf("chain", "post", "/xxx", "file", "base64", "/bin/cat"))
