@@ -184,11 +184,21 @@ fun Chain.repsAuthor (pub: String, now: Long) : Int {
 }
 
 // TRAVERSE
-// TODO: State
 
-fun Chain.getHeads (state: State) : Array<Hash> {
-    return this.heads
-        .filter { this.hashState(it) == state }
+fun Chain.getHeads (wanted: State, heads: List<Hash> = this.heads) : Array<Hash> {
+    return heads
+        .map {
+            val have = this.hashState(it)
+            when {
+                (wanted == have)        -> arrayOf(it)
+                (wanted==State.PENDING &&
+                 have==State.ACCEPTED)  -> arrayOf(it)
+                wanted > have           -> this.getHeads(wanted, this.fsLoadBlock(it,null).immut.backs.toList())
+                else                    -> emptyArray()
+            }
+        }
+        .toTypedArray()
+        .flatten()
         .toTypedArray()
 }
 

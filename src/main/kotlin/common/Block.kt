@@ -8,7 +8,7 @@ import kotlinx.serialization.json.JsonConfiguration
 typealias Hash = String
 
 enum class State {
-    ACCEPTED, PENDING, REJECTED, BANNED, MISSING
+    MISSING, BANNED, REJECTED, PENDING, ACCEPTED
 }
 
 fun State.toString_ () : String {

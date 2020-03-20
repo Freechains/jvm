@@ -153,7 +153,7 @@ class Daemon (host : Host) {
                             val heads = chain.getHeads(state)
                             val hs = heads.joinToString(" ")
                             writer.writeLineX(hs)
-                            System.err.println("chain heads: $heads")
+                            System.err.println("chain heads: $hs")
                         }
                         "FC chain get" -> {
                             val hash = reader.readLineX()
