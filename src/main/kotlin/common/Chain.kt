@@ -113,26 +113,26 @@ fun Chain.repsPost (hash: String) : Int {
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : Int {
-    val gen = this
-        .bfsFromHeads(heads,true) { it.hash.toHeight() > 1 }
-        .last()
-        .let { if (it.isFrom(pub)) LK30_max else 0 }
-
-    val mines = this
-        .bfsFromHeads(heads,true) { !it.isFrom(pub) }
-        .last()
-        .let {
-            if (it.hash == this.getGenesis()) {
-                emptyList()
-            } else {
-                fun f (blk: Block) : List<Block> {
-                    return listOf(blk) + blk.immut.prev.let {
-                        if (it == null) emptyList() else f(this.fsLoadBlock(it,null))
-                    }
-                }
-                f(it)
-            }
+    val gen = this.findFirst(heads) { it.hash.toHeight() > 1 }.let {
+        when {
+            (it == null)   -> 0
+            it.isFrom(pub) -> LK30_max
+            else           -> 0
         }
+    }
+
+    val mines = this.findFirst(heads) { !it.isFrom(pub) }.let {
+        if (it == null) {
+            emptyList()
+        } else {
+            fun f (blk: Block) : List<Block> {
+                return listOf(blk) + blk.immut.prev.let {
+                    if (it == null) emptyList() else f(this.fsLoadBlock(it,null))
+                }
+            }
+            f(it)
+        }
+    }
 
     val posts = mines                                   // mines
         .filter { it.immut.like == null }                    // not likes
@@ -174,6 +174,22 @@ fun Chain.getHeads (want: State, heads: List<Hash> = this.heads) : Array<Hash> {
         .toTypedArray()
         .flatten()
         .toTypedArray()
+}
+
+fun Chain.isBack (heads: List<Hash>, hash: Hash) : Boolean {
+    return this.findFirst(heads) { it.hash != hash } != null
+}
+
+fun Chain.findFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
+    return this
+        .bfsFromHeads(heads,true, pred)
+        .last()
+        .let {
+            if (it.hash == this.getGenesis())
+                null
+            else
+                it
+        }
 }
 
 fun Chain.bfsFromHeads (heads: List<Hash>, inc: Boolean, f: (Block) -> Boolean) : Array<Block> {

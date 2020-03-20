@@ -552,16 +552,22 @@ class Tests {
 
         main_(arrayOf(H0, "host", "now", "0"))
 
-        // first post
-        val h1 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", S0))
+        val h11 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "h11", S0))
+        val h22 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "h22", S1))
+        val h21 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "h11", S0))
 
-        // h0 -> h1
+        // h0 -> h11 -> h21
+        //          \-> h22
 
-        // noob post
-        val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "bbba", S1))
+        main_(arrayOf("chain", "heads", "pending",  "/xxx")).let {
+            it.split(' ').let {
+                assert(it.size == 1)
+            }
+            assert(it.startsWith("2_"))
+        }
 
         // like noob post
-        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h2, S0)) // l3
+        main_(arrayOf("chain", "like", "/xxx", h22, S0)) // l3
         main_(arrayOf("chain", "heads", "pending",  "/xxx")).let {
             assert(it.startsWith("3_"))
         }
@@ -570,18 +576,18 @@ class Tests {
 
         main_(arrayOf(H0, "host", "now", (1*day+1*hour).toString()))
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("3_"))
-        assert("29000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
+        assert("29" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
         assert( "1500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
         // like myself
-        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h1, S0))  // l4
+        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h11, S0))  // l4
         assert("28500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
 
         // h0 -> h1 -> h2 -> l3 -\
         //          \-------------> l4
 
         // like noob again
-        val l5 = main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h2, S0))
+        val l5 = main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h22, S0))
         assert("27500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
         assert( "2000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
 
@@ -728,8 +734,8 @@ class Tests {
         }
 
         val ln = main_(arrayOf(H0, "chain", "like", "get", "/xxx", h8))
-        val l1 = main_(arrayOf(H0, "chain", "like", "get", "/xxx", h1))
-        val l2 = main_(arrayOf(H0, "chain", "like", "get", "/xxx", h2))
+        val l1 = main_(arrayOf(H0, "chain", "like", "get", "/xxx", h11))
+        val l2 = main_(arrayOf(H0, "chain", "like", "get", "/xxx", h22))
         val l3 = main_(arrayOf(H0, "chain", "like", "get", "/xxx", l5))
         val l4 = main_(arrayOf(H0, "chain", "like", "get", "/xxx", h10))
         println("$ln // $l1 // $l2 // $l3 // $l4")

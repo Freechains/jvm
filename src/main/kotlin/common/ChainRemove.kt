@@ -22,10 +22,7 @@ fun Chain.blockReject (hash: Hash) {
     var todo = false
 
     for (head in set) {
-        val headLeadsToHash = this
-            .bfsFromHeads(listOf(head),true) { it.hash != head }
-            .let { it.last().hash == head }
-        if (headLeadsToHash) {
+        if (this.isBack(listOf(head), hash)) {
             todo = true
             set.remove(head)
             set.addAll(this.fsLoadBlock(head,null).immut.backs)

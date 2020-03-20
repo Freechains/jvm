@@ -49,13 +49,21 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
         else
             this.getHeads(State.ACCEPTED)
 
+    val prev =
+        if (sign == null)
+            null
+        else
+            this.findFirst(this.heads) { !it.isFrom(sign.pvtToPub()) }.let {
+                if (it == null)
+                    null
+                else
+                    it.hash
+            }
+
     val imm = imm_.copy (
         crypt   = (crypt != null),
         payload = if (crypt == null) imm_.payload else imm_.payload.encrypt(crypt),
-        prev    = if (sign == null) null else this
-            .bfsFromHeads(this.heads,true) { !it.isFrom(sign.pvtToPub()) }
-            .last()
-            .let { if (it.hash == this.getGenesis()) null else it.hash },
+        prev    = prev,
         backs   = backs
     )
     val hash = imm.toHash()
@@ -160,18 +168,15 @@ fun Chain.blockAssert (blk: Block) {
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
 
         // check if new post leads to latest post from author currently in the chain
-        this
-            .bfsFromHeads(this.heads,true) { !it.isFrom(blk.sign.pub) }
-            .last()
-            .let {
-                //println("old = ${it.last()}")
-                assert (
-                    if (it.hash == this.getGenesis())
-                        (imm.prev == null)
-                    else
-                        (imm.prev == it.hash)
-                ) { "must point to author's previous post" }
-            }
+        this.findFirst(this.heads) { !it.isFrom(blk.sign.pub) }.let {
+            //println("old = ${it.last()}")
+            assert (
+                if (it == null)
+                    (imm.prev == null)
+                else
+                    (imm.prev == it.hash)
+            ) { "must point to author's previous post" }
+        }
     }
 
     if (imm.like != null) {
