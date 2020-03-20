@@ -51,7 +51,9 @@ fun Chain.blockChain (blk: Block) {
 
     this.blockAssert(blk)
     this.fsSaveBlock(blk)
+
     this.heads.add(blk.hash)
+    blk.immut.backs.forEach { this.heads.remove(it) }
 
     // check if state of liked block changed
     if (wasLiked != null) {
@@ -122,7 +124,7 @@ fun Chain.blockAssert (blk: Block) {
 
         // check if new post leads to latest post from author currently in the chain
         this
-            .bfsFromHeads(this.heads,true) {!it.isFrom(blk.sign.pub) }
+            .bfsFromHeads(this.heads,true) { !it.isFrom(blk.sign.pub) }
             .let {
                 //println("old = ${it.last()}")
                 assert(imm.prev == it.last().hash) { "must point to author's previous post" }

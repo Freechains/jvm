@@ -100,7 +100,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
         crypt   = (crypt != null),
         payload = if (crypt == null) imm_.payload else imm_.payload.encrypt(crypt),
         prev    = if (sign == null) null else this
-            .bfsFromHeads(this.heads,true) { it.isFrom(sign.pvtToPub()) }
+            .bfsFromHeads(this.heads,true) { !it.isFrom(sign.pvtToPub()) }
             .last().hash,
         backs   = backs
     )
