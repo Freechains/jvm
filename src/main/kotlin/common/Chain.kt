@@ -88,26 +88,15 @@ fun Chain.repsPost (hash: String) : Int {
     val blk = this.fsLoadBlock(hash,null)
 
     val likes = this
-        .bfsFromHeads(this.heads,false) { it.immut.time > blk.immut.time }
+        .bfs(this.heads,false) {  it.immut.time > blk.immut.time }
         .filter { it.immut.like!=null && it.immut.like.hash==hash }
         .map { it.immut.like!! }
 
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
 
-    val prev = blk.immut.prev
-    val ath = when {
-        (blk.sign == null) -> 0     // anon post, no author reps
-        (prev == null)     -> 0     // no prev post, no author reps
-        else -> this.repsAuthor (
-            blk.sign.pub,
-            this.fsLoadBlock(prev,null).immut.time,
-            listOf(prev)
-        )
-    }
-
-    //println("$hash // pos=$pos // ath=$ath // neg=$neg")
-    return pos + ath + neg
+    //println("$hash // pos=$pos // neg=$neg")
+    return pos + neg
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : Int {
@@ -144,6 +133,7 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : 
             val neg = it
                 .filter { it.immut.time > now - T1D_rep }    // posts newer than 1 day
                 .count()
+            //println("lks=$lks // gen=$gen // pos=$pos // neg=$neg")
             lks + max(gen,min(LK30_max,pos)) - neg
         }
 
@@ -205,29 +195,32 @@ fun Chain.bfsAll (heads: List<Hash>) : Array<Block> {
 }
 
 fun Chain.bfs (heads: List<Hash>, inc: Boolean, f: (Block) -> Boolean) : Array<Block> {
-    val pending = LinkedList<String>()
+
+    fun toLL (v: List<Hash>) : LinkedList<Block> {
+        return LinkedList<Block> (
+            v.map { this.fsLoadBlock(it,null) }
+             .sortedByDescending { it.immut.time }
+        )
+    }
+
+    val pending = toLL(heads)
     val visited = mutableSetOf<String>()
     val ret = mutableListOf<Block>()
 
-    for (head in heads) {
-        pending.addLast(head)
-    }
-
     while (pending.isNotEmpty()) {
-        val hash = pending.removeFirst()
-        val blk = this.fsLoadBlock(hash, null)
+        val blk = pending.removeFirst()
         if (!f(blk)) {
             if (inc) {
                 ret.add(blk)
             }
             break
         }
-        for (back in blk.immut.backs) {
-            if (! visited.contains(back)) {
-                visited.add(back)
-                pending.addLast(back)
-            }
+
+        blk.immut.backs.filter { !visited.contains(it) }.toList().let {
+            pending.addAll(toLL(it))
+            visited.addAll(it)
         }
+
         ret.add(blk)
     }
     return ret.toTypedArray()

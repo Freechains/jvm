@@ -188,6 +188,9 @@ fun Chain.blockAssert (blk: Block) {
     if (imm.like != null) {
         assert(blk.sign != null) { "like must be signed"}
         assert(this.fsExistsBlock(imm.like.hash)) { "like must have valid target" }
+        this.fsLoadBlock(imm.like.hash,null).let {
+            assert(!it.isFrom(blk.sign!!.pub)) { "like must not target itself" }
+        }
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
             this.trusted               ||   // dont check reps (private chain)
