@@ -525,14 +525,13 @@ class Tests {
         assert(r0 == r1 && r0 == "0 / 1")
 
         val r00 = main_(arrayOf(H0, "chain", "reps", "/", PUB0))
-        val r01 = main_(arrayOf(H1, "chain", "reps", "/", PUB0))
-        error("oi")
-        val r10 = main_(arrayOf(H0, "chain", "reps", "/", PUB1))
         val r11 = main_(arrayOf(H1, "chain", "reps", "/", PUB1))
+        val r10 = main_(arrayOf(H0, "chain", "reps", "/", PUB1))
+        val r01 = main_(arrayOf(H1, "chain", "reps", "/", PUB0))
         assert(r00.toInt() == 29)
-        assert(r01.toInt() == 0)
-        assert(r10.toInt() == 0)
         assert(r11.toInt() == 29)
+        assert(r10.toInt() == 0)
+        assert(r01.toInt() == 0)
 
         main_(arrayOf(H0, "host", "now", (getNow() + 1*day).toString()))
         main_(arrayOf(H1, "host", "now", (getNow() + 1*day).toString()))

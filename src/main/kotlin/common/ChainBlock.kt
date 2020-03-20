@@ -1,6 +1,7 @@
 package org.freechains.common
 
 import com.goterl.lazycode.lazysodium.LazySodium
+import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 import kotlin.math.sqrt
@@ -34,6 +35,47 @@ fun Chain.blockState (blk: Block) : State {
         (! hasTime())                  -> State.PENDING       // not old enough
         else                           -> State.ACCEPTED      // enough reps, enough time
     }
+}
+
+// BLOCK
+
+fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
+    assert(imm_.prev == null) { "prev must be null" }
+
+    //assert(imm_.backs.isEmpty()) { "backs must be empty" }
+    val backs =
+        if (!imm_.backs.isEmpty())
+            imm_.backs
+        else
+            this.getHeads(State.ACCEPTED)
+
+    val imm = imm_.copy (
+        crypt   = (crypt != null),
+        payload = if (crypt == null) imm_.payload else imm_.payload.encrypt(crypt),
+        prev    = if (sign == null) null else this
+            .bfsFromHeads(this.heads,true) { !it.isFrom(sign.pvtToPub()) }
+            .last()
+            .let { if (it.hash == this.getGenesis()) null else it.hash },
+        backs   = backs
+    )
+    val hash = imm.toHash()
+
+    // signs message if requested (pvt provided or in pvt chain)
+    val signature=
+        if (sign == null)
+            null
+        else {
+            val sig = ByteArray(Sign.BYTES)
+            val msg = lazySodium.bytes(hash)
+            val pvt = Key.fromHexString(sign).asBytes
+            lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), pvt)
+            val sig_hash = LazySodium.toHex(sig)
+            Signature(sig_hash, sign.pvtToPub())
+        }
+
+    val new = Block(imm, hash, signature)
+    this.blockChain(new)
+    return new
 }
 
 fun Chain.blockChain (blk: Block) {
