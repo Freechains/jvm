@@ -581,6 +581,7 @@ class Tests {
         //          \-> h22 ------/
 
         main_(arrayOf(H0, "host", "now", (1*day+4*hour).toString()))
+
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("4_"))
         assert("29" == main_(arrayOf("chain", "reps", "/xxx", PUB0)))
         assert( "2" == main_(arrayOf("chain", "reps", "/xxx", PUB1)))
@@ -606,11 +607,6 @@ class Tests {
             assert(it == "3")
         }
 
-        //  0     1     2     3     4     5
-        //               /------------> l5
-        // h0 -> h1 -> h2 -> l3 -> l4 -/
-        //        \---------------/
-
         main_(arrayOf(H0, "chain", "heads", "pending", "/xxx")).let {
             it.split(' ').let {
                 assert(it.size == 1)
@@ -618,17 +614,19 @@ class Tests {
             assert(it.contains("5_"))
         }
 
-        main_(arrayOf("chain","like","post","/xxx","-","1000",l5,"--why=" + l5.substring(0,9),S1))
-        assert("1000" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
-        main_(arrayOf("chain","like","post","/xxx","+","500",l5,"--why=" + l5.substring(0,9),S1))
+        /*val l6 =*/ main_(arrayOf("chain","dislike","/xxx",l5,"--why=" + l5.substring(0,9),S1))
 
-        //  0     1     2     3     4    5     6     7
-        //               /------------> l5 -> l6 -> l7
-        // h0 -> h1 -> h2 -> l3 -> l4 -/ \---------/
-        //        \---------------/
+        // h0 <- h11 <- h21 <- l3 <- h41 <- l5
+        //          \               /   \     \
+        //           \- h22 <----------------- l6
 
-        assert(  "500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
-        assert("27500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
+        main_(arrayOf("chain", "reps", "/xxx", PUB1)).let {
+            assert(it == "2")
+        }
+        println(">>>")
+        main_(arrayOf("chain", "reps", "/xxx", PUB0)).let {
+            assert(it == "27")
+        }
 
         main_(arrayOf("host", "create", "/tmp/freechains/tests/M81/", "8331"))
         thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M81/")) }
@@ -637,6 +635,7 @@ class Tests {
 
         // I'm in the future, old posts will be refused
         main_(arrayOf(H1, "host", "now", Instant.now().toEpochMilli().toString()))
+
         val n1 = main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331"))
         assert(n1 == "0 / 7")
 

@@ -108,41 +108,43 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : 
         }
     }
 
-    val mines = this.bfsFirst(heads) { !it.isFrom(pub) }.let {
-        if (it == null) {
-            emptyList()
-        } else {
-            fun f (blk: Block) : List<Block> {
-                return listOf(blk) + blk.immut.prev.let {
-                    if (it == null) emptyList() else f(this.fsLoadBlock(it,null))
+    val mines = this
+        .bfsFirst(heads) { !it.isFrom(pub) }.let { blk ->
+            if (blk == null) {
+                emptyList()
+            } else {
+                fun f (blk: Block) : List<Block> {
+                    return listOf(blk) + blk.immut.prev.let {
+                        if (it == null) emptyList() else f(this.fsLoadBlock(it,null))
+                    }
                 }
+                f(blk)
             }
-            f(it)
         }
-    }
 
     val posts = mines                                   // mines
         .filter { it.immut.like == null }                    // not likes
-        .let {
-            val lks = it
-                .map { this.repsPost(it.hash) }
-                .sum()                                       // likes to my posts
-            val pos = it
+        .let { list ->
+            val pos = list
                 .filter { it.immut.time <= now - T1D_rep }   // posts older than 1 day
                 .count()
-            val neg = it
+            val neg = list
                 .filter { it.immut.time > now - T1D_rep }    // posts newer than 1 day
                 .count()
-            //println("lks=$lks // gen=$gen // pos=$pos // neg=$neg")
-            lks + max(gen,min(LK30_max,pos)) - neg
+            //println("gen=$gen // pos=$pos // neg=$neg")
+            max(gen,min(LK30_max,pos)) - neg
         }
+
+    val recv = mines
+        .map { this.repsPost(it.hash) }
+        .sum()                                               // likes I received
 
     val gave = mines
         .filter { it.immut.like != null }                    // likes I gave
         .map { it.immut.like!!.n.absoluteValue }
         .sum()
 
-    return max(0, posts-gave)
+    return max(0, posts+recv-gave)
 }
 
 // TRAVERSE
@@ -167,7 +169,7 @@ fun Chain.getHeads (want: State, heads: List<Hash> = this.heads) : Array<Hash> {
                 // so cur is a head
                 ret.none {
                     val x = this.fsLoadBlock(it,null).immut.backs.toList()
-                    (!x.isEmpty() && this.isBack(x,cur))
+                    (x.isNotEmpty() && this.isBack(x,cur))
                 }
             }
         }
@@ -197,7 +199,7 @@ fun Chain.bfsAll (heads: List<Hash>) : Array<Block> {
 fun Chain.bfs (heads: List<Hash>, inc: Boolean, f: (Block) -> Boolean) : Array<Block> {
 
     fun toLL (v: List<Hash>) : LinkedList<Block> {
-        return LinkedList<Block> (
+        return LinkedList (
             v.map { this.fsLoadBlock(it,null) }
              .sortedByDescending { it.immut.time }
         )
@@ -255,11 +257,8 @@ fun Chain.fsLoadBlock (hash: Hash, crypt: HKey?, dir: String="/blocks/") : Block
 }
 
 fun Chain.fsExistsBlock (hash: Hash, dir: String ="/blocks/") : Boolean {
-    if (this.hash == hash) {
-        return true
-    } else {
-        return File(this.root + this.name + dir + hash + ".blk").exists()
-    }
+    return (this.hash == hash) ||
+           File(this.root + this.name + dir + hash + ".blk").exists()
 }
 
 fun Chain.fsSaveBlock (blk: Block, dir: String="/blocks/") {
