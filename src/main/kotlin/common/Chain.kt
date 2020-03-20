@@ -6,9 +6,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import java.io.File
 
-import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.interfaces.GenericHash
-import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 import java.lang.Integer.max
@@ -113,7 +111,7 @@ fun Chain.repsPost (hash: String) : Int {
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : Int {
-    val gen = this.findFirst(heads) { it.hash.toHeight() > 1 }.let {
+    val gen = this.bfsFirst(heads) { it.hash.toHeight() > 1 }.let {
         when {
             (it == null)   -> 0
             it.isFrom(pub) -> LK30_max
@@ -121,7 +119,7 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : 
         }
     }
 
-    val mines = this.findFirst(heads) { !it.isFrom(pub) }.let {
+    val mines = this.bfsFirst(heads) { !it.isFrom(pub) }.let {
         if (it == null) {
             emptyList()
         } else {
@@ -187,12 +185,12 @@ fun Chain.getHeads (want: State, heads: List<Hash> = this.heads) : Array<Hash> {
 }
 
 fun Chain.isBack (heads: List<Hash>, hash: Hash) : Boolean {
-    return this.findFirst(heads) { it.hash != hash } != null
+    return this.bfsFirst(heads) { it.hash != hash } != null
 }
 
-fun Chain.findFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
+fun Chain.bfsFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
     return this
-        .bfsFromHeads(heads,true, pred)
+        .bfs(heads,true, pred)
         .last()
         .let {
             if (it.hash == this.getGenesis())
@@ -202,7 +200,11 @@ fun Chain.findFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
         }
 }
 
-fun Chain.bfsFromHeads (heads: List<Hash>, inc: Boolean, f: (Block) -> Boolean) : Array<Block> {
+fun Chain.bfsAll (heads: List<Hash>) : Array<Block> {
+    return this.bfs(heads,false) { true }
+}
+
+fun Chain.bfs (heads: List<Hash>, inc: Boolean, f: (Block) -> Boolean) : Array<Block> {
     val pending = LinkedList<String>()
     val visited = mutableSetOf<String>()
     val ret = mutableListOf<Block>()

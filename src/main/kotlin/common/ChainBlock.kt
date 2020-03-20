@@ -26,14 +26,14 @@ fun Chain.blockState (blk: Block) : State {
     }
     return when {
         // unchangeable
-        (blk.hash.toHeight() <= 1)     -> State.ACCEPTED      // first two blocks
-        this.fromOwner(blk)            -> State.ACCEPTED      // owner signature
-        this.trusted                   -> State.ACCEPTED      // chain with trusted hosts/authors
+        (blk.hash.toHeight() <= 1)  -> State.ACCEPTED      // first two blocks
+        this.fromOwner(blk)         -> State.ACCEPTED      // owner signature
+        this.trusted                -> State.ACCEPTED      // chain with trusted hosts/authors
 
         // changeable
-        (this.repsPost(blk.hash) <= 0) -> State.REJECTED      // not enough reps
-        (! hasTime())                  -> State.PENDING       // not old enough
-        else                           -> State.ACCEPTED      // enough reps, enough time
+        (reps+ath <= 0)             -> State.REJECTED      // not enough reps
+        (! hasTime())               -> State.PENDING       // not old enough
+        else                        -> State.ACCEPTED      // enough reps, enough time
     }
 }
 
@@ -50,7 +50,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
             this.getHeads(State.ACCEPTED)
 
     val prev= sign?.let { s ->
-        this.findFirst(this.heads) { !it.isFrom(s.pvtToPub()) } ?.hash
+        this.bfsFirst(this.heads) { !it.isFrom(s.pvtToPub()) } ?.hash
     }
 
     val imm = imm_.copy (
@@ -143,7 +143,7 @@ fun Chain.blockAssert (blk: Block) {
     val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
     if (blk.immut.backs.contains(gen)) {
         this
-            .bfsFromHeads(this.heads, false) { true }
+            .bfsAll(this.heads)
             .filter { it.hash.toHeight() == 1 }
             .let {
                 assert(it.size == 0) { "genesis is already referred" }
@@ -161,7 +161,7 @@ fun Chain.blockAssert (blk: Block) {
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
 
         // check if new post leads to latest post from author currently in the chain
-        this.findFirst(this.heads) { !it.isFrom(blk.sign.pub) }.let {
+        this.bfsFirst(this.heads) { !it.isFrom(blk.sign.pub) }.let {
             //println("old = ${it.last()}")
             assert (
                 if (it == null)

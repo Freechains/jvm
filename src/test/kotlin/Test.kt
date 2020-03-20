@@ -255,12 +255,12 @@ class Tests {
          */
 
         var n = 0
-        for (blk in chain.bfsFromHeads(chain.heads,false) { true }) {
+        for (blk in chain.bfsAll(chain.heads)) {
             n++
         }
         assert(n == 7)
 
-        val x = chain.bfsFromHeads(chain.heads,false) { it.hash.toHeight() > 2 }
+        val x = chain.bfs(chain.heads,false) { it.hash.toHeight() > 2 }
         assert(x.size == 3)
 
         fun Chain.getMaxTime(): Long {
@@ -270,11 +270,11 @@ class Tests {
                 .max()!!
         }
 
-        val y = chain.bfsFromHeads(chain.heads,false) { true }.filter { it.immut.time >= chain.getMaxTime() - 30 * day }
+        val y = chain.bfsAll(chain.heads).filter { it.immut.time >= chain.getMaxTime() - 30 * day }
         //println(y.map { it.hash })
         assert(y.size == 4)
 
-        val z = chain.bfsFromHeads(listOf(ab2.hash),false, { it.immut.time > 1 * day })
+        val z = chain.bfs(listOf(ab2.hash),false, { it.immut.time > 1 * day })
         assert(z.size == 3)
     }
 
@@ -576,11 +576,12 @@ class Tests {
 
         main_(arrayOf(H0, "host", "now", (1*day+1*hour).toString()))
         assert(main_(arrayOf("chain", "heads", "accepted", "/xxx")).startsWith("3_"))
-        assert("29" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
-        assert( "1500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB1)))
+        assert("29" == main_(arrayOf("chain", "reps", "/xxx", PUB0)))
+        println(">>>")
+        assert( "2" == main_(arrayOf("chain", "reps", "/xxx", PUB1)))
 
         // like myself
-        main_(arrayOf("chain", "like", "post", "/xxx", "+", "1000", h11, S0))  // l4
+        main_(arrayOf("chain", "like", "/xxx", h11, S0))  // l4
         assert("28500" == main_(arrayOf("chain", "like", "get", "/xxx", PUB0)))
 
         // h0 -> h1 -> h2 -> l3 -\
