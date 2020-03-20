@@ -173,6 +173,16 @@ fun Chain.getHeads (want: State, heads: List<Hash> = this.heads) : Array<Hash> {
         }
         .toTypedArray()
         .flatten()
+        .let { ret ->
+            ret.filter { cur ->
+                // I tried all heads and none of their backs lead to cur
+                // so cur is a head
+                ret.none {
+                    val x = this.fsLoadBlock(it,null).immut.backs.toList()
+                    (!x.isEmpty() && this.isBack(x,cur))
+                }
+            }
+        }
         .toTypedArray()
 }
 
