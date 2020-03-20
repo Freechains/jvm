@@ -3,7 +3,6 @@ package org.freechains.common
 import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
-import kotlin.math.absoluteValue
 import kotlin.math.sqrt
 
 fun Chain.fromOwner (blk: Block) : Boolean {
@@ -42,24 +41,6 @@ fun Chain.blockState (blk: Block) : State {
     return ret
 }
 
-fun Chain.addBlockAsFrontOfBacks (blk: Block, chk: Boolean = false) {
-    for (bk in blk.immut.backs) {
-        this.heads.remove(bk)
-        this.fsLoadBlock(bk, null).let {
-            if (chk) {
-                if (!it.fronts.contains((blk.hash))) {     // Chain.unRemove
-                    it.fronts.add(blk.hash)
-                }
-            } else {
-                assert(!it.fronts.contains(blk.hash)) { it.hash + " -> " + blk.hash }
-                it.fronts.add(blk.hash)
-            }
-            it.fronts.sort()
-            this.fsSaveBlock(it)
-        }
-    }
-}
-
 fun Chain.blockChain (blk: Block) {
     // get old state of liked block
     val wasLiked=
@@ -71,7 +52,6 @@ fun Chain.blockChain (blk: Block) {
     this.blockAssert(blk)
     this.fsSaveBlock(blk)
     this.heads.add(blk.hash)
-    this.addBlockAsFrontOfBacks(blk)
 
     // check if state of liked block changed
     if (wasLiked != null) {
@@ -114,7 +94,7 @@ fun Chain.blockAssert (blk: Block) {
 
     val imm = blk.immut
     assert(blk.hash == imm.toHash()) { "hash must verify" }
-    this.backsAssert(blk)               // backs exist and are older
+    this.backsAssert(blk)                   // backs exist and are older
 
     val now = getNow()
     assert(imm.time <= now+T30M_future) { "from the future" }
@@ -122,8 +102,12 @@ fun Chain.blockAssert (blk: Block) {
 
     val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
     if (blk.immut.backs.contains(gen)) {
-        val b = this.fsLoadBlock(gen, null)
-        assert(b.fronts.isEmpty() || b.fronts[0]==blk.hash) { "genesis is already referred" }
+        this
+            .bfsFromHeads(this.heads, false) { true }
+            .filter { it.hash.toHeight() == 1 }
+            .let {
+                assert(it.size == 1) { "genesis is already referred" }
+            }
     }
 
     if (this.pub!=null && this.pub.oonly) {
@@ -137,11 +121,11 @@ fun Chain.blockAssert (blk: Block) {
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
 
         // check if new post leads to latest post from author currently in the chain
-        val prvs = this.traverseFromHeads(this.heads,true) {
-            it.sign == null || it.sign.pub != blk.sign.pub
+        val prvs = this.bfsFromHeads(this.heads,true) {
+            it.sign==null || it.sign.pub!=blk.sign.pub
         }
         //println("old = ${prvs.last()}")
-        assert(this.newBacksToOld(blk, prvs.last())) { "must lead back to author's previous post" }
+        assert(imm.prev == prvs.last().hash) { "must point to author's previous post" }
     }
 
     if (imm.like != null) {
@@ -164,33 +148,9 @@ fun Chain.blockAssert (blk: Block) {
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
             this.trusted               ||   // dont check reps (private chain)
-            (
-                // global no // local ok  --> double spend
-                // global ok // local no  --> use + from cousins (which may be rejected)
-                n_ <= this.repsAuthor(pub,imm) &&        // local reputation (backs)
-                n_ <= this.repsAuthor(pub,null)    // global reputation (heads)
-            )
+            n_ <= this.repsAuthor(pub, imm.time)
         ) {
             "not enough reputation"         // like has reputation
         }
     }
-}
-
-// if old leadsTo new
-fun Chain.oldHeadsToNew (old: Block, new: Block) : Boolean {
-    return (
-        (old.hash == new.hash)    ||
-        old.fronts.any {
-            this.oldHeadsToNew(this.fsLoadBlock(it,null), new)
-        }
-    )
-}
-
-fun Chain.newBacksToOld (new: Block, old: Block) : Boolean {
-    return (
-        (new.hash == old.hash)    ||
-        new.immut.backs.any {
-            this.newBacksToOld(this.fsLoadBlock(it,null), old)
-        }
-    )
 }

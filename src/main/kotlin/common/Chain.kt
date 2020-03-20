@@ -94,7 +94,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
         if (!imm_.backs.isEmpty())
             imm_.backs
         else
-            this.getHeads(State.ACCEPTED).toTypedArray()
+            this.getHeads(State.ACCEPTED)
 
     val imm = imm_.copy (
         crypt   = (crypt != null),
@@ -116,80 +116,22 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
             Signature(sig_hash, sign.pvtToPub())
         }
 
-    val new = Block(imm, mutableListOf(), signature, hash)
-    this.blockAssert(new)
+    val new = Block(imm, hash, signature)
     this.blockChain(new)
     return new
-}
-
-// HEADS
-
-fun Chain.getHeads (wanted: State) : List<Hash> {
-    fun recs (hs: List<Hash>) : List<Hash> {
-        return hs
-            .map {
-                val blk = this.fsLoadBlock(it,null)
-                //println("${it.hash} -> ${this.blockState(it)}")
-                val have = this.blockState(blk)
-                when {
-                    // if like block, go back until finds liked block
-                    (blk.immut.like != null)    -> recs( blk.immut.backs.toList())
-
-                    // block has expected state, return it
-                    (
-                        have == wanted ||
-                        have == State.ACCEPTED && wanted == State.PENDING
-                    )                           -> listOf(blk.hash)
-
-                    // did not find rejected block in this branch
-                    (wanted == State.REJECTED)  -> emptyList()
-
-                    // found rejected, go back until find non rejecteds
-                    (wanted != State.REJECTED)  -> recs( blk.immut.backs.toList())
-
-                    else -> error("impossible case")
-                }
-            }
-            .flatten()
-    }
-    val ret = recs(this.heads)
-
-    fun fronts (hs: List<Hash>) : List<Hash> {
-        return hs
-            .map    { this.fsLoadBlock(it,null) }
-            .filter { this.blockState(it) <= wanted }
-            .map    {
-                val blk = it
-                fronts(blk.fronts).let {
-                    if (it.isEmpty()) listOf(blk.hash) else it
-                }
-            }
-            .flatten()
-    }
-
-    return when (wanted) {
-        State.ACCEPTED -> fronts(ret).toSet().toList()      // go to the tips of accepteds
-        State.PENDING  -> fronts(ret).toSet().toList()      // go to the tips of accepteds
-        State.REJECTED -> ret.toSet().toList()             // just want list of rejected
-        else           -> error("bug found")
-    }
 }
 
 // REPUTATION
 
 fun Chain.repsPost (hash: String) : Pair<Int,Int> {
-    val likes = this.fsLoadBlock(hash,null)
-        .fronts
-        .map { this.fsLoadBlock(it,null) }
-        .filter {
-            it.immut.like != null &&
-            it.immut.like.hash == hash
-        }
+    val blk = this.fsLoadBlock(hash,null)
+    val likes = this
+        .bfsFromHeads(this.heads,false) { it.immut.time > blk.immut.time }
+        .filter { it.immut.like!=null && it.immut.like.hash==hash }
         .map { it.immut.like!! }
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
-    //println("REPS $hash = $pos-$neg")
-    return Pair(pos/2,neg/2)    // half for post, half for author
+    return Pair(pos,neg)
 }
 
 fun Chain.repsPostSum (hash: String) : Int {
@@ -197,38 +139,32 @@ fun Chain.repsPostSum (hash: String) : Int {
     return pos + neg
 }
 
-fun Chain.repsAuthor (pub: String, imm: Immut?) : Int {
-    val (heads,now) =
-        if (imm == null)
-            Pair(this.heads, getNow())
-        else
-            Pair(imm.backs.toList(), imm.time)
+fun Chain.repsAuthor (pub: String, now: Long) : Int {
+    val gen = this
+        .bfsFromHeads(this.heads,true) { it.hash.toHeight() > 1 }
+        .last()
+        .let {
+            when {
+                (it.sign == null)    -> 0
+                (it.sign.pub == pub) -> LK30_max
+                else                 -> 0
+            }
+        }
 
-    val gen = this.fsLoadBlock(this.getGenesis(), null).fronts.let {
-        if (it.isEmpty())
-            LK30_max
-        else
-            this.fsLoadBlock(it[0], null).let {
-                when {
-                    (it.sign == null) -> 0
-                    (it.sign.pub == pub) -> LK30_max
-                    else -> 0
+    val mines = this
+        .bfsFromHeads(this.heads,false) { it.sign!=null && it.sign.pub==pub }
+        .let {
+            assert(it.size == 1) { "bug found: multiple author's chains?" }
+            fun f (blk: Block) : List<Block> {
+                return listOf(blk) + blk.immut.prev.let {
+                    if (it == null) emptyList() else f(this.fsLoadBlock(it,null))
                 }
             }
-    }
+            f(it[0])
+        }
 
-    val b90s = this.traverseFromHeads(heads,false) {
-        it.immut.time >= now - T90D_rep
-    }
-
-    val mines = b90s
-        .filter { it.sign != null &&
-                  it.sign.pub == pub }                       // all I signed
-
-    //println("=== $pub")
     val posts = mines                                   // mines
         .filter { it.immut.like == null }                    // not likes
-        //.filter { this.blockState(it) != State.REJECTED }    // accepted
         .let {
             val lks = it
                 .map { this.repsPostSum(it.hash) }
@@ -239,7 +175,6 @@ fun Chain.repsAuthor (pub: String, imm: Immut?) : Int {
             val neg = it
                 .filter { it.immut.time > now - T1D_rep }    // posts newer than 1 day
                 .count() * lk
-            //println(">> lks=$lks // pos=$pos // neg=$neg")
             lks + max(gen,min(LK30_max,pos)) - neg
         }
 
@@ -247,7 +182,6 @@ fun Chain.repsAuthor (pub: String, imm: Immut?) : Int {
         .filter { it.immut.like != null }                    // likes I gave
         .map { it.immut.like!!.n.absoluteValue }
         .sum()
-    //println(">> gave=$gave")
 
     return max(0, posts-gave)
 }
@@ -255,7 +189,13 @@ fun Chain.repsAuthor (pub: String, imm: Immut?) : Int {
 // TRAVERSE
 // TODO: State
 
-internal fun Chain.traverseFromHeads (heads: List<Hash>, inc: Boolean, f: (Block) -> Boolean) : Array<Block> {
+fun Chain.getHeads (state: State) : Array<Hash> {
+    return this.heads
+        .filter { this.hashState(it) == state }
+        .toTypedArray()
+}
+
+fun Chain.bfsFromHeads (heads: List<Hash>, inc: Boolean, f: (Block) -> Boolean) : Array<Block> {
     val pending = LinkedList<String>()
     val visited = mutableSetOf<String>()
     val ret = mutableListOf<Block>()

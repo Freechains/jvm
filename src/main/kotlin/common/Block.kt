@@ -58,9 +58,8 @@ data class Immut (
 @Serializable
 data class Block (
     val immut     : Immut,              // things to hash
-    val fronts    : MutableList<Hash>,  // front links (next blocks)
-    val sign      : Signature?,
-    val hash      : Hash                // hash of immut
+    val hash      : Hash,               // hash of immut
+    val sign      : Signature?
 ) {
     var localTime : Long = getNow()     // local time
 }

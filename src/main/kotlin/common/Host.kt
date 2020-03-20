@@ -44,9 +44,8 @@ fun Host.joinChain (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
             null,
             emptyArray()
         ),
-        mutableListOf(),
-        null,
-        chain.getGenesis()
+        chain.getGenesis(),
+        null
     )
     chain.fsSaveBlock(genesis)
     return file.readText().fromJsonToChain()

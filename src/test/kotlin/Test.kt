@@ -255,12 +255,12 @@ class Tests {
          */
 
         var n = 0
-        for (blk in chain.traverseFromHeads(chain.heads,false) { true }) {
+        for (blk in chain.bfsFromHeads(chain.heads,false) { true }) {
             n++
         }
         assert(n == 7)
 
-        val x = chain.traverseFromHeads(chain.heads,false) { it.hash.toHeight() > 2 }
+        val x = chain.bfsFromHeads(chain.heads,false) { it.hash.toHeight() > 2 }
         assert(x.size == 3)
 
         fun Chain.getMaxTime(): Long {
@@ -270,11 +270,11 @@ class Tests {
                 .max()!!
         }
 
-        val y = chain.traverseFromHeads(chain.heads,false) { true }.filter { it.immut.time >= chain.getMaxTime() - 30 * day }
+        val y = chain.bfsFromHeads(chain.heads,false) { true }.filter { it.immut.time >= chain.getMaxTime() - 30 * day }
         //println(y.map { it.hash })
         assert(y.size == 4)
 
-        val z = chain.traverseFromHeads(listOf(ab2.hash),false, { it.immut.time > 1 * day })
+        val z = chain.bfsFromHeads(listOf(ab2.hash),false, { it.immut.time > 1 * day })
         assert(z.size == 3)
     }
 

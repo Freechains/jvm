@@ -18,12 +18,27 @@ import kotlin.collections.ArrayList
 import kotlin.math.absoluteValue
 
 fun Chain.blockReject (hash: Hash) {
-    this.blockRemove(hash, false)
+    val set = this.heads.toMutableSet()
+    var todo = false
 
-    // unremove myself and all likes to it
-    this.blockUnRemove(hash, false, {
-        (it.hash == hash) || (it.immut.like!=null && it.immut.like.hash==hash)
-    })
+    for (head in set) {
+        val headLeadsToHash = this
+            .bfsFromHeads(listOf(head),true) { it.hash != head }
+            .let { it.last().hash == head }
+        if (headLeadsToHash) {
+            todo = true
+            set.remove(head)
+            set.addAll(this.fsLoadBlock(head,null).immut.backs)
+        }
+    }
+
+    this.heads.clear()
+    this.heads.addAll(set)
+    this.fsSave()
+
+    if (todo) {
+        return this.blockReject(hash)
+    }
 }
 
 fun Chain.blockUnReject (hash: Hash) {
@@ -32,42 +47,21 @@ fun Chain.blockUnReject (hash: Hash) {
     blk.localTime = getNow()
     this.fsSaveBlock(blk)
 
-    this.blockUnRemove(hash, false)
+    // TODO: search fronts in fs (X+1)_xxx
 }
 
+/*
 fun Chain.blockRemove (hash: Hash, isBan: Boolean) {
     val blk = this.fsLoadBlock(hash, null)
     //println("rem $hash // ${blk.fronts}")
 
-    // remove all my fronts as well
-    for (it in blk.fronts) {
-        this.blockRemove(it, isBan)
-    }
-
     // - remove myself from heads
-    // - add my backs as heads, unless they lead to a head
+    // - add my backs as heads
     if (this.heads.contains(hash)) {
-        fun leadsToHeads (hash: Hash) : Boolean {
-            return (
-                this.heads.contains(hash) ||
-                    this.fsLoadBlock(hash,null).let {
-                        it.fronts.any { leadsToHeads(it) }
-                    }
-                )
-        }
         this.heads.remove(hash)
         for (it in blk.immut.backs) {
-            if (!leadsToHeads(it)) {
-                this.heads.add(it)
-            }
-        }
-    }
-
-    // refronts: remove myself as front of all my backs
-    for (bk in blk.immut.backs) {
-        this.fsLoadBlock(bk, null).let {
-            it.fronts.remove(hash)
-            this.fsSaveBlock(it)
+            assert(!this.heads.contains(it)) { "TODO" }
+            this.heads.add(it)
         }
     }
 
@@ -77,8 +71,6 @@ fun Chain.blockRemove (hash: Hash, isBan: Boolean) {
         this.fsRemBlock(blk.hash)
     }
 
-    // fronts removed in nested refronts will be restored here
-    this.fsSaveBlock(blk, dir)
     this.fsSave()
 }
 
@@ -97,7 +89,6 @@ fun Chain.blockUnRemove (hash: Hash, isBan: Boolean, f: (Block) -> Boolean = {tr
     }
 
     this.heads.add(blk.hash)
-    this.addBlockAsFrontOfBacks(blk, true)
     this.fsSaveBlock(blk)
     this.fsSave()
 
@@ -105,3 +96,4 @@ fun Chain.blockUnRemove (hash: Hash, isBan: Boolean, f: (Block) -> Boolean = {tr
         this.blockUnRemove(fr, isBan, f)
     }
 }
+*/

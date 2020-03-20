@@ -175,7 +175,7 @@ class Daemon (host : Host) {
                                 if (ref.hashIsBlock()) {
                                     chain.repsPostSum(ref)
                                 } else {
-                                    chain.repsAuthor(ref, null)
+                                    chain.repsAuthor(ref, getNow())
                                 }
 
                             writer.writeLineX(likes.toString())
@@ -187,14 +187,14 @@ class Daemon (host : Host) {
                             if (! chain.fsExistsBlock(hash)) {
                                 writer.writeLineX("false")
                             } else {
-                                chain.blockRemove(hash, true)
+                                //chain.blockRemove(hash, true)
                                 writer.writeLineX("true")
                             }
                         }
                         "FC chain unban" -> {
                             val hash = reader.readLineX()
                             if (chain.fsExistsBlock(hash,"/banned/")) {
-                                chain.blockUnRemove(hash, true)
+                                //chain.blockUnRemove(hash, true)
                                 writer.writeLineX("true")
                             } else {
                                 writer.writeLineX("false")
@@ -334,7 +334,6 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
         val sorted = toSend.sortedWith(compareBy{it.toHeight()})
         for (hash in sorted) {
             val blk = chain.fsLoadBlock(hash, null)
-            blk.fronts.clear()
             writer.writeBytes(blk.toJson())          // 6
             writer.writeLineX("\n")
         }

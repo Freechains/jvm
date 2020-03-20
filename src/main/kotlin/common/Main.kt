@@ -24,8 +24,7 @@ Usage:
     freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
     freechains [options] chain (like | dislike) <chain> <hash>
     freechains [options] chain reps <chain> <hash_or_pub>
-    freechains [options] chain ban <chain> <hash>
-    freechains [options] chain unban <chain> <hash>
+    freechains [options] chain (ban | unban) <chain> <hash>
     freechains [options] chain listen <chain>
     freechains [options] chain send <chain> <host:port>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
