@@ -17,6 +17,7 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.absoluteValue
 
+// modifies heads
 fun Chain.blockReject (hash: Hash) {
     val newHeads = mutableSetOf<Hash>()
     var todo = false
@@ -40,15 +41,6 @@ fun Chain.blockReject (hash: Hash) {
     if (todo) {
         return this.blockReject(hash)
     }
-}
-
-fun Chain.blockUnReject (hash: Hash) {
-    // change to PENDING
-    val blk = this.fsLoadBlock(hash, null)
-    blk.localTime = getNow()
-    this.fsSaveBlock(blk)
-
-    // TODO: search fronts in fs (X+1)_xxx
 }
 
 /*

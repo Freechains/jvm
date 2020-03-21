@@ -119,11 +119,13 @@ fun Chain.blockChain (blk: Block) {
                 (wasLiked==State.ACCEPTED && now==State.REJECTED) -> {
                     //println("REJ ${it.hash}")
                     this.blockReject(it.hash)
-                    //println(this.heads)
+                    it.localTime = getNow()
+                    this.fsSaveBlock(it)
                 }
                 // changed from REJ -> ACC
                 (wasLiked==State.REJECTED && now==State.ACCEPTED) -> {
-                    this.blockUnReject(it.hash)
+                    //this.blockUnReject(it.hash)
+                    // TODO: search fronts in fs (X+1)_xxx
                 }
             }
         }
