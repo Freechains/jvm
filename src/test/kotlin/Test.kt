@@ -785,6 +785,7 @@ class Tests {
         assert(ln == "1" && l1 == "0" && l2 == "2" && l3 == "-1" && l4 == "1")
     }
 
+    /*
     @Test
     fun m09_ban() {
         a_reset()
@@ -878,7 +879,7 @@ class Tests {
         // h1 -> h22 -> l1
         //    -> h21
         //    -> h23
-    }
+    }*/
 
     @Test
     fun m10_cons() {
@@ -937,15 +938,12 @@ class Tests {
 
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1",S0))
         val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2"))
-        main_(arrayOf(H0,"chain","like","post","/","+","2",h2,S0))
+        main_(arrayOf(H0,"chain","like","/",h2,S0))
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3"))
-
-        // h0 -> h1 -> h2 -> h3
-        // h0 -> h1 -> h2 (t) -> h3 (x)
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
 
-        // this all to test an assertion
+        // this all to test an internal assertion
     }
 
     @Test
@@ -975,33 +973,40 @@ class Tests {
             assert(it.startsWith("1_")) { it }
         }
 
-        main_(arrayOf(H0,"chain","like","post","/","+","1000",h21,S0))
-        main_(arrayOf(H0,"chain","like","post","/","+","1000",h22,S0))
+        main_(arrayOf(H0,"chain","like","/",h21,S0))
 
-        // h0 -> h1 -> h21 -> l3 -> l4
-        //          -> h22 ------/
+        //          -> l2
+        // h0 -> h1 -> h21
+        //          -> h22
 
-        // all still pending, only h1 accepted
         main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
             it.split(' ').let {
-                assert(it.size == 1)
+                assert(it.size == 2)
                 it.forEach {
-                    assert(it.startsWith("4_"))
+                    assert(it.startsWith("2_"))
                 }
             }
         }
 
+        main_(arrayOf(H0,"chain","like","/",h22,S0))
+
+        //          -> l2  -> l3
+        // h0 -> h1 -> h21
+        //          -> h22
+
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
-            assert(it.startsWith("1_"))
+            assert(it.startsWith("3_"))
         }
 
         // all accepted
         main_(arrayOf(H0, "host", "now", "${3*hour}"))
+
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/"))
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
             it.split(' ').let {
-                assert(it.size == 1)
+                assert(it.size == 3)
                 it.forEach {
-                    assert(it.startsWith("4_"))
+                    assert(it.startsWith("2_") || it.startsWith("3_"))
                 }
             }
         }

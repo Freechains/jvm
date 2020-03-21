@@ -82,6 +82,78 @@ fun Immut.toHash () : Hash {
     return this.backs.backsToHeight().toString() + "_" + this.toJson().calcHash()
 }
 
+// TRAVERSE
+
+fun Chain.getHeads (want: State, heads: List<Hash> = this.heads) : Array<Hash> {
+    return heads
+        .map {
+            val have = this.hashState(it)
+            when {
+                (want == have)         -> arrayOf(it)
+                (want==State.PENDING &&
+                 have==State.ACCEPTED) -> arrayOf(it)
+                want > have            -> this.getHeads(want, this.fsLoadBlock(it,null).immut.backs.toList())
+                else                   -> emptyArray()
+            }
+        }
+        .toTypedArray()
+        .flatten()
+        .let { ret ->
+            ret.filter { cur ->
+                // I tried all heads and none of their backs lead to cur
+                // so cur is a head
+                ret.none {
+                    val x = this.fsLoadBlock(it,null).immut.backs.toList()
+                    (x.isNotEmpty() && this.isBack(x,cur))
+                }
+            }
+        }
+        .toSet()
+        .toTypedArray()
+}
+
+fun Chain.isBack (heads: List<Hash>, hash: Hash) : Boolean {
+    return this.bfsFirst(heads) { it.hash != hash } != null
+}
+
+fun Chain.bfsFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
+    return this
+        .bfs(heads,true, pred)
+        .last()
+        .let {
+            if (it.hash == this.getGenesis())
+                null
+            else
+                it
+        }
+}
+
+fun Chain.bfsAll (heads: List<Hash>) : Array<Block> {
+    return this.bfs(heads,false) { true }
+}
+
+fun Chain.bfs (heads: List<Hash>, inc: Boolean, f: (Block) -> Boolean) : Array<Block> {
+    val ret = mutableListOf<Block>()
+    val pending = TreeSet<Block>(compareByDescending { it.immut.time })
+    pending.addAll(heads.map { this.fsLoadBlock(it,null) })
+
+    while (pending.isNotEmpty()) {
+        val blk = pending.first()
+        pending.remove(blk)
+        if (!f(blk)) {
+            if (inc) {
+                ret.add(blk)
+            }
+            break
+        }
+
+        pending.addAll(blk.immut.backs.map { this.fsLoadBlock(it,null) })
+        ret.add(blk)
+    }
+
+    return ret.toTypedArray()
+}
+
 // REPUTATION
 
 fun Chain.repsPost (hash: String) : Int {
@@ -95,7 +167,7 @@ fun Chain.repsPost (hash: String) : Int {
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
 
-    //println("$hash // pos=$pos // neg=$neg")
+    println("$hash // pos=$pos // neg=$neg")
     return pos + neg
 }
 
@@ -147,87 +219,6 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : 
 
     //println("gave=$gave // recv=$recv")
     return max(0, posts+recv-gave)
-}
-
-// TRAVERSE
-
-fun Chain.getHeads (want: State, heads: List<Hash> = this.heads) : Array<Hash> {
-    return heads
-        .map {
-            val have = this.hashState(it)
-            when {
-                (want == have)         -> arrayOf(it)
-                (want==State.PENDING &&
-                 have==State.ACCEPTED) -> arrayOf(it)
-                want > have            -> this.getHeads(want, this.fsLoadBlock(it,null).immut.backs.toList())
-                else                   -> emptyArray()
-            }
-        }
-        .toTypedArray()
-        .flatten()
-        .let { ret ->
-            ret.filter { cur ->
-                // I tried all heads and none of their backs lead to cur
-                // so cur is a head
-                ret.none {
-                    val x = this.fsLoadBlock(it,null).immut.backs.toList()
-                    (x.isNotEmpty() && this.isBack(x,cur))
-                }
-            }
-        }
-        .toTypedArray()
-}
-
-fun Chain.isBack (heads: List<Hash>, hash: Hash) : Boolean {
-    return this.bfsFirst(heads) { it.hash != hash } != null
-}
-
-fun Chain.bfsFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
-    return this
-        .bfs(heads,true, pred)
-        .last()
-        .let {
-            if (it.hash == this.getGenesis())
-                null
-            else
-                it
-        }
-}
-
-fun Chain.bfsAll (heads: List<Hash>) : Array<Block> {
-    return this.bfs(heads,false) { true }
-}
-
-fun Chain.bfs (heads: List<Hash>, inc: Boolean, f: (Block) -> Boolean) : Array<Block> {
-
-    fun toLL (v: List<Hash>) : LinkedList<Block> {
-        return LinkedList (
-            v.map { this.fsLoadBlock(it,null) }
-             .sortedByDescending { it.immut.time }
-        )
-    }
-
-    val pending = toLL(heads)
-    val visited = mutableSetOf<String>()
-    val ret = mutableListOf<Block>()
-
-    while (pending.isNotEmpty()) {
-        val blk = pending.removeFirst()
-        if (!f(blk)) {
-            if (inc) {
-                ret.add(blk)
-            }
-            break
-        }
-
-        blk.immut.backs.filter { !visited.contains(it) }.toList().let {
-            pending.addAll(toLL(it))
-            visited.addAll(it)
-        }
-
-        ret.add(blk)
-    }
-    return ret.toTypedArray()
 }
 
 // FILE SYSTEM

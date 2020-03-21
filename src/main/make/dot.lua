@@ -40,7 +40,7 @@ function one (hash)
 
     local h   = blk.immut
     local ref = (h.like == json.util.null) and '' or sub(h.like.hash)
-    local t   = math.floor(blk.immut.time/3600000)
+    local t   = math.floor(blk.immut.time)
     local lik = (type(h.like)=='table' and h.like.n) or '---'
 
     NODES[#NODES+1] = '_'..hash..'[label="'..sub(hash)..'\n'..h.payload..'\n'..ref..'\n'..lik..'\n'..t..'"];'
