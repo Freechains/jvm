@@ -422,12 +422,10 @@ class Tests {
         //a_reset()
         //main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
         val host = Host_load("/tmp/freechains/tests/M2/")
-        host.joinChain("/sym", false, null).let {
-            it.blockNew(HC, null, null)
-        }
-        host.joinChain("/asy", false, ChainPub(false, PUB0)).let {
-            it.blockNew(H, PVT0, PVT0)
-        }
+        val c1 = host.joinChain("/sym", false, null)
+        c1.blockNew(HC, null, null)
+        val c2 = host.joinChain("/asy", false, ChainPub(false, PUB0))
+        it.blockNew(H, PVT0, PVT0)
     }
 
     @Test
@@ -763,7 +761,7 @@ class Tests {
         //                                             \- h8
 
         main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
-            assert (it == "3 / 3")
+            assert (it == "2 / 2")
         }
         main_(arrayOf(H1, "chain", "reps", "/xxx", PUB0)).let {
             assert(it == "25")
@@ -788,7 +786,7 @@ class Tests {
     }
 
     @Test
-    fun m09_remove() {
+    fun m09_ban() {
         a_reset()
 
         main(arrayOf("host", "create", "/tmp/freechains/tests/M90/"))
@@ -898,39 +896,30 @@ class Tests {
 
         val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1", S1))
         val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2", S1))
-        val h3 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3", S0))
+        val hx = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "hx", S0))
 
-        // h1 (g) -> h2 (r)
-        //        -> h3 (a)
+        // h1 <- h2 (p)
+        //   \-- hx (a)
 
-        //main_(arrayOf(H0, "chain", "like", "post", "/", "+", "1000", h2, S1))
         val as1 = main_(arrayOf(H0, "chain", "heads", "accepted", "/"))
         val ps1 = main_(arrayOf(H0, "chain", "heads", "pending",  "/"))
         val rs1 = main_(arrayOf(H0, "chain", "heads", "rejected", "/"))
-        assert(!as1.contains(h1) && !as1.contains(h2) &&  as1.contains(h3))
-        assert(!ps1.contains(h1) && !ps1.contains(h2) &&  ps1.contains(h3))
-        assert(!rs1.contains(h1) &&  rs1.contains(h2) && !rs1.contains(h3))
-
-        // h2 will not be accepted, even if h3 is
-        // so, h4, will be put in front of h1
+        assert(!as1.contains(h1) && !as1.contains(h2) &&  as1.contains(hx))
+        assert(!ps1.contains(h1) &&  ps1.contains(h2) &&  ps1.contains(hx))
+        assert(!rs1.contains(h1) && !rs1.contains(h2) && !rs1.contains(hx))
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
-        val h4 = main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h4"))
-        assert(h4.startsWith("3_"))
+        val h3 = main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h3",S1))
+        assert(h3.startsWith("3_"))
 
-        // h1 (a) -> h2 (r)
-        //        -> h3 (o) -> h4 (r)
+        // h1 (g) <- h2 (a)    h3 (p)
+        //      \ <- hx (p) <-/
 
-        main_(arrayOf(H0,"chain","like","post","/","+","1000",h2,S0))
-        main_(arrayOf(H1,"chain","like","post","/","+","1000",h4,S0))
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
 
-        // h1 (g) -> h2 (r) -> l2
-        //        -> h3 (a) -> h4 (r) -> l4
-
-        main_(arrayOf(H1, "host", "now", "${2*hour+1*min}"))
-        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h5")).let {
-            assert(it.startsWith("5_"))
+        main_(arrayOf(H1, "host", "now", "${3*hour}"))
+        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h4")).let {
+            assert(it.startsWith("4_"))
         }
     }
 

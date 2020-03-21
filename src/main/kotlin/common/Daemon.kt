@@ -292,10 +292,8 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
     writer.writeLineX(chain.name)
 
     val visited = HashSet<Hash>()
-    val toSend = mutableSetOf<Hash>()
     var Nmin    = 0
     var Nmax    = 0
-    //println("[send] $maxTime")
 
     // for each local head
     val heads = chain.getHeads(State.PENDING)
@@ -304,6 +302,8 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
     for (head in heads) {
         val pending = ArrayDeque<Hash>()
         pending.push(head)
+
+        val toSend = mutableSetOf<Hash>()
 
         // for each head path of blocks
         while (pending.isNotEmpty()) {
@@ -322,6 +322,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
             }
 
             // sends this one and visits children
+            //println("[add] $hash")
             toSend.add(hash)
             for (back in blk.immut.backs) {
                 pending.push(back)
@@ -334,6 +335,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
         val sorted = toSend.sortedWith(compareBy{it.toHeight()})
         for (hash in sorted) {
             val blk = chain.fsLoadBlock(hash, null)
+            //println("[send] $hash")
             writer.writeBytes(blk.toJson())          // 6
             writer.writeLineX("\n")
         }
