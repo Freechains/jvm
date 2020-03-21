@@ -425,7 +425,7 @@ class Tests {
         val c1 = host.joinChain("/sym", false, null)
         c1.blockNew(HC, null, null)
         val c2 = host.joinChain("/asy", false, ChainPub(false, PUB0))
-        it.blockNew(H, PVT0, PVT0)
+        c2.blockNew(H, PVT0, PVT0)
     }
 
     @Test
