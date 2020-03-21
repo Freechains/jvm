@@ -42,6 +42,7 @@ fun Chain.blockState (blk: Block) : State {
         (blk.hash.toHeight() <= 1)  -> State.ACCEPTED      // first two blocks
         this.fromOwner(blk)         -> State.ACCEPTED      // owner signature
         this.trusted                -> State.ACCEPTED      // chain with trusted hosts/authors
+        (blk.immut.like != null)    -> State.ACCEPTED      // a like
 
         // changeable
         (reps+ath <= 0)             -> State.REJECTED      // not enough reps
