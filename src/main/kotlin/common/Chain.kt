@@ -203,7 +203,7 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : 
             val neg = list
                 .filter { it.immut.time > now - T1D_rep }    // posts newer than 1 day
                 .count()
-            //println("gen=$gen // pos=$pos // neg=$neg")
+            //println("gen=$gen // pos=$pos // neg=$neg // now=$now")
             max(gen,min(LK30_max,pos)) - neg
         }
 

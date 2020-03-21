@@ -1086,6 +1086,7 @@ class Tests {
             assert(it == "3")
         }
 
+        main(arrayOf(H0, "host", "now", "${53*hour}"))
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h4", S1))
 
         // h0 <-- h1 <-- l2
@@ -1095,9 +1096,9 @@ class Tests {
             assert(it == "2")
         }
 
-        main(arrayOf(H0, "host", "now", "${75*hour}"))
+        main(arrayOf(H0, "host", "now", "${78*hour}"))
         main_(arrayOf(H0, "chain", "reps", "/", PUB1)).let {
-            assert(it == "4")
+            assert(it == "4") {it}
         }
 
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h5", S1))

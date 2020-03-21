@@ -19,8 +19,9 @@ fun Chain.hashState (hash: Hash) : State {
 }
 
 fun Chain.blockState (blk: Block) : State {
+    val now = getNow()
+
     fun hasTime () : Boolean {
-        val now = getNow()
         val dt = now - blk.immut.time
         return blk.localTime <= now - (T2H_past + sqrt(dt.toFloat()))   // old enough
     }
@@ -31,11 +32,12 @@ fun Chain.blockState (blk: Block) : State {
         (prev == null)     -> 0     // no prev post, no author reps
         else -> this.repsAuthor (
             blk.sign.pub,
-            this.fsLoadBlock(prev,null).immut.time,
+            now,
             listOf(prev)
         )
     }
     val reps = this.repsPost(blk.hash)
+    //println("rep ${blk.hash} = reps=$reps + ath=$ath")
 
     return when {
         // unchangeable
@@ -176,7 +178,7 @@ fun Chain.blockAssert (blk: Block) {
 
         // check if new post leads to latest post from author currently in the chain
         this.bfsFirst(this.heads) { !it.isFrom(blk.sign.pub) }.let {
-            //println("old = ${this.heads} // $it")
+            //if (it != null) println("old = ${this.heads} // ${this.hashState(it.hash)}")
             assert (
                 if (it == null)
                     (imm.prev == null)
