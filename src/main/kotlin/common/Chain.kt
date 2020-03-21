@@ -141,9 +141,11 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : 
 
     val gave = mines
         .filter { it.immut.like != null }                    // likes I gave
+        //.let { println(it) ; it }
         .map { it.immut.like!!.n.absoluteValue }
         .sum()
 
+    //println("gave=$gave // recv=$recv")
     return max(0, posts+recv-gave)
 }
 
