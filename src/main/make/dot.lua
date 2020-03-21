@@ -30,7 +30,7 @@ digraph graphname {
     f:close()
 end
 
-function go (hash)
+function one (hash)
     if NODES[hash] then
         return
     end
@@ -39,17 +39,23 @@ function go (hash)
     local blk = json.decode(assert(io.open(DIR..'/blocks/'..hash..'.blk')):read('*a'))
 
     local h   = blk.immut
-    local ref = sub(h.refs[1] or '')
+    local ref = (h.like == json.util.null) and '' or sub(h.like.hash)
     local t   = math.floor(blk.immut.time/3600000)
     local lik = (type(h.like)=='table' and h.like.n) or '---'
 
     NODES[#NODES+1] = '_'..hash..'[label="'..sub(hash)..'\n'..h.payload..'\n'..ref..'\n'..lik..'\n'..t..'"];'
 
-    for _,front in ipairs(blk.fronts) do
-        CONNS[#CONNS+1] = '_'..hash..' -> _'..front
-        go(front)
+    for _,back in ipairs(blk.immut.backs) do
+        CONNS[#CONNS+1] = '_'..hash..' -> _'..back
+    end
+    go(blk.immut.backs)
+end
+
+function go (heads)
+    for _, hash in ipairs(heads) do
+        one(hash)
     end
 end
 
-go('0_'..CHAIN.hash)
+go(CHAIN.heads)
 out()
