@@ -167,7 +167,7 @@ fun Chain.repsPost (hash: String) : Int {
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
 
-    println("$hash // pos=$pos // neg=$neg")
+    //println("$hash // pos=$pos // neg=$neg")
     return pos + neg
 }
 

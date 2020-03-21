@@ -1012,26 +1012,19 @@ class Tests {
         }
 
         // dislike h22
-        main_(arrayOf(H0,"chain","like","post","/","-","1000",h22,S0))
+        main_(arrayOf(H0,"chain","dislike","/",h22,S0))
 
-        // h0 -> h1 -> h21 -> l3 -> l4 -> l5
-        //          -> h22 ------/        /
-        //               \---------------/
+        //          -> l2  -> l3 -> l4
+        // h0 -> h1 -> h21 ------/
+        //          -> h22 -----/
+
+        //          -> l2  -> l3
+        // h0 -> h1 -> h21
+        //          -> h22
 
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
             it.split(' ').let {
-                assert(it.size == 1)
-                it.forEach {
-                    assert(it.startsWith("3_"))     // l31
-                }
-            }
-        }
-        main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
-            it.split(' ').let {
-                assert(it.size == 1)
-                it.forEach {
-                    assert(it.startsWith("3_"))     // l31
-                }
+                assert(it.size == 3)
             }
         }
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {

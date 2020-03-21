@@ -18,19 +18,23 @@ import kotlin.collections.ArrayList
 import kotlin.math.absoluteValue
 
 fun Chain.blockReject (hash: Hash) {
-    val set = this.heads.toMutableSet()
+    val newHeads = mutableSetOf<Hash>()
     var todo = false
 
-    for (head in set) {
-        if (this.isBack(listOf(head), hash)) {
-            todo = true
-            set.remove(head)
-            set.addAll(this.fsLoadBlock(head,null).immut.backs)
+    for (head in this.heads) {
+        when {
+            (head == hash) -> newHeads.add(head)
+            this.isBack(listOf(head), hash) -> {
+                //println("$head --> $hash")
+                todo = true
+                newHeads.addAll(this.fsLoadBlock(head,null).immut.backs)
+            }
+            else -> newHeads.add(head)
         }
     }
 
     this.heads.clear()
-    this.heads.addAll(set)
+    this.heads.addAll(newHeads)
     this.fsSave()
 
     if (todo) {
