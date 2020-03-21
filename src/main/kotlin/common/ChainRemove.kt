@@ -45,50 +45,27 @@ fun Chain.blockReject (hash: Hash) {
     }
 }
 
-/*
-fun Chain.blockRemove (hash: Hash, isBan: Boolean) {
-    val blk = this.fsLoadBlock(hash, null)
-    //println("rem $hash // ${blk.fronts}")
+fun Chain.blockBan (hash: Hash) {
+    this.blockReject(hash)
 
-    // - remove myself from heads
-    // - add my backs as heads
-    if (this.heads.contains(hash)) {
-        this.heads.remove(hash)
-        for (it in blk.immut.backs) {
-            assert(!this.heads.contains(it)) { "TODO" }
-            this.heads.add(it)
-        }
-    }
+    val newHeads = mutableSetOf<Hash>()
+    newHeads.addAll(this.heads)
 
-    val dir = if (isBan) "/bans/" else "/blocks/"
-    if (isBan) {
-        this.fsSaveBlock(blk,dir)
-        this.fsRemBlock(blk.hash)
-    }
+    val blk = this.fsLoadBlock(hash,null)
+    this.fsSaveBlock(blk,"/bans/")
+    this.fsRemBlock(blk.hash)
+    newHeads.remove(blk.hash)
+    newHeads.addAll(blk.immut.backs)
 
+    this.heads.clear()
+    this.heads.addAll(newHeads)
     this.fsSave()
 }
 
-fun Chain.blockUnRemove (hash: Hash, isBan: Boolean, f: (Block) -> Boolean = {true}) {
-    val dir = if (isBan) "/bans/" else "/blocks/"
-    val blk = this.fsLoadBlock(hash, null, dir)
-
-    if (!f(blk)) {
-        return
-    }
-
-    if (isBan) {
-        //println("unban: ${blk.hash}")
-        this.fsSaveBlock(blk)
-        this.fsRemBlock(blk.hash, dir)
-    }
-
-    this.heads.add(blk.hash)
+fun Chain.blockUnban (hash: Hash) {
+    val blk = this.fsLoadBlock(hash, null, "/bans/")
     this.fsSaveBlock(blk)
+    this.fsRemBlock(blk.hash, "/bans/")
+    this.heads.add(blk.hash)
     this.fsSave()
-
-    for (fr in blk.fronts) {
-        this.blockUnRemove(fr, isBan, f)
-    }
 }
-*/

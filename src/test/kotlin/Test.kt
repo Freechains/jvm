@@ -785,7 +785,6 @@ class Tests {
         assert(ln == "1" && l1 == "0" && l2 == "2" && l3 == "-1" && l4 == "1")
     }
 
-    /*
     @Test
     fun m09_ban() {
         a_reset()
@@ -801,8 +800,6 @@ class Tests {
             assert(it.contains(h21) && !it.contains(h1))
         }
 
-        // h1 -> h21
-
         main_(arrayOf(H0, "chain", "ban", "/", "xxx")).let {
             assert(it == "false")
         }
@@ -813,28 +810,39 @@ class Tests {
             assert(it.contains(h1) && !it.contains(h21))
         }
 
-        // h1
-        // h21
+        // h0 <- h1
+        //         \- (h21)
 
         val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h22"))
         assert(h22.startsWith("2_"))
-        val l1 = main_(arrayOf(H0,"chain","like","post","/","+","1000",h22,S0))
+        val l2 = main_(arrayOf(H0,"chain","like","/",h22,S0))
+
+        //            /- h22
+        // h0 <- h1 <--- l2
+        //           \- (h21)
 
         val h23 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h23"))
+
+        //            /- h23
+        //           /-- h22
+        // h0 <- h1 <--- l2
+        //           \-- (h21)
+
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
             assert(it.contains(h23) && !it.contains(h21))
         }
 
-
-        // h1 -> h22 -> l1
-        //    -> h23
-        // h21
-
         main_(arrayOf(H0, "chain", "ban", "/", h22)).let {
             assert(it == "true")
         }
+
+        //            /- h23
+        //           /-- (h22)
+        // h0 <- h1 <--- l2
+        //           \-- (h21)
+
         main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
-            assert(it.contains(h1) && !it.contains(h22))
+            assert(it.contains(l2) && !it.contains(h22))
         }
 
         // h1 -> h23
@@ -848,9 +856,9 @@ class Tests {
             assert(!it.contains(h22))
         }
         main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
-            assert(it.contains(l1))
+            assert(it.contains(l2))
         }
-        main_(arrayOf(H0, "chain", "unban", "/", l1)).let {
+        main_(arrayOf(H0, "chain", "unban", "/", l2)).let {
             assert(it == "false")
         }
 
@@ -879,7 +887,7 @@ class Tests {
         // h1 -> h22 -> l1
         //    -> h21
         //    -> h23
-    }*/
+    }
 
     @Test
     fun m10_cons() {

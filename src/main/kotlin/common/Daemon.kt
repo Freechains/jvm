@@ -187,14 +187,14 @@ class Daemon (host : Host) {
                             if (! chain.fsExistsBlock(hash)) {
                                 writer.writeLineX("false")
                             } else {
-                                //chain.blockRemove(hash, true)
+                                chain.blockBan(hash)
                                 writer.writeLineX("true")
                             }
                         }
                         "FC chain unban" -> {
                             val hash = reader.readLineX()
                             if (chain.fsExistsBlock(hash,"/bans/")) {
-                                //chain.blockUnRemove(hash, true)
+                                chain.blockUnban(hash)
                                 writer.writeLineX("true")
                             } else {
                                 writer.writeLineX("false")
