@@ -176,12 +176,12 @@ fun Chain.blockAssert (blk: Block) {
 
         // check if new post leads to latest post from author currently in the chain
         this.bfsFirst(this.heads) { !it.isFrom(blk.sign.pub) }.let {
-            //println("old = ${it.last()}")
+            //println("old = ${this.heads} // $it")
             assert (
                 if (it == null)
                     (imm.prev == null)
                 else
-                    (imm.prev == it.hash)
+                    (imm.prev==it.hash && this.hashState(it.hash)==State.ACCEPTED)
             ) { "must point to author's previous post" }
         }
     }

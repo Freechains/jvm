@@ -910,15 +910,26 @@ class Tests {
         assert(!rs1.contains(h1) && !rs1.contains(h2) && !rs1.contains(hx))
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+
+        var ok = false
+        try {
+            main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h3",S1))
+        } catch (e: Throwable) {
+            ok = true
+        }
+        assert(ok)
+
+        main_(arrayOf(H1, "host", "now", "${3*hour}"))
+
         val h3 = main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h3",S1))
         assert(h3.startsWith("3_"))
 
-        // h1 (g) <- h2 (a)    h3 (p)
-        //      \ <- hx (p) <-/
+        // h1 (g) <- h2 (a) <- h3 (p)
+        //      \ <- hx (a) <-/
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+        main_(arrayOf(H1, "host", "now", "${6*hour}"))
 
-        main_(arrayOf(H1, "host", "now", "${3*hour}"))
         main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h4")).let {
             assert(it.startsWith("4_"))
         }
@@ -1114,21 +1125,24 @@ class Tests {
         main(arrayOf("chain", "join", "/"))
 
         main(arrayOf(H0, "host", "now", "0"))
-        /*val h1  =*/ main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h0"))
+        /*val h1  =*/ main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h0"))
         val h21 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h21"))
-        val h22 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h22"))
+        val h20 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h20"))
+
+        // h0 -> h1 --> h21
+        //          \-> h20
 
         // no double spend
         var ok = false
         try {
-            main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h22"))
+            main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h20x"))
         } catch (e: Throwable) {
             ok = true
-            // "must lead back to author's previous post"
+            // "must point to author's previous post"
         }
         assert(ok)
 
-        /*val l32 =*/ main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h22))
+        /*val l32 =*/ main_(arrayOf(H0, S0, "chain", "like", "post", "/", "+", "1000", h20))
 
         // h0 -> h1 --> h21
         //          \-> h22 --> l32
