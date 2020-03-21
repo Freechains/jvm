@@ -15,16 +15,6 @@ const val T1D_rep     = 1*day           // account to reputation posts older tha
 
 const val LK30_max = 30
 
-fun LK23_500_rej (rep : Pair<Int,Int>) : Boolean {
-    val (pos,neg) = rep
-    return (-neg*3 >= pos*2) || (pos+neg < 500)
-}
-
-fun dbg (v: String) : String {
-    println(v)
-    return v
-}
-
 fun String.pvtToPub () : String {
     return this.substring(this.length/2)
 }

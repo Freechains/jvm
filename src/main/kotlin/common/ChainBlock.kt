@@ -32,7 +32,7 @@ fun Chain.blockState (blk: Block) : State {
         (prev == null)     -> 0     // no prev post, no author reps
         else -> this.repsAuthor (
             blk.sign.pub,
-            now,
+            blk.immut.time,         // author rep at the time of block
             listOf(prev)
         )
     }
