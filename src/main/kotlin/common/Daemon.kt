@@ -193,7 +193,7 @@ class Daemon (host : Host) {
                         }
                         "FC chain unban" -> {
                             val hash = reader.readLineX()
-                            if (chain.fsExistsBlock(hash,"/banned/")) {
+                            if (chain.fsExistsBlock(hash,"/bans/")) {
                                 //chain.blockUnRemove(hash, true)
                                 writer.writeLineX("true")
                             } else {

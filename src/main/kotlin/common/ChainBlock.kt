@@ -12,7 +12,7 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 
 fun Chain.hashState (hash: Hash) : State {
     return when {
-        this.fsExistsBlock(hash,"/banned/") -> State.BANNED
+        this.fsExistsBlock(hash,"/bans/") -> State.BANNED
         ! this.fsExistsBlock(hash)               -> State.MISSING
         else -> this.blockState(this.fsLoadBlock(hash,null))
     }
@@ -148,7 +148,7 @@ fun Chain.backsAssert (blk: Block) {
 }
 
 fun Chain.blockAssert (blk: Block) {
-    assert(! this.fsExistsBlock(blk.hash,"/banned/")) { "block is banned" }
+    assert(! this.fsExistsBlock(blk.hash,"/bans/")) { "block is banned" }
 
     val imm = blk.immut
     assert(blk.hash == imm.toHash()) { "hash must verify" }

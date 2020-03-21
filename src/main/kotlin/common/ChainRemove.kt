@@ -26,9 +26,11 @@ fun Chain.blockReject (hash: Hash) {
         when {
             (head == hash) -> newHeads.add(head)
             this.isBack(listOf(head), hash) -> {
-                //println("$head --> $hash")
+                val blk = this.fsLoadBlock(head,null)
+                this.fsSaveBlock(blk,"/rems/")
+                this.fsRemBlock(blk.hash)
+                newHeads.addAll(blk.immut.backs)
                 todo = true
-                newHeads.addAll(this.fsLoadBlock(head,null).immut.backs)
             }
             else -> newHeads.add(head)
         }
@@ -58,7 +60,7 @@ fun Chain.blockRemove (hash: Hash, isBan: Boolean) {
         }
     }
 
-    val dir = if (isBan) "/banned/" else "/blocks/"
+    val dir = if (isBan) "/bans/" else "/blocks/"
     if (isBan) {
         this.fsSaveBlock(blk,dir)
         this.fsRemBlock(blk.hash)
@@ -68,7 +70,7 @@ fun Chain.blockRemove (hash: Hash, isBan: Boolean) {
 }
 
 fun Chain.blockUnRemove (hash: Hash, isBan: Boolean, f: (Block) -> Boolean = {true}) {
-    val dir = if (isBan) "/banned/" else "/blocks/"
+    val dir = if (isBan) "/bans/" else "/blocks/"
     val blk = this.fsLoadBlock(hash, null, dir)
 
     if (!f(blk)) {

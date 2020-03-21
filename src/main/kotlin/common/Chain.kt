@@ -227,7 +227,8 @@ fun Chain.fsSave () {
     val dir = File(this.root + this.name + "/blocks/")
     if (!dir.exists()) {
         dir.mkdirs()
-        File(this.root + this.name + "/banned/").mkdirs()
+        File(this.root + this.name + "/rems/").mkdirs()
+        File(this.root + this.name + "/bans/").mkdirs()
     }
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
 }

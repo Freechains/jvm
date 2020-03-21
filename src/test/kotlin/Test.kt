@@ -1035,7 +1035,7 @@ class Tests {
 
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
             it.split(' ').let {
-                assert(it.size == 3)
+                assert(it.size == 2)
             }
         }
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
@@ -1206,5 +1206,7 @@ class Tests {
                 )
             }
         }
+
+        // TODO: check rems/ directory
     }
 }
