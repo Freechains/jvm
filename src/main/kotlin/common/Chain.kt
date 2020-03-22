@@ -218,7 +218,7 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : 
         .sum()
 
     //println("gave=$gave // recv=$recv")
-    return max(0, posts+recv-gave)
+    return posts + recv - gave
 }
 
 // FILE SYSTEM

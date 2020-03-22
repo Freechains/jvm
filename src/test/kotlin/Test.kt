@@ -587,13 +587,9 @@ class Tests {
         assert( "2" == main_(arrayOf("chain", "reps", "/xxx", PUB1)))
 
         // like myself
-        var ok = false
-        try {
-            main_(arrayOf("chain", "like", "/xxx", h11, S0))
-        } catch (e: Throwable) {
-            ok = true
+        main_(arrayOf("chain", "like", "/xxx", h11, S0)).let {
+            assert(it == "like must not target itself")
         }
-        assert(ok)
 
         val l5 = main_(arrayOf("chain", "like", "/xxx", h22, S0)) // l5
 
@@ -920,13 +916,9 @@ class Tests {
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
 
-        var ok = false
-        try {
-            main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h3",S1))
-        } catch (e: Throwable) {
-            ok = true
+        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h3",S1)).let {
+            assert(it == "must point to author's previous post")
         }
-        assert(ok)
 
         main_(arrayOf(H1, "host", "now", "${3*hour}"))
 
@@ -1187,14 +1179,9 @@ class Tests {
         //          \-> h20
 
         // no double spend
-        var ok = false
-        try {
-            main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h20x"))
-        } catch (e: Throwable) {
-            ok = true
-            // "must point to author's previous post"
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h20x")).let {
+            assert(it == "must point to author's previous post")
         }
-        assert(ok)
 
         main(arrayOf(H0, "host", "now", "${3*hour}"))
         main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h30"))

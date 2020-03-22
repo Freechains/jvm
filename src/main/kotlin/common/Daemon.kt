@@ -222,26 +222,31 @@ class Daemon (host : Host) {
                                     Like(lkn, lkr)
                                 }
 
-                            val blk = chain.blockNew (
-                                Immut (
-                                    max (
-                                        time.nowToTime(),
-                                        chain.heads.map { chain.fsLoadBlock(it, null).immut.time }.max()!!
+                            var ret: String
+                            try {
+                                val blk = chain.blockNew (
+                                    Immut (
+                                        max (
+                                            time.nowToTime(),
+                                            chain.heads.map { chain.fsLoadBlock(it, null).immut.time }.max()!!
                                             // TODO: +1 prevents something that happened after to occur simultaneously (also, problem with TODO???)
+                                        ),
+                                        cods[0],
+                                        false,
+                                        pay,
+                                        null,
+                                        like,
+                                        emptyArray()
                                     ),
-                                    cods[0],
-                                    false,
-                                    pay,
-                                    null,
-                                    like,
-                                    emptyArray()
-                                ),
-                                if (sign.isEmpty()) null else sign,
-                                if (crypt.isEmpty()) null else crypt
-                            )
-
-                            writer.writeLineX(blk.hash)
-                            System.err.println("chain post: ${blk.hash}")
+                                    if (sign.isEmpty()) null else sign,
+                                    if (crypt.isEmpty()) null else crypt
+                                )
+                                ret = blk.hash
+                            } catch (e: Throwable) {
+                                ret = e.message!!
+                            }
+                            writer.writeLineX(ret)
+                            System.err.println("chain post: $ret")
 
                             thread {
                                 signal(name,1)
