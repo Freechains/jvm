@@ -39,6 +39,9 @@ fun Chain.blockState (blk: Block) : State {
     val reps = this.repsPost(blk.hash)
     //println("rep ${blk.hash} = reps=$reps + ath=$ath")
 
+    // number of blocks that points back to it (-1 myself)
+    val fronts = this.bfsAll(this.heads).count { this.isBack(listOf(it.hash),blk.hash) } - 1
+
     return when {
         // unchangeable
         (blk.hash.toHeight() <= 1)  -> State.ACCEPTED      // first two blocks
@@ -47,7 +50,7 @@ fun Chain.blockState (blk: Block) : State {
         (blk.immut.like != null)    -> State.ACCEPTED      // a like
 
         // changeable
-        (reps+ath <= 0)             -> State.REJECTED      // not enough reps
+        (reps+ath+fronts <= 0)      -> State.REJECTED      // not enough reps
         (! hasTime())               -> State.PENDING       // not old enough
         else                        -> State.ACCEPTED      // enough reps, enough time
     }

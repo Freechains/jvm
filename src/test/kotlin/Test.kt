@@ -969,11 +969,17 @@ class Tests {
     fun m12_state () {
         a_reset()
 
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M12/"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M12/")) }
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M120/"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M120/")) }
         Thread.sleep(100)
         main(arrayOf(H0, "chain", "join", "/"))
         main(arrayOf(H0, "host", "now", "0"))
+
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M121/", "8331"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M121/")) }
+        Thread.sleep(100)
+        main(arrayOf(H1, "chain", "join", "/"))
+        main(arrayOf(H1, "host", "now", "0"))
 
         main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1",S0))
         val h21 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h21"))
@@ -1017,6 +1023,9 @@ class Tests {
             assert(it.startsWith("3_"))
         }
 
+        main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+
+////////
         // all accepted
         main_(arrayOf(H0, "host", "now", "${3*hour}"))
 
@@ -1030,16 +1039,51 @@ class Tests {
             }
         }
 
-        // dislike h22
-        main_(arrayOf(H0,"chain","dislike","/",h22,S0))
+        // l4 dislikes h22 (doesnt reject h22 because of fronts rule)
+        val l4 = main_(arrayOf(H0,"chain","dislike","/",h22,S0))
 
         //          -> l2  -> l3 -> l4
         // h0 -> h1 -> h21 ------/
         //          -> h22 -----/
 
+        main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
+            it.split(' ').let {
+                assert(it.size == 1)
+            }
+            assert(it.contains("4_"))
+        }
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.isEmpty())
+        }
+
         //          -> l2  -> l3
         // h0 -> h1 -> h21
         //          -> h22
+
+        main_(arrayOf(H0,"chain","ban","/",l4))
+        /*val h43 =*/ main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h43"))
+
+        //          -> l2 --> l3 -\
+        // h0 -> h1 -> h21 --------> h43
+        //          -> h22 -------/
+
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.startsWith("4_"))
+        }
+
+////////
+
+        main_(arrayOf(H1, "host", "now", "${1*hour}"))
+        main_(arrayOf(H1,"chain","dislike","/",h22,S0))     // one is not enough
+        main_(arrayOf(H1,"chain","dislike","/",h22,S0))     // one is not enough
+        main_(arrayOf(H1, "host", "now", "${4*hour}"))
+        main_(arrayOf(H1, "chain", "send", "/", "localhost:8330"))
+
+        //          -> l2  -> l3 -> l4
+        // h0 -> h1 -> h21
+        //          -> h22
+
+        // l4 dislikes h22 (reject it)
 
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
             it.split(' ').let {
@@ -1047,10 +1091,9 @@ class Tests {
             }
         }
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
-            assert(it.isEmpty())
+            assert(it.startsWith("2_"))
         }
     }
-
 
     @Test
     fun m13_reps () {

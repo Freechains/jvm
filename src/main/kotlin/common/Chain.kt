@@ -160,7 +160,7 @@ fun Chain.repsPost (hash: String) : Int {
     val blk = this.fsLoadBlock(hash,null)
 
     val likes = this
-        .bfs(this.heads,false) {  it.immut.time > blk.immut.time }
+        .bfs(this.heads,false) { it.immut.time > blk.immut.time }
         .filter { it.immut.like!=null && it.immut.like.hash==hash }
         .map { it.immut.like!! }
 
