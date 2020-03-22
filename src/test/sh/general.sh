@@ -120,16 +120,16 @@ for i in $(seq 8411 8420)
 do
   freechains --host=localhost:8400 chain send / localhost:$i &
 done
-sleep 60
 
 echo "#### 5.2"
+
+sleep 100
 
 for i in $(seq 8411 8420)
 do
+  echo ">>> $i"
   diff -I localTime $FC/8400/chains/blocks/ $FC/$i/chains/blocks/ || exit 1
 done
-
-echo "#### 5.2"
 
 for i in $(seq 8411 8420)
 do
@@ -144,7 +144,7 @@ do
   freechains --host=localhost:$i chain send / localhost:$(($i+5)) &
   freechains --host=localhost:$i chain send / localhost:$(($i+10)) &
 done
-sleep 10
+sleep 40
 
 for i in $(seq 8421 8430)
 do
