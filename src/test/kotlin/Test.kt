@@ -26,8 +26,9 @@ import kotlin.concurrent.thread
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 KB
  *  - Simulation.kt
  *  - liferea, /home, table/shared/trusted column, docs, fred, ppt
- *  - DESIGN:
+ *  - PROTO:
  *    - prunning (hash of bases, starts with genesis), if they don't match, permanent fork
+ *    - !ACC <- same author (allow same author to point back to non-accepted block)
  *  - HOST: "create" receives pub/pvt args
  *    - creates pvt chain oo (for logs)
  *    - save CFG in a chain
@@ -1177,6 +1178,7 @@ class Tests {
         main(arrayOf("chain", "join", "/"))
 
         main(arrayOf(H0, "host", "now", "0"))
+
         /*val h1  =*/ main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h0"))
         val h21 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h21"))
         /*val h20 =*/ main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h20"))
@@ -1225,10 +1227,11 @@ class Tests {
             assert(it.startsWith("6_"))
         }
 
+        // nothing changes
         /*val l- =*/ main_(arrayOf(H0, S0, "chain", "dislike", "/", h21))
 
-        // h0 -> h1 --> h21 -----------------> h51 --> h6
-        //          \-> h20 -> h30 -> l40 -/-> l50 -/----\-> l-
+        // h0 -> h1 --> h21 -----------------> h51 -\-> h6
+        //          \-> h20 -> h30 -> l40 -/-> l50 -/-> l-
 
         // h0 -> h1 --> h21
         //          \-> h20 -> h30 -> l40
@@ -1236,25 +1239,16 @@ class Tests {
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
             assert(!it.contains("2_"))
         }
-        main_(arrayOf(H0, "chain", "heads", "pending", "/")).let { str ->
-            str.split(' ').let {
-                assert(it.size == 2) { it.size }
-                assert (
-                    it[0].startsWith("2_") && it[1].startsWith("4_") ||
-                    it[1].startsWith("2_") && it[0].startsWith("4_")
-                )
-            }
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.startsWith("6_"))
         }
 
         main(arrayOf(H0, "host", "now", "${15*hour}"))
 
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let { str ->
             str.split(' ').let {
-                assert(it.size == 2) { it.size }
-                assert (
-                    it[0].startsWith("2_") && it[1].startsWith("4_") ||
-                            it[1].startsWith("2_") && it[0].startsWith("4_")
-                )
+                assert(it.size == 1) { it.size }
+                assert(it[0].startsWith("6_"))
             }
         }
 

@@ -15,12 +15,12 @@ import java.util.*
 import kotlin.collections.HashSet
 
 class Daemon (host : Host) {
-    val listenLists = mutableMapOf<String,MutableSet<DataOutputStream>>()
-    val server = ServerSocket(host.port)
-    val local = host
+    private val listenLists = mutableMapOf<String,MutableSet<DataOutputStream>>()
+    private val server = ServerSocket(host.port)
+    private val local = host
 
-    fun getLock (chain: Chain? = null) : String {
-        return (local.root + (if (chain == null) "" else chain.hash)).intern()
+    private fun getLock (chain: Chain? = null) : String {
+        return (local.root + (chain?.hash ?: "")).intern()
     }
 
     fun daemon () {
@@ -47,7 +47,7 @@ class Daemon (host : Host) {
         }
     }
 
-    fun signal (chain: String, n: Int) {
+    private fun signal (chain: String, n: Int) {
         val has = synchronized (listenLists) { listenLists.containsKey(chain) }
         if (has) {
             val wrs = synchronized (listenLists) { listenLists[chain]!!.toList() }
@@ -61,7 +61,7 @@ class Daemon (host : Host) {
         }
     }
 
-    fun handle (remote: Socket) {
+    private fun handle (remote: Socket) {
         val reader = DataInputStream(remote.getInputStream()!!)
         val writer = DataOutputStream(remote.getOutputStream()!!)
         var shouldClose = true
@@ -101,8 +101,8 @@ class Daemon (host : Host) {
                         val keys = lazySodium.cryptoSignSeedKeypair(pwh)
                         //println("PUBPVT: ${keys.publicKey.asHexString} // ${keys.secretKey.asHexString}")
                         writer.writeLineX(
-                            keys.getPublicKey().getAsHexString() + ' ' +
-                            keys.getSecretKey().getAsHexString()
+                            keys.publicKey.asHexString + ' ' +
+                            keys.secretKey.asHexString
                         )
                     }
                 }
@@ -159,8 +159,8 @@ class Daemon (host : Host) {
                             val hash = reader.readLineX()
                             val crypt= reader.readLineX()
 
-                            val crypt_= if (crypt == "") null else crypt
-                            val blk    = chain.fsLoadBlock(hash, crypt_)
+                            val crypt2= if (crypt == "") null else crypt
+                            val blk    = chain.fsLoadBlock(hash, crypt2)
                             val json   = blk.toJson()
 
                             assert(json.length <= Int.MAX_VALUE)
@@ -248,17 +248,17 @@ class Daemon (host : Host) {
                             }
                         }
                         "FC chain send" -> {
-                            val host_ = reader.readLineX()
+                            val host2 = reader.readLineX()
 
-                            val (host,port) = host_.hostSplit()
+                            val (host,port) = host2.hostSplit()
 
                             val socket = Socket(host, port)
-                            val (nmin,nmax) = socket.chain_send(chain)
+                            val (nmin,nmax) = socket.chainSend(chain)
                             System.err.println("chain send: $name ($nmin/$nmax)")
                             writer.writeLineX("$nmin / $nmax")
                         }
                         "FC chain recv" -> {
-                            val (nmin,nmax) = remote.chain_recv(chain)
+                            val (nmin,nmax) = remote.chainRecv(chain)
                             System.err.println("chain recv: $name: ($nmin/$nmax)")
                             thread {
                                 signal(name, nmin)
@@ -277,7 +277,7 @@ class Daemon (host : Host) {
     }
 }
 
-fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
+fun Socket.chainSend (chain: Chain) : Pair<Int,Int> {
     val reader = DataInputStream(this.getInputStream()!!)
     val writer = DataOutputStream(this.getOutputStream()!!)
 
@@ -292,13 +292,13 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
     writer.writeLineX(chain.name)
 
     val visited = HashSet<Hash>()
-    var Nmin    = 0
-    var Nmax    = 0
+    var nmin    = 0
+    var nmax    = 0
 
     // for each local head
     val heads = chain.getHeads(State.PENDING)
-    val n1 = heads.size
-    writer.writeLineX(n1.toString())                              // 1
+    val nout = heads.size
+    writer.writeLineX(nout.toString())                              // 1
     for (head in heads) {
         val pending = ArrayDeque<Hash>()
         pending.push(head)
@@ -331,7 +331,7 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
 
         writer.writeLineX("")                     // 4: will start sending nodes
         writer.writeLineX(toSend.size.toString())    // 5: how many
-        val n2 = toSend.size
+        val nin = toSend.size
         val sorted = toSend.sortedWith(compareBy{it.toHeight()})
         for (hash in sorted) {
             val blk = chain.fsLoadBlock(hash, null)
@@ -339,18 +339,18 @@ fun Socket.chain_send (chain: Chain) : Pair<Int,Int> {
             writer.writeBytes(blk.toJson())          // 6
             writer.writeLineX("\n")
         }
-        val n2_ = reader.readLineX().toInt()    // 7: how many blocks again
-        assert(n2 >= n2_)
-        Nmin += n2_
-        Nmax += n2
+        val nin2 = reader.readLineX().toInt()    // 7: how many blocks again
+        assert(nin >= nin2)
+        nmin += nin2
+        nmax += nin
     }
-    val n1_ = reader.readLineX().toInt()        // 8: how many heads again
-    assert(n1 == n1_)
+    val nout2 = reader.readLineX().toInt()        // 8: how many heads again
+    assert(nout == nout2)
 
-    return Pair(Nmin,Nmax)
+    return Pair(nmin,nmax)
 }
 
-fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
+fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
     val reader = DataInputStream(this.getInputStream()!!)
     val writer = DataOutputStream(this.getOutputStream()!!)
 
@@ -358,12 +358,12 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
     // - answers if contains each node
     // - receives all
 
-    var Nmax = 0
-    var Nmin = 0
+    var nmax = 0
+    var nmin = 0
 
     // for each remote head
-    val n1 = reader.readLineX().toInt()        // 1
-    for (i in 1..n1) {
+    val nout = reader.readLineX().toInt()        // 1
+    for (i in 1..nout) {
         // for each head path of blocks
         while (true) {
             val hash = reader.readLineX()   // 2: receives hash in the path
@@ -376,24 +376,24 @@ fun Socket.chain_recv (chain: Chain) : Pair<Int,Int> {
         }
 
         // receive blocks
-        val n2 = reader.readLineX().toInt()    // 5
-        Nmax += n2
-        var n2_ = 0
+        val nin = reader.readLineX().toInt()    // 5
+        nmax += nin
+        var nin2 = 0
 
-        xxx@for (j in 1..n2) {
+        xxx@for (j in 1..nin) {
             try {
                 val blk = reader.readLinesX().jsonToBlock() // 6
                 //println("[recv-2] ${blk.hash}")
                 chain.blockChain(blk)
-                Nmin++
-                n2_++
+                nmin++
+                nin2++
             } catch (e: Throwable) {
                 System.err.println(e.message)
                 //System.err.println(e.stackTrace.contentToString())
             }
         }
-        writer.writeLineX(n2_.toString())             // 7
+        writer.writeLineX(nin2.toString())             // 7
     }
-    writer.writeLineX(n1.toString())                // 8
-    return Pair(Nmin,Nmax)
+    writer.writeLineX(nout.toString())                // 8
+    return Pair(nmin,nmax)
 }

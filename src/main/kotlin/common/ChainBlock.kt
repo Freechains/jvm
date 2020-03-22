@@ -63,7 +63,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
 
     //assert(imm_.backs.isEmpty()) { "backs must be empty" }
     val backs =
-        if (!imm_.backs.isEmpty())
+        if (imm_.backs.isNotEmpty())
             imm_.backs
         else
             this.getHeads(State.ACCEPTED)
@@ -167,7 +167,7 @@ fun Chain.blockAssert (blk: Block) {
             .bfsAll(this.heads)
             .filter { it.hash.toHeight() == 1 }
             .let {
-                assert(it.size == 0) { "genesis is already referred" }
+                assert(it.isEmpty()) { "genesis is already referred" }
             }
     }
 
