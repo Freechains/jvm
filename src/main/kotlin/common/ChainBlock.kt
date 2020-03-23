@@ -21,7 +21,7 @@ fun Chain.hashState (hash: Hash) : State {
 fun Chain.blockState (blk: Block) : State {
     val now = getNow()
 
-    fun hasTime () : Boolean {
+    fun oldEnough () : Boolean {
         val dt = now - blk.immut.time
         return blk.localTime <= now - (T2H_past + sqrt(dt.toFloat()))   // old enough
     }
@@ -51,7 +51,7 @@ fun Chain.blockState (blk: Block) : State {
 
         // changeable
         (reps+ath+fronts <= 0)      -> State.REJECTED      // not enough reps
-        (! hasTime())               -> State.PENDING       // not old enough
+        (! oldEnough())             -> State.PENDING       // not old enough
         else                        -> State.ACCEPTED      // enough reps, enough time
     }
 }

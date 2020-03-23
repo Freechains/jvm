@@ -26,11 +26,16 @@ import kotlin.concurrent.thread
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 KB
  *  - Simulation.kt
  *  - liferea, /home, table/shared/trusted column, docs, fred, ppt
+ *  - PPT:
+ *    - isolate case that depend on the recv order
+ *    - blink impossible (fronts rule), once published on top: dislike does not affect removal / parallel pub refused
  *  - PROTO:
- *    - prunning (hash of bases, starts with genesis), if they don't match, permanent fork
+ *    - time limits constants
  *    - !ACC <- same author (allow same author to point back to non-accepted block)
+ *    - initial cost per 32KB
+ *    - prunning (hash of bases, starts with genesis), if they don't match, permanent fork
  *  - HOST: "create" receives pub/pvt args
- *    - creates pvt chain oo (for logs)
+ *    - creates pvt chain oo (for logs, periodic bcast)
  *    - save CFG in a chain
  *    - join reputation system (evaluate continue@xxx)
  *    - replicate command (all state)
@@ -42,6 +47,7 @@ import kotlin.concurrent.thread
  *    - old tests
  *  - REFACTOR
  *    - join (stop/now), they use connection
+ *    - chain/.* move dir files
  *  - CMDS
  *    - freechains now s/ time (retorna now)
  *    - freechains host restart

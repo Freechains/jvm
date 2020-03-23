@@ -144,7 +144,7 @@ do
   freechains --host=localhost:$i chain send / localhost:$(($i+5)) &
   freechains --host=localhost:$i chain send / localhost:$(($i+10)) &
 done
-sleep 40
+sleep 30
 
 for i in $(seq 8421 8430)
 do
