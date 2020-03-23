@@ -19,11 +19,9 @@ fun Chain.hashState (hash: Hash) : State {
 }
 
 fun Chain.blockState (blk: Block) : State {
-    val now = getNow()
-
     fun oldEnough () : Boolean {
-        val dt = now - blk.immut.time
-        return blk.localTime <= now - (T2H_past + sqrt(dt.toFloat()))   // old enough
+        val dt = blk.localTime - blk.immut.time
+        return blk.localTime <= getNow() - (T2H_past + sqrt(dt.toFloat()))   // old enough
     }
 
     val prev = blk.immut.prev

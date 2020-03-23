@@ -31,6 +31,7 @@ import kotlin.concurrent.thread
  *    - blink impossible (fronts rule), once published on top: dislike does not affect removal / parallel pub refused
  *  - PROTO:
  *    - time limits constants
+ *    - forks: reject smaller/newest branch
  *    - !ACC <- same author (allow same author to point back to non-accepted block)
  *    - initial cost per 32KB
  *    - prunning (hash of bases, starts with genesis), if they don't match, permanent fork
