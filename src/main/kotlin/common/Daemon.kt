@@ -228,8 +228,7 @@ class Daemon (host : Host) {
                                     Immut (
                                         max (
                                             time.nowToTime(),
-                                            chain.getHeads(State.ALL).map { chain.fsLoadBlock(it, null).immut.time }.max()!!
-                                            // TODO: +1 prevents something that happened after to occur simultaneously (also, problem with TODO???)
+                                            1 + chain.getHeads(State.ACCEPTED).map { chain.fsLoadBlock(it, null).immut.time }.max()!!
                                         ),
                                         cods[0],
                                         false,
@@ -243,6 +242,7 @@ class Daemon (host : Host) {
                                 )
                                 ret = blk.hash
                             } catch (e: Throwable) {
+                                //System.err.println(e.stackTrace.contentToString())
                                 ret = e.message!!
                             }
                             writer.writeLineX(ret)

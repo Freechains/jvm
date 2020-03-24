@@ -82,38 +82,40 @@ fun Immut.toHash () : Hash {
 
 // TRAVERSE
 
-fun Chain.getHeads (want: State, heads: List<Hash> = listOf(this.getGenesis())) : List<Hash> {
-    fun ok (want: State, have: Hash) : Boolean {
-        if (want == State.ALL) {
-            return true
-        }
-        val have2 = this.hashState(have)
-        return  (
-            want == have2 ||
-            (
-                want  == State.PENDING &&
-                have2 == State.ACCEPTED
-            )
-        )
-    }
+fun Chain.getHeads (want: State, hash: Hash = this.getGenesis()) : List<Hash> {
+    val have = if (want == State.ALL) null else this.hashState(hash)
 
-    return heads
-        .map {
-            if (!ok(want,it)) {
-                emptyList()
-            } else {
-                val blk= this.fsLoadBlock(it,null)
-                val ret= this.getHeads(want, blk.fronts).filter { ok(want,it) }
-                if (ret.size == 0) {
-                    listOf(it)
-                } else {
-                    this.getHeads(want, ret)
-                }
-            }
-        }
+    val rec = this.fsLoadBlock(hash, null)
+        .fronts
+        .map { this.getHeads(want, it) }
         .flatten()
         .toSet()
         .toList()
+
+    fun f (hash: Hash, list: List<Hash>) : List<Hash> {
+        return if (list.isEmpty()) listOf(hash) else list
+    }
+
+    return when (want) {
+        State.ALL              -> f(hash, rec)
+        State.REJECTED ->
+            when (have!!) {
+                State.REJECTED -> listOf(hash)
+                else           -> rec
+            }
+        State.ACCEPTED ->
+            when (have!!) {
+                State.ACCEPTED -> f(hash, rec)
+                else           -> emptyList()
+            }
+        State.PENDING ->
+            when (have!!) {
+                State.ACCEPTED -> f(hash, rec)
+                State.PENDING  -> f(hash, rec)
+                else           -> emptyList()
+            }
+        else -> error("impossible case")
+    }
 }
 
 fun Chain.bfsFirst (starts: List<Hash>, fromGen: Boolean=false, pred: (Block) -> Boolean) : Block? {

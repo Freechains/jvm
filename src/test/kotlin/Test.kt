@@ -986,14 +986,14 @@ class Tests {
         // h0 -> h1 -> h21
         //          -> h22
 
-        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
-            assert(it.startsWith("2_")) { it }
-        }
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
             assert(it.startsWith("1_")) { it }
         }
         main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
             assert(it.startsWith("1_")) { it }
+        }
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.startsWith("2_")) { it }
         }
 
         main_(arrayOf(H0,"chain","like","/",h21,S0))
