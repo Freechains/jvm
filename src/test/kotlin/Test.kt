@@ -1027,7 +1027,7 @@ class Tests {
         }
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331")).let {
-            assert(it.contains("5/5"))
+            assert(it.contains("5 / 5"))
         }
 
 ////////
@@ -1095,8 +1095,9 @@ class Tests {
                 assert(it.size == 2)
             }
         }
+        //println(">>>")
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
-            assert(it.startsWith("2_"))
+            assert(it.contains("2_"))
         }
     }
 

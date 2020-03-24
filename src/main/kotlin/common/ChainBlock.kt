@@ -15,7 +15,7 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 fun Chain.hashState (hash: Hash) : State {
     return when {
         this.fsExistsBlock(hash,"/bans/") -> State.BANNED
-        ! this.fsExistsBlock(hash)               -> State.MISSING
+        ! this.fsExistsBlock(hash)            -> State.MISSING
         else -> this.blockState(this.fsLoadBlock(hash,null))
     }
 }

@@ -45,17 +45,18 @@ function one (hash)
 
     NODES[#NODES+1] = '_'..hash..'[label="'..sub(hash)..'\n'..h.payload..'\n'..ref..'\n'..lik..'\n'..t..'"];'
 
-    for _,back in ipairs(blk.immut.backs) do
+    for _,back in ipairs(blk.fronts) do
         CONNS[#CONNS+1] = '_'..hash..' -> _'..back
     end
-    go(blk.immut.backs)
+    go(blk.fronts)
 end
 
-function go (heads)
-    for _, hash in ipairs(heads) do
+function go (fronts)
+    for _, hash in ipairs(fronts) do
         one(hash)
     end
 end
 
-go(CHAIN.heads)
+--go(CHAIN.heads)
+one('0_'..CHAIN.hash)
 out()
