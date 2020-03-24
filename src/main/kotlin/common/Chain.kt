@@ -12,7 +12,6 @@ import org.freechains.platform.lazySodium
 import java.lang.Integer.max
 import java.lang.Integer.min
 import java.util.*
-import kotlin.Comparator
 import kotlin.math.absoluteValue
 
 // internal methods are private but are used in tests
@@ -117,9 +116,9 @@ fun Chain.getHeads (want: State, heads: List<Hash> = listOf(this.getGenesis())) 
         .toList()
 }
 
-fun Chain.bfsFirst (heads: List<Hash>, fromGen: Boolean=false, pred: (Block) -> Boolean) : Block? {
+fun Chain.bfsFirst (starts: List<Hash>, fromGen: Boolean=false, pred: (Block) -> Boolean) : Block? {
     return this
-        .bfs(heads,true, fromGen, pred)
+        .bfs(starts,true, fromGen, pred)
         .last()
         .let {
             if (it.hash == this.getGenesis())
@@ -135,6 +134,7 @@ fun Chain.bfsAll (start: Hash = this.getGenesis()) : List<Block> {
 
 fun Chain.bfs (starts: List<Hash>, inc: Boolean, fromGen: Boolean=false, ok: (Block) -> Boolean) : List<Block> {
     val ret = mutableListOf<Block>()
+
     val pending =
         if (fromGen) {
             TreeSet<Block>(compareBy { it.immut.time })
@@ -142,6 +142,8 @@ fun Chain.bfs (starts: List<Hash>, inc: Boolean, fromGen: Boolean=false, ok: (Bl
             TreeSet<Block>(compareByDescending { it.immut.time })       // TODO: val cmp = ...
         }
     pending.addAll(starts.map { this.fsLoadBlock(it,null) })
+
+    val visited = starts.toMutableSet()
 
     while (pending.isNotEmpty()) {
         val blk = pending.first()
@@ -154,8 +156,8 @@ fun Chain.bfs (starts: List<Hash>, inc: Boolean, fromGen: Boolean=false, ok: (Bl
         }
 
         val list = if (fromGen) blk.fronts else blk.immut.backs.toList()
-        pending.addAll(list.map { this.fsLoadBlock(it,null) })
-        //println(blk.hash)
+        pending.addAll(list.minus(visited).map { this.fsLoadBlock(it,null) })
+        visited.addAll(list)
         ret.add(blk)
     }
 
@@ -180,7 +182,7 @@ fun Chain.repsPost (hash: String) : Int {
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.getHeads(State.ALL).toList()) : Int {
-    val gen = this.bfsFirst(heads,true) { it.hash.toHeight() != 1 }.let {
+    val gen = this.bfsFirst(listOf(this.getGenesis()),true) { it.hash.toHeight() < 1 }.let {
         when {
             (it == null)   -> 0
             it.isFrom(pub) -> LK30_max
