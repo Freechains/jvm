@@ -12,7 +12,6 @@ import org.freechains.platform.lazySodium
 import java.lang.Integer.max
 import java.lang.Integer.min
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.math.absoluteValue
 
 // internal methods are private but are used in tests
@@ -123,7 +122,7 @@ fun Chain.isBack (heads: List<Hash>, hash: Hash) : Boolean {
 
 fun Chain.bfsFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
     return this
-        .bfs(heads,true, pred)
+        .bfs(heads,true, false, pred)
         .last()
         .let {
             if (it.hash == this.getGenesis())
@@ -133,11 +132,11 @@ fun Chain.bfsFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
         }
 }
 
-fun Chain.bfsAll (heads: List<Hash>) : Array<Block> {
+fun Chain.bfsAll (heads: List<Hash>) : List<Block> {
     return this.bfs(heads,false) { true }
 }
 
-fun Chain.bfs (heads: List<Hash>, inc: Boolean, f: (Block) -> Boolean) : Array<Block> {
+fun Chain.bfs (heads: List<Hash>, inc: Boolean, fromGen: Boolean=false, ok: (Block) -> Boolean) : List<Block> {
     val ret = mutableListOf<Block>()
     val pending = TreeSet<Block>(compareByDescending { it.immut.time })
     pending.addAll(heads.map { this.fsLoadBlock(it,null) })
@@ -145,18 +144,19 @@ fun Chain.bfs (heads: List<Hash>, inc: Boolean, f: (Block) -> Boolean) : Array<B
     while (pending.isNotEmpty()) {
         val blk = pending.first()
         pending.remove(blk)
-        if (!f(blk)) {
+        if (!ok(blk)) {
             if (inc) {
                 ret.add(blk)
             }
             break
         }
 
-        pending.addAll(blk.immut.backs.map { this.fsLoadBlock(it,null) })
+        val list = if (fromGen) blk.fronts else blk.immut.backs.toList()
+        pending.addAll(list.map { this.fsLoadBlock(it,null) })
         ret.add(blk)
     }
 
-    return ret.toTypedArray()
+    return ret
 }
 
 // REPUTATION
