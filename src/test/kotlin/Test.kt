@@ -1020,8 +1020,15 @@ class Tests {
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
             assert(it.startsWith("3_"))
         }
+        main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
+            it.split(' ').let {
+                assert(it.size == 3)
+            }
+        }
 
-        main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+        main_(arrayOf(H0, "chain", "send", "/", "localhost:8331")).let {
+            assert(it.contains("5/5"))
+        }
 
 ////////
         // all accepted

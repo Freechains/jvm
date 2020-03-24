@@ -187,14 +187,14 @@ class Daemon (host : Host) {
                             if (! chain.fsExistsBlock(hash)) {
                                 writer.writeLineX("false")
                             } else {
-                                //chain.blockBan(hash)
+                                chain.blockBan(hash)
                                 writer.writeLineX("true")
                             }
                         }
                         "FC chain unban" -> {
                             val hash = reader.readLineX()
                             if (chain.fsExistsBlock(hash,"/bans/")) {
-                                //chain.blockUnban(hash)
+                                chain.blockUnban(hash)
                                 writer.writeLineX("true")
                             } else {
                                 writer.writeLineX("false")
@@ -340,6 +340,7 @@ fun Socket.chainSend (chain: Chain) : Pair<Int,Int> {
         val sorted = toSend.sortedWith(compareBy{it.toHeight()})
         for (hash in sorted) {
             val blk = chain.fsLoadBlock(hash, null)
+            blk.fronts.clear()
             //println("[send] $hash")
             writer.writeBytes(blk.toJson())          // 6
             writer.writeLineX("\n")
@@ -388,7 +389,7 @@ fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
         xxx@for (j in 1..nin) {
             try {
                 val blk = reader.readLinesX().jsonToBlock() // 6
-                //println("[recv-2] ${blk.hash}")
+                //println("[recv] ${blk.hash}")
                 chain.blockChain(blk)
                 nmin++
                 nin2++

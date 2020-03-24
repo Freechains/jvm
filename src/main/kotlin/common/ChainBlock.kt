@@ -10,6 +10,8 @@ fun Chain.fromOwner (blk: Block) : Boolean {
     return (this.pub != null) && blk.isFrom(this.pub.key)
 }
 
+// STATE
+
 fun Chain.hashState (hash: Hash) : State {
     return when {
         this.fsExistsBlock(hash,"/bans/") -> State.BANNED
@@ -54,7 +56,7 @@ fun Chain.blockState (blk: Block) : State {
     }
 }
 
-// BLOCK
+// NEW
 
 fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
     assert(imm_.prev == null) { "prev must be null" }
@@ -181,4 +183,46 @@ fun Chain.blockAssert (blk: Block) {
             "like author must have reputation"
         }
     }
+}
+
+// BAN
+
+fun Chain.blockBan (hash: Hash) {
+    //println("rem $hash // ${blk.fronts}")
+    val blk = this.fsLoadBlock(hash, null)
+
+    // remove myself as front of all my backs
+    for (bk in blk.immut.backs) {
+        this.fsLoadBlock(bk, null).let {
+            it.fronts.remove(hash)
+            this.fsSaveBlock(it)
+        }
+    }
+
+    for (fr in blk.fronts) {
+        this.blockBan(fr)
+    }
+
+    this.fsSaveBlock(blk, "/bans/")
+    this.fsRemBlock(blk.hash)
+}
+
+
+fun Chain.blockUnban (hash: Hash) {
+    //println("rem $hash // ${blk.fronts}")
+    val blk = this.fsLoadBlock(hash, null, "/bans/")
+
+    // add myself as front of all my backs
+    for (bk in blk.immut.backs) {
+        this.fsLoadBlock(bk, null).let {
+            it.fronts.add(hash)
+            this.fsSaveBlock(it)
+        }
+    }
+
+    blk.fronts.clear()
+
+    this.fsSaveBlock(blk)
+    this.fsRemBlock(blk.hash, "/bans/")
+
 }
