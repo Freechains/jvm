@@ -162,8 +162,6 @@ class Tests {
         //a_reset()
         val h = Host_create("/tmp/freechains/tests/local/")
         val c1 = h.joinChain("/uerj", false, null)
-        //println("Chain /uerj: ${chain1.toHash()}")
-        c1.fsSave()
 
         val c2 = h.loadChain(c1.name)
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
@@ -262,19 +260,19 @@ class Tests {
                        \-- (b1) +---- (b2) ---/
          */
 
-        assert(chain.bfsAll(chain.heads).size == 7)
+        assert(chain.bfsAll(chain.getHeads(State.ALL)).size == 7)
 
-        val x = chain.bfs(chain.heads,false) { it.hash.toHeight() > 2 }
+        val x = chain.bfs(chain.getHeads(State.ALL),false) { it.hash.toHeight() > 2 }
         assert(x.size == 3)
 
         fun Chain.getMaxTime(): Long {
-            return this.heads
+            return this.getHeads(State.ALL)
                 .map { this.fsLoadBlock(it, null) }
                 .map { it.immut.time }
                 .max()!!
         }
 
-        val y = chain.bfsAll(chain.heads).filter { it.immut.time >= chain.getMaxTime() - 30 * day }
+        val y = chain.bfsAll(chain.getHeads(State.ALL)).filter { it.immut.time >= chain.getMaxTime() - 30 * day }
         //println(y.map { it.hash })
         assert(y.size == 4)
 
@@ -1248,4 +1246,63 @@ class Tests {
 
         // TODO: check rems/ directory
     }
+
+    /*
+    @Test
+    fun m15_rejected() {
+        a_reset()
+
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M150/"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M150/")) }
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M151/", "8331"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M151/")) }
+        Thread.sleep(100)
+        main(arrayOf(H0, "chain", "join", "/"))
+        main(arrayOf(H1, "chain", "join", "/"))
+
+        main(arrayOf(H0, "host", "now", "0"))
+        main(arrayOf(H1, "host", "now", "0"))
+
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "0@h1"))
+        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "1@h2"))
+        main_(arrayOf(H0, S0, "chain", "like", "/", h2))
+
+        main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+
+        // h0 <- 0@h1 <- 0@l2
+        //            <- 1@h2
+
+        main(arrayOf(H0, "host", "now", "${5*hour}"))
+        main(arrayOf(H1, "host", "now", "${5*hour}"))
+
+        main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let { str ->
+            str.split(' ').let {
+                assert(it.size == 2) { it.size }
+                it.forEach { v -> assert(v.startsWith("2_")) }
+            }
+        }
+
+        main(arrayOf(H0, "host", "now", "${25*hour}"))
+        main(arrayOf(H1, "host", "now", "${25*hour}"))
+
+        main_(arrayOf(H1, S1, "chain", "post", "/", "inline", "utf8", "1@h3"))
+        Thread.sleep(1000)
+        main_(arrayOf(H0, S0, "chain", "dislike", "/", h2))
+
+        println(">>>>")
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let { str ->
+            str.split(' ').let {
+                assert(it.size == 1) { it.size }
+                assert(it[0].startsWith("2_"))
+            }
+        }
+        error("ok")
+        main_(arrayOf(H1, "chain", "heads", "accepted", "/")).let { str ->
+            str.split(' ').let {
+                assert(it.size == 2) { it.size }
+                it.forEach { v -> assert(v.startsWith("2_")) }
+            }
+        }
+    }
+    */
 }

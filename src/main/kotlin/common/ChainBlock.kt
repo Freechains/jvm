@@ -38,7 +38,7 @@ fun Chain.blockState (blk: Block) : State {
     //println("rep ${blk.hash} = reps=$reps + ath=$ath")
 
     // number of blocks that points back to it (-1 myself)
-    val fronts = this.bfsAll(this.heads).count { this.isBack(listOf(it.hash),blk.hash) } - 1
+    val fronts = this.bfsAll(this.getHeads(State.ALL)).count { this.isBack(listOf(it.hash),blk.hash) } - 1
 
     return when {
         // unchangeable
@@ -64,10 +64,10 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
         if (imm_.backs.isNotEmpty())
             imm_.backs
         else
-            this.getHeads(State.ACCEPTED)
+            this.getHeads(State.ACCEPTED).toTypedArray()
 
     val prev= sign?.let { s ->
-        this.bfsFirst(this.heads) { !it.isFrom(s.pvtToPub()) } ?.hash
+        this.bfsFirst(this.getHeads(State.ALL)) { !it.isFrom(s.pvtToPub()) } ?.hash
     }
 
     val imm = imm_.copy (
@@ -97,42 +97,18 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
 }
 
 fun Chain.blockChain (blk: Block) {
-    // get old state of liked block
-    val wasLiked=
-        if (blk.immut.like == null)
-            null
-        else
-            this.blockState(this.fsLoadBlock(blk.immut.like.hash,null))
-
     this.blockAssert(blk)
     this.fsSaveBlock(blk)
 
-    this.heads.add(blk.hash)
-    blk.immut.backs.forEach { this.heads.remove(it) }
-
-    // check if state of liked block changed
-    if (wasLiked != null) {
-        this.fsLoadBlock(blk.immut.like!!.hash,null).let {
-            val now = this.blockState(it)
-            //println("${it.hash} : $wasLiked -> $now")
-            when {
-                // changed from ACC -> REJ
-                (wasLiked==State.ACCEPTED && now==State.REJECTED) -> {
-                    //println("REJ ${it.hash}")
-                    this.blockReject(it.hash)
-                    it.localTime = getNow()
-                    this.fsSaveBlock(it)
-                }
-                // changed from REJ -> ACC
-                (wasLiked==State.REJECTED && now==State.ACCEPTED) -> {
-                    //this.blockUnReject(it.hash)
-                    // TODO: search fronts in fs (X+1)_xxx
-                }
-            }
+    // addBlockAsFrontOfBacks
+    for (bk in blk.immut.backs) {
+        this.fsLoadBlock(bk, null).let {
+            assert(!it.fronts.contains(blk.hash)) { "bug found: " + it.hash + " -> " + blk.hash }
+            it.fronts.add(blk.hash)
+            //it.fronts.sort()
+            this.fsSaveBlock(it)
         }
     }
-
-    this.fsSave()
 }
 
 fun Chain.backsAssert (blk: Block) {
@@ -162,7 +138,7 @@ fun Chain.blockAssert (blk: Block) {
     val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
     if (blk.immut.backs.contains(gen)) {
         this
-            .bfsAll(this.heads)
+            .bfsAll(this.getHeads(State.ALL))
             .filter { it.hash.toHeight() == 1 }
             .let {
                 assert(it.isEmpty()) { "genesis is already referred" }
@@ -180,7 +156,7 @@ fun Chain.blockAssert (blk: Block) {
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
 
         // check if new post leads to latest post from author currently in the chain
-        this.bfsFirst(this.heads) { !it.isFrom(blk.sign.pub) }.let {
+        this.bfsFirst(this.getHeads(State.ALL)) { !it.isFrom(blk.sign.pub) }.let {
             //if (it != null) println("old = ${this.heads} // ${this.hashState(it.hash)}")
             assert (
                 if (it == null)

@@ -8,11 +8,12 @@ import kotlinx.serialization.json.JsonConfiguration
 typealias Hash = String
 
 enum class State {
-    MISSING, BANNED, REJECTED, PENDING, ACCEPTED
+    MISSING, BANNED, REJECTED, PENDING, ACCEPTED, ALL
 }
 
 fun State.toString_ () : String {
     return when (this) {
+        State.ALL      -> "all"
         State.ACCEPTED -> "accepted"
         State.PENDING  -> "pending"
         State.REJECTED -> "rejected"
@@ -23,6 +24,7 @@ fun State.toString_ () : String {
 
 fun String.toState () : State {
     return when (this) {
+        "all"      -> State.ALL
         "accepted" -> State.ACCEPTED
         "pending"  -> State.PENDING
         "rejected" -> State.REJECTED
@@ -61,6 +63,7 @@ data class Block (
     val hash      : Hash,               // hash of immut
     val sign      : Signature?
 ) {
+    var fronts    : MutableList<Hash> = mutableListOf() // front links (next blocks)
     var localTime : Long = getNow()     // local time
 }
 

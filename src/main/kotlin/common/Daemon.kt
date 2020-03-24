@@ -187,14 +187,14 @@ class Daemon (host : Host) {
                             if (! chain.fsExistsBlock(hash)) {
                                 writer.writeLineX("false")
                             } else {
-                                chain.blockBan(hash)
+                                //chain.blockBan(hash)
                                 writer.writeLineX("true")
                             }
                         }
                         "FC chain unban" -> {
                             val hash = reader.readLineX()
                             if (chain.fsExistsBlock(hash,"/bans/")) {
-                                chain.blockUnban(hash)
+                                //chain.blockUnban(hash)
                                 writer.writeLineX("true")
                             } else {
                                 writer.writeLineX("false")
@@ -228,7 +228,7 @@ class Daemon (host : Host) {
                                     Immut (
                                         max (
                                             time.nowToTime(),
-                                            chain.heads.map { chain.fsLoadBlock(it, null).immut.time }.max()!!
+                                            chain.getHeads(State.ALL).map { chain.fsLoadBlock(it, null).immut.time }.max()!!
                                             // TODO: +1 prevents something that happened after to occur simultaneously (also, problem with TODO???)
                                         ),
                                         cods[0],

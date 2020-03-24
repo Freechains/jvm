@@ -31,7 +31,6 @@ data class Chain (
     val pub     : ChainPub?
 ) {
     val hash    : String = this.toHash()
-    val heads   : ArrayList<Hash> = arrayListOf(this.getGenesis())
 }
 
 // TODO: change to contract/constructor assertion
@@ -84,32 +83,38 @@ fun Immut.toHash () : Hash {
 
 // TRAVERSE
 
-fun Chain.getHeads (want: State, heads: List<Hash> = this.heads) : Array<Hash> {
+fun Chain.getHeads (want: State, heads: List<Hash> = listOf(this.getGenesis())) : List<Hash> {
+    fun ok (want: State, have: Hash) : Boolean {
+        if (want == State.ALL) {
+            return true
+        }
+        val have2 = this.hashState(have)
+        return  (
+            want == have2 ||
+            (
+                want  == State.PENDING &&
+                have2 == State.ACCEPTED
+            )
+        )
+    }
+
     return heads
         .map {
-            val have = this.hashState(it)
-            when {
-                (want == have)         -> arrayOf(it)
-                (want==State.PENDING &&
-                 have==State.ACCEPTED) -> arrayOf(it)
-                want > have            -> this.getHeads(want, this.fsLoadBlock(it,null).immut.backs.toList())
-                else                   -> emptyArray()
-            }
-        }
-        .toTypedArray()
-        .flatten()
-        .let { ret ->
-            ret.filter { cur ->
-                // I tried all heads and none of their backs lead to cur
-                // so cur is a head
-                ret.none {
-                    val x = this.fsLoadBlock(it,null).immut.backs.toList()
-                    (x.isNotEmpty() && this.isBack(x,cur))
+            if (!ok(want,it)) {
+                emptyList()
+            } else {
+                val blk= this.fsLoadBlock(it,null)
+                val ret= this.getHeads(want, blk.fronts).filter { ok(want,it) }
+                if (ret.size == 0) {
+                    listOf(it)
+                } else {
+                    this.getHeads(want, ret)
                 }
             }
         }
+        .flatten()
         .toSet()
-        .toTypedArray()
+        .toList()
 }
 
 fun Chain.isBack (heads: List<Hash>, hash: Hash) : Boolean {
@@ -160,18 +165,18 @@ fun Chain.repsPost (hash: String) : Int {
     val blk = this.fsLoadBlock(hash,null)
 
     val likes = this
-        .bfs(this.heads,false) { it.immut.time > blk.immut.time }
+        .bfs(this.getHeads(State.ALL).toList(),false) { it.immut.time > blk.immut.time }
         .filter { it.immut.like!=null && it.immut.like.hash==hash }
         .map { it.immut.like!! }
 
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
 
-    //println("$hash // pos=$pos // neg=$neg")
+    println("$hash // pos=$pos // neg=$neg")
     return pos + neg
 }
 
-fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : Int {
+fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.getHeads(State.ALL).toList()) : Int {
     val gen = this.bfsFirst(heads) { it.hash.toHeight() > 1 }.let {
         when {
             (it == null)   -> 0
@@ -223,7 +228,7 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.heads) : 
 
 // FILE SYSTEM
 
-fun Chain.fsSave () {
+internal fun Chain.fsSave () {
     val dir = File(this.root + this.name + "/blocks/")
     if (!dir.exists()) {
         dir.mkdirs()
@@ -231,10 +236,6 @@ fun Chain.fsSave () {
         File(this.root + this.name + "/bans/").mkdirs()
     }
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
-}
-
-fun Chain.fsRemBlock (hash: Hash, dir: String="/blocks/") {
-    assert(File(this.root + this.name + dir + hash + ".blk").delete()) { "rejected is not found" }
 }
 
 fun Chain.fsLoadBlock (hash: Hash, crypt: HKey?, dir: String="/blocks/") : Block {
