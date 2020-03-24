@@ -12,6 +12,7 @@ import org.freechains.platform.lazySodium
 import java.lang.Integer.max
 import java.lang.Integer.min
 import java.util.*
+import kotlin.Comparator
 import kotlin.math.absoluteValue
 
 // internal methods are private but are used in tests
@@ -116,13 +117,9 @@ fun Chain.getHeads (want: State, heads: List<Hash> = listOf(this.getGenesis())) 
         .toList()
 }
 
-fun Chain.isBack (heads: List<Hash>, hash: Hash) : Boolean {
-    return this.bfsFirst(heads) { it.hash != hash } != null
-}
-
-fun Chain.bfsFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
+fun Chain.bfsFirst (heads: List<Hash>, fromGen: Boolean=false, pred: (Block) -> Boolean) : Block? {
     return this
-        .bfs(heads,true, false, pred)
+        .bfs(heads,true, fromGen, pred)
         .last()
         .let {
             if (it.hash == this.getGenesis())
@@ -132,14 +129,19 @@ fun Chain.bfsFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
         }
 }
 
-fun Chain.bfsAll (heads: List<Hash>) : List<Block> {
-    return this.bfs(heads,false) { true }
+fun Chain.bfsAll (start: Hash = this.getGenesis()) : List<Block> {
+    return this.bfs(listOf(start),false, true) { true }
 }
 
-fun Chain.bfs (heads: List<Hash>, inc: Boolean, fromGen: Boolean=false, ok: (Block) -> Boolean) : List<Block> {
+fun Chain.bfs (starts: List<Hash>, inc: Boolean, fromGen: Boolean=false, ok: (Block) -> Boolean) : List<Block> {
     val ret = mutableListOf<Block>()
-    val pending = TreeSet<Block>(compareByDescending { it.immut.time })
-    pending.addAll(heads.map { this.fsLoadBlock(it,null) })
+    val pending =
+        if (fromGen) {
+            TreeSet<Block>(compareBy { it.immut.time })
+        } else {
+            TreeSet<Block>(compareByDescending { it.immut.time })       // TODO: val cmp = ...
+        }
+    pending.addAll(starts.map { this.fsLoadBlock(it,null) })
 
     while (pending.isNotEmpty()) {
         val blk = pending.first()
@@ -153,6 +155,7 @@ fun Chain.bfs (heads: List<Hash>, inc: Boolean, fromGen: Boolean=false, ok: (Blo
 
         val list = if (fromGen) blk.fronts else blk.immut.backs.toList()
         pending.addAll(list.map { this.fsLoadBlock(it,null) })
+        //println(blk.hash)
         ret.add(blk)
     }
 
@@ -172,12 +175,12 @@ fun Chain.repsPost (hash: String) : Int {
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
 
-    println("$hash // pos=$pos // neg=$neg")
+    //println("$hash // pos=$pos // neg=$neg")
     return pos + neg
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.getHeads(State.ALL).toList()) : Int {
-    val gen = this.bfsFirst(heads) { it.hash.toHeight() > 1 }.let {
+    val gen = this.bfsFirst(heads,true) { it.hash.toHeight() != 1 }.let {
         when {
             (it == null)   -> 0
             it.isFrom(pub) -> LK30_max

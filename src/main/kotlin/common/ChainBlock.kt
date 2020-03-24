@@ -37,8 +37,8 @@ fun Chain.blockState (blk: Block) : State {
     val reps = this.repsPost(blk.hash)
     //println("rep ${blk.hash} = reps=$reps + ath=$ath")
 
-    // number of blocks that points back to it (-1 myself)
-    val fronts = this.bfsAll(this.getHeads(State.ALL)).count { this.isBack(listOf(it.hash),blk.hash) } - 1
+    // number of blocks that point back to it (-1 myself)
+    val fronts = this.bfsAll(blk.hash).count { true } - 1
 
     return when {
         // unchangeable
@@ -138,7 +138,7 @@ fun Chain.blockAssert (blk: Block) {
     val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
     if (blk.immut.backs.contains(gen)) {
         this
-            .bfsAll(this.getHeads(State.ALL))
+            .bfsAll()
             .filter { it.hash.toHeight() == 1 }
             .let {
                 assert(it.isEmpty()) { "genesis is already referred" }

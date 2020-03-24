@@ -260,7 +260,7 @@ class Tests {
                        \-- (b1) +---- (b2) ---/
          */
 
-        assert(chain.bfsAll(chain.getHeads(State.ALL)).size == 7)
+        assert(chain.bfsAll().size == 7)
 
         val x = chain.bfs(chain.getHeads(State.ALL),false) { it.hash.toHeight() > 2 }
         assert(x.size == 3)
@@ -272,7 +272,7 @@ class Tests {
                 .max()!!
         }
 
-        val y = chain.bfsAll(chain.getHeads(State.ALL)).filter { it.immut.time >= chain.getMaxTime() - 30 * day }
+        val y = chain.bfsAll().filter { it.immut.time >= chain.getMaxTime() - 30 * day }
         //println(y.map { it.hash })
         assert(y.size == 4)
 
