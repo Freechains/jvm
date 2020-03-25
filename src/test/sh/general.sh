@@ -123,7 +123,7 @@ done
 
 echo "#### 5.2"
 
-sleep 100
+sleep 150
 
 for i in $(seq 8411 8420)
 do
@@ -135,7 +135,7 @@ for i in $(seq 8411 8420)
 do
   freechains --host=localhost:$i chain send / localhost:$(($i+10)) &
 done
-sleep 10
+sleep 20
 
 echo "#### 5.3"
 
@@ -144,7 +144,7 @@ do
   freechains --host=localhost:$i chain send / localhost:$(($i+5)) &
   freechains --host=localhost:$i chain send / localhost:$(($i+10)) &
 done
-sleep 30
+sleep 60
 
 for i in $(seq 8421 8430)
 do

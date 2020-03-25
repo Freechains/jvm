@@ -173,18 +173,20 @@ fun Chain.bfs (starts: List<Hash>, inc: Boolean, fromGen: Boolean=false, ok: (Bl
 
 // REPUTATION
 
-fun Chain.repsPost (hash: String) : Int {
+fun Chain.repsPost (hash: String, chkRejected: Boolean) : Int {
     val blk = this.fsLoadBlock(hash,null)
 
     val likes = this
-        .bfs(this.getHeads(State.ALL).toList(),false) { it.immut.time > blk.immut.time }
+        .bfsAll ()
+        .minus  (if (chkRejected) this.bfsAll(hash) else emptyList())
         .filter { it.immut.like!=null && it.immut.like.hash==hash }
-        .map { it.immut.like!! }
+        .filter { !chkRejected || blk.immut.time > (it.immut.time-T1D_rep_eng) }
+        .map    { it.immut.like!! }
 
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
 
-    //println("$hash // pos=$pos // neg=$neg")
+    //println("$hash // pos=$pos // neg=$neg // ")
     return pos + neg
 }
 
@@ -225,7 +227,7 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.getHeads(
         }
 
     val recv = mines
-        .map { this.repsPost(it.hash) }
+        .map { this.repsPost(it.hash,false) }
         .sum()                                               // likes I received
 
     val gave = mines

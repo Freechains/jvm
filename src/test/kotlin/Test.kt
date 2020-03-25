@@ -1373,4 +1373,86 @@ class Tests {
             assert(it.isEmpty())
         }
     }
+
+    @Test
+    fun m16_likes_fronts () {
+        a_reset()
+
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M16/"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M16/")) }
+        Thread.sleep(100)
+        main(arrayOf(H0, "chain", "join", "/"))
+
+        main(arrayOf(H0, "host", "now", "0"))
+
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "0@h1"))
+        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "1@h2"))
+        main_(arrayOf(H0, S0, "chain", "like", "/", h2))
+
+        // HOST-0
+        // h0 <- 0@h1 <-- 0@l2
+        //            <- 1@h2
+
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.isEmpty())
+        }
+
+        main(arrayOf(H0, "host", "now", "${3*hour}"))
+
+        // l4 dislikes h2: h2 should remain accepted b/c h2<-l3
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "0@h3"))
+        main_(arrayOf(H0, S0, "chain", "dislike", "/", h2))
+
+        // HOST-0
+        // h0 <- 0@h1 <-- 0@l2 <-- 0@h3 <- 0@l4
+        //            <- 1@h2 <-/
+
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.isEmpty())
+        }
+        main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
+            assert(it.startsWith("4_"))
+        }
+    }
+
+    @Test
+    fun m17_likes_day () {
+        a_reset()
+
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M17/"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M17/")) }
+        Thread.sleep(100)
+        main(arrayOf(H0, "chain", "join", "/"))
+
+        main(arrayOf(H0, "host", "now", "0"))
+
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "0@h1"))
+        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "1@h2"))
+        main_(arrayOf(H0, S0, "chain", "like", "/", h2))
+
+        // HOST-0
+        // h0 <- 0@h1 <-- 0@l2
+        //            <- 1@h2
+
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.isEmpty())
+        }
+
+        main(arrayOf(H0, "host", "now", "${25*hour}"))
+
+        // l4 dislikes h2: h2 should remain accepted b/c (l3-h2 > 24h)
+        main_(arrayOf(H0, S0, "chain", "dislike", "/", h2))
+
+        // HOST-0
+        // h0 <- 0@h1 <-- 0@l2 <-- 0@h3 <- 0@l4
+        //            <- 1@h2 <-/
+
+        println(">>>")
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.isEmpty())
+        }
+        main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
+            assert(it.startsWith("3_"))
+        }
+    }
 }

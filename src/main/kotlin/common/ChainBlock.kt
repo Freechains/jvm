@@ -37,7 +37,7 @@ fun Chain.blockState (blk: Block) : State {
             listOf(prev)
         )
     }
-    val reps = this.repsPost(blk.hash)
+    val reps = this.repsPost(blk.hash, true)
 
     // number of blocks that point back to it (-1 myself)
     //val fronts = max(0, this.bfsAll(blk.hash).count{ this.blockState(it)==State.ACCEPTED } - 1)
@@ -75,7 +75,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
             val liked = this.fsLoadBlock(imm_.like.hash, null)
             when {
                 // engraved, no reason to move this like out
-                ((liked.immut.time <= getNow() - T1D_rep_eng))     -> accs
+                ((liked.immut.time <= imm_.time-T1D_rep_eng))      -> accs
 
                 // author has post after liked, cannot move it
                 (prev!=null && this.isFromTo(imm_.like.hash,prev)) -> accs
