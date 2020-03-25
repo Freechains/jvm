@@ -118,9 +118,14 @@ fun Chain.getHeads (want: State, hash: Hash = this.getGenesis()) : List<Hash> {
     }
 }
 
+fun Chain.isFromTo (from: Hash, to: Hash) : Boolean {
+    //println(this.bfsFirst(listOf(from), true) { it.hash == to })
+    return to == (this.bfsFirst(listOf(from), true) { it.hash == to }!!.hash)
+}
+
 fun Chain.bfsFirst (starts: List<Hash>, fromGen: Boolean=false, pred: (Block) -> Boolean) : Block? {
     return this
-        .bfs(starts,true, fromGen, pred)
+        .bfs(starts,true, fromGen) { !pred(it) }
         .last()
         .let {
             if (it.hash == this.getGenesis())
@@ -184,7 +189,7 @@ fun Chain.repsPost (hash: String) : Int {
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.getHeads(State.ALL).toList()) : Int {
-    val gen = this.bfsFirst(listOf(this.getGenesis()),true) { it.hash.toHeight() < 1 }.let {
+    val gen = this.bfsFirst(listOf(this.getGenesis()),true) { it.hash.toHeight() >= 1 }.let {
         when {
             (it == null)   -> 0
             it.isFrom(pub) -> LK30_max
@@ -193,7 +198,7 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.getHeads(
     }
 
     val mines = this
-        .bfsFirst(heads) { !it.isFrom(pub) }.let { blk ->
+        .bfsFirst(heads) { it.isFrom(pub) }.let { blk ->
             if (blk == null) {
                 emptyList()
             } else {

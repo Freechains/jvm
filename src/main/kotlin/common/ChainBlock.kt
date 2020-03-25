@@ -37,11 +37,11 @@ fun Chain.blockState (blk: Block) : State {
         )
     }
     val reps = this.repsPost(blk.hash)
-    //println("rep ${blk.hash} = reps=$reps + ath=$ath")
 
     // number of blocks that point back to it (-1 myself)
-    val fronts = this.bfsAll(blk.hash).count { true } - 1
+    val fronts = this.bfsAll(blk.hash).size - 1
 
+    //println("rep ${blk.hash} = reps=$reps + ath=$ath + fronts=$fronts")
     return when {
         // unchangeable
         (blk.hash.toHeight() <= 1)  -> State.ACCEPTED      // first two blocks
@@ -69,7 +69,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
             this.getHeads(State.ACCEPTED).toTypedArray()
 
     val prev= sign?.let { s ->
-        this.bfsFirst(this.getHeads(State.ALL)) { !it.isFrom(s.pvtToPub()) } ?.hash
+        this.bfsFirst(this.getHeads(State.ALL)) { it.isFrom(s.pvtToPub()) } ?.hash
     }
 
     val imm = imm_.copy (
@@ -120,7 +120,7 @@ fun Chain.backsAssert (blk: Block) {
         this.fsLoadBlock(bk,null).let {
             assert(it.immut.time <= blk.immut.time) { "back must be older"}
             if (blk.immut.like == null) {
-                assert(this.blockState(it) == State.ACCEPTED) { "backs must be accepted" }
+                //assert(this.blockState(it) == State.ACCEPTED) { "backs must be accepted" }
             }
         }
     }
@@ -158,13 +158,14 @@ fun Chain.blockAssert (blk: Block) {
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
 
         // check if new post leads to latest post from author currently in the chain
-        this.bfsFirst(this.getHeads(State.ALL)) { !it.isFrom(blk.sign.pub) }.let {
-            //if (it != null) println("old = ${this.heads} // ${this.hashState(it.hash)}")
+        this.bfsFirst(this.getHeads(State.ALL)) { it.isFrom(blk.sign.pub) }.let {
+            //if (it != null) println("${imm.prev} --> ${blk.hash} = ${this.isFromTo(imm.prev!!,blk.hash)}")
             assert (
                 if (it == null)
                     (imm.prev == null)
                 else
-                    (imm.prev==it.hash && this.hashState(it.hash)==State.ACCEPTED)
+                    (imm.prev==it.hash) //&& this.hashState(it.hash)==State.ACCEPTED)
+                        && (imm.backs.any { this.isFromTo(imm.prev,it) })
             ) { "must point to author's previous post" }
         }
     }

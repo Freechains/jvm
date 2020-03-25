@@ -1255,7 +1255,6 @@ class Tests {
         // TODO: check rems/ directory
     }
 
-    /*
     @Test
     fun m15_rejected() {
         a_reset()
@@ -1277,16 +1276,19 @@ class Tests {
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
 
-        // h0 <- 0@h1 <- 0@l2
-        //            <- 1@h2
+        main_(arrayOf(H0, S0, "chain", "dislike", "/", h2))
+
+        // HOST-0
+        // h0 <- 0@h1 <- 0@l2 <- 0@l3
+        //            <- 1@h2 <.../
 
         main(arrayOf(H0, "host", "now", "${5*hour}"))
         main(arrayOf(H1, "host", "now", "${5*hour}"))
 
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let { str ->
             str.split(' ').let {
-                assert(it.size == 2) { it.size }
-                it.forEach { v -> assert(v.startsWith("2_")) }
+                assert(it.size == 1) { it.size }
+                it.forEach { v -> assert(v.startsWith("3_")) }
             }
         }
 
@@ -1294,23 +1296,39 @@ class Tests {
         main(arrayOf(H1, "host", "now", "${25*hour}"))
 
         main_(arrayOf(H1, S1, "chain", "post", "/", "inline", "utf8", "1@h3"))
-        Thread.sleep(1000)
-        main_(arrayOf(H0, S0, "chain", "dislike", "/", h2))
 
-        println(">>>>")
+        // HOST-0
+        // h0 <- 0@h1 <- 0@l2 <- 0@l3
+        //            <- 1@h2 <.../
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1) { it.size }
-                assert(it[0].startsWith("2_"))
+                assert(it[0] == h2)     // H0 rejected 1@h2
             }
         }
-        error("ok")
+
+        // HOST-1
+        // h0 <- 0@h1 <- 0@l2 | <-\
+        //            <- 1@h2 | <- 1@h3
         main_(arrayOf(H1, "chain", "heads", "accepted", "/")).let { str ->
             str.split(' ').let {
                 assert(it.size == 2) { it.size }
                 it.forEach { v -> assert(v.startsWith("2_")) }
             }
         }
+
+        // send H1 -> H0
+        // 1@h3 will not count yet to 1@h2, but will after 24h
+
+        main_(arrayOf(H1, "chain", "send", "/", "localhost:8330")).let {
+            assert(it.contains("1 / 1"))
+        }
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let { str ->
+            str.split(' ').let {
+                assert(it.size == 1) { it.size }
+                assert(it[0] == h2)     // H0 rejected 1@h2
+            }
+        }
+
     }
-    */
 }
