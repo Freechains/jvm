@@ -4,6 +4,7 @@ import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import java.lang.Integer.max
 import kotlin.math.sqrt
 
 fun Chain.fromOwner (blk: Block) : Boolean {
@@ -39,7 +40,7 @@ fun Chain.blockState (blk: Block) : State {
     val reps = this.repsPost(blk.hash)
 
     // number of blocks that point back to it (-1 myself)
-    val fronts = this.bfsAll(blk.hash).size - 1
+    //val fronts = max(0, this.bfsAll(blk.hash).count{ this.blockState(it)==State.ACCEPTED } - 1)
 
     //println("rep ${blk.hash} = reps=$reps + ath=$ath + fronts=$fronts")
     return when {
@@ -50,7 +51,7 @@ fun Chain.blockState (blk: Block) : State {
         (blk.immut.like != null)    -> State.ACCEPTED      // a like
 
         // changeable
-        (reps+ath+fronts <= 0)      -> State.REJECTED      // not enough reps
+        (reps+ath <= 0)             -> State.REJECTED      // not enough reps
         (! oldEnough())             -> State.PENDING       // not old enough
         else                        -> State.ACCEPTED      // enough reps, enough time
     }
@@ -61,15 +62,40 @@ fun Chain.blockState (blk: Block) : State {
 fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
     assert(imm_.prev == null) { "prev must be null" }
 
-    //assert(imm_.backs.isEmpty()) { "backs must be empty" }
-    val backs =
-        if (imm_.backs.isNotEmpty())
-            imm_.backs
-        else
-            this.getHeads(State.ACCEPTED).toTypedArray()
-
-    val prev= sign?.let { s ->
+    val prev = sign?.let { s ->
         this.bfsFirst(this.getHeads(State.ALL)) { it.isFrom(s.pvtToPub()) } ?.hash
+    }
+
+    //assert(imm_.backs.isEmpty()) { "backs must be empty" }
+    val accs = this.getHeads(State.ACCEPTED).toTypedArray()
+    val backs = when {
+        imm_.backs.isNotEmpty() -> imm_.backs
+        (imm_.like == null)     -> accs
+        else -> {
+            val liked = this.fsLoadBlock(imm_.like.hash, null)
+            when {
+                // engraved, no reason to move this like out
+                ((liked.immut.time <= getNow() - T1D_rep_eng))     -> accs
+
+                // author has post after liked, cannot move it
+                (prev!=null && this.isFromTo(imm_.like.hash,prev)) -> accs
+
+                // move backs to before the liked post
+                else                                               -> accs
+                    .map {
+                        if (this.isFromTo(imm_.like.hash, it)) {
+                            this.fsLoadBlock(imm_.like.hash,null).immut.backs.toList()
+                        } else {
+                            listOf(it)
+                        }
+                    }
+                    .toList()
+                    .flatten()
+                    .toTypedArray()
+                    //.toSet()
+                    //.toList()
+            }
+        }
     }
 
     val imm = imm_.copy (
@@ -120,7 +146,7 @@ fun Chain.backsAssert (blk: Block) {
         this.fsLoadBlock(bk,null).let {
             assert(it.immut.time <= blk.immut.time) { "back must be older"}
             if (blk.immut.like == null) {
-                //assert(this.blockState(it) == State.ACCEPTED) { "backs must be accepted" }
+                assert(this.blockState(it) == State.ACCEPTED) { "backs must be accepted" }
             }
         }
     }
@@ -164,8 +190,8 @@ fun Chain.blockAssert (blk: Block) {
                 if (it == null)
                     (imm.prev == null)
                 else
-                    (imm.prev==it.hash) //&& this.hashState(it.hash)==State.ACCEPTED)
-                        && (imm.backs.any { this.isFromTo(imm.prev,it) })
+                    (imm.prev==it.hash) && (this.hashState(it.hash)==State.ACCEPTED)
+                        //&& (imm.backs.any { this.isFromTo(imm.prev,it) })
             ) { "must point to author's previous post" }
         }
     }

@@ -1276,6 +1276,14 @@ class Tests {
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
 
+        // HOST-0
+        // h0 <- 0@h1 <- 0@l2
+        //            <- 1@h2
+
+        // HOST-1
+        // h0 <- 0@h1 <- 0@l2
+        //            <- 1@h2
+
         main_(arrayOf(H0, S0, "chain", "dislike", "/", h2))
 
         // HOST-0
@@ -1291,11 +1299,15 @@ class Tests {
                 it.forEach { v -> assert(v.startsWith("3_")) }
             }
         }
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let { str ->
+            str.split(' ').let {
+                assert(it.size == 1) { it.size }
+                assert(it[0] == h2)     // H0 rejected 1@h2
+            }
+        }
 
         main(arrayOf(H0, "host", "now", "${25*hour}"))
         main(arrayOf(H1, "host", "now", "${25*hour}"))
-
-        main_(arrayOf(H1, S1, "chain", "post", "/", "inline", "utf8", "1@h3"))
 
         // HOST-0
         // h0 <- 0@h1 <- 0@l2 <- 0@l3
@@ -1307,6 +1319,8 @@ class Tests {
             }
         }
 
+        main_(arrayOf(H1, S1, "chain", "post", "/", "inline", "utf8", "1@h3"))
+
         // HOST-1
         // h0 <- 0@h1 <- 0@l2 | <-\
         //            <- 1@h2 | <- 1@h3
@@ -1316,19 +1330,39 @@ class Tests {
                 it.forEach { v -> assert(v.startsWith("2_")) }
             }
         }
+        main_(arrayOf(H1, "chain", "heads", "pending", "/")).let { str ->
+            str.split(' ').let {
+                assert(it.size == 1) { it.size }
+                it.forEach { v -> assert(v.startsWith("3_")) }
+            }
+        }
 
         // send H1 -> H0
-        // 1@h3 will not count yet to 1@h2, but will after 24h
+        // 1@h2 is rejected in H0, so 1@h3 will be rejected
+        main_(arrayOf(H1, "chain", "send", "/", "localhost:8330")).let {
+            assert(it.contains("0 / 1"))
+        }
+
+        // try again after like
+        main_(arrayOf(H0, S0, "chain", "like", "/", h2))
+
+        // HOST-0
+        // h0 <- 0@h1 <- 0@l2 <- 0@l3 <- 0@l4
+        //            <- 1@h2 <.../......./
 
         main_(arrayOf(H1, "chain", "send", "/", "localhost:8330")).let {
             assert(it.contains("1 / 1"))
         }
-        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let { str ->
-            str.split(' ').let {
-                assert(it.size == 1) { it.size }
-                assert(it[0] == h2)     // H0 rejected 1@h2
-            }
-        }
 
+        // HOST-1
+        // h0 <- 0@h1 <- 0@l2 | <-\ (...l3/l4)
+        //            <- 1@h2 | <- 1@h3
+
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.isEmpty())
+        }
+        main_(arrayOf(H1, "chain", "heads", "rejected", "/")).let {
+            assert(it.isEmpty())
+        }
     }
 }
