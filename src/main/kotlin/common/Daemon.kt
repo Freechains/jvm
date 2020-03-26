@@ -173,9 +173,9 @@ class Daemon (host : Host) {
 
                             val likes =
                                 if (ref.hashIsBlock()) {
-                                    chain.repsPost(ref, false)
+                                    chain.repsPost(ref, true)
                                 } else {
-                                    chain.repsAuthor(ref, getNow())
+                                    chain.repsAuthor(ref, getNow(), chain.getHeads(State.ALL))
                                 }
 
                             writer.writeLineX(likes.toString())

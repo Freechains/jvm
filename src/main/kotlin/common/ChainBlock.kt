@@ -36,12 +36,12 @@ fun Chain.blockState (blk: Block) : State {
             listOf(prev)
         )
     }
-    val reps = this.repsPost(blk.hash, true)
+    val reps = this.repsPost(blk.hash,false)
 
     // number of blocks that point back to it (-1 myself)
     //val fronts = max(0, this.bfsAll(blk.hash).count{ this.blockState(it)==State.ACCEPTED } - 1)
 
-    //println("rep ${blk.hash} = reps=$reps + ath=$ath + fronts=$fronts")
+    //println("rep ${blk.hash} = reps=$reps + ath=$ath")
     return when {
         // unchangeable
         (blk.hash.toHeight() <= 1)  -> State.ACCEPTED      // first two blocks
@@ -230,7 +230,7 @@ fun Chain.blockAssert (blk: Block) {
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
             this.trusted               ||   // dont check reps (private chain)
-            this.repsAuthor(blk.sign!!.pub,imm.time) > 0
+            this.repsAuthor(blk.sign!!.pub, imm.time, this.getHeads(State.ALL)) > 0
         ) {
             "like author must have reputation"
         }

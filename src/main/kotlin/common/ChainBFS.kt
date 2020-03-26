@@ -1,18 +1,6 @@
 package org.freechains.common
 
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.UnstableDefault
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
-import java.io.File
-
-import com.goterl.lazycode.lazysodium.interfaces.GenericHash
-import com.goterl.lazycode.lazysodium.utils.Key
-import org.freechains.platform.lazySodium
-import java.lang.Integer.max
-import java.lang.Integer.min
 import java.util.*
-import kotlin.math.absoluteValue
 
 fun Chain.bfsFrontsIsFromTo (from: Hash, to: Hash) : Boolean {
     //println(this.bfsFirst(listOf(from), true) { it.hash == to })
@@ -27,8 +15,24 @@ fun Chain.bfsFrontsFirst (start: Hash, pred: (Block) -> Boolean) : Block? {
     return this.bfsFirst(listOf(start), true, pred)
 }
 
-fun Chain.bfsBacksFirst (starts: List<Hash>, pred: (Block) -> Boolean) : Block? {
-    return this.bfsFirst(starts, false, pred)
+fun Chain.bfsBacksFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
+    return this.bfsFirst(heads, false, pred)
+}
+
+fun Chain.bfsBacksAuthor (heads: List<Hash>, pub: String) : List<Block> {
+    return this
+        .bfsBacksFirst(heads) { it.isFrom(pub) }.let { blk ->
+            if (blk == null) {
+                emptyList()
+            } else {
+                fun f (blk: Block) : List<Block> {
+                    return listOf(blk) + blk.immut.prev.let {
+                        if (it == null) emptyList() else f(this.fsLoadBlock(it,null))
+                    }
+                }
+                f(blk)
+            }
+        }
 }
 
 private fun Chain.bfsFirst (starts: List<Hash>, fromGen: Boolean, pred: (Block) -> Boolean) : Block? {
