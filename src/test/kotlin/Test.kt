@@ -262,7 +262,7 @@ class Tests {
                        \-- (b1) +---- (b2) ---/
          */
 
-        assert(chain.bfsAll().size == 7)
+        assert(chain.bfsFrontsAll().size == 7)
 
         val x = chain.bfsBacks(chain.getHeads(State.ALL),false) { it.hash.toHeight() > 2 }
         assert(x.size == 3)
@@ -274,7 +274,7 @@ class Tests {
                 .max()!!
         }
 
-        val y = chain.bfsAll().filter { it.immut.time >= chain.getMaxTime() - 30 * day }
+        val y = chain.bfsFrontsAll().filter { it.immut.time >= chain.getMaxTime() - 30 * day }
         //println(y.map { it.hash })
         assert(y.size == 4)
 
@@ -556,7 +556,7 @@ class Tests {
 
         val h11 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "h11", S0))
         val h22 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "h22", S1))
-        /*val h21 =*/ main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "h11", S0))
+        /*val h21 =*/ main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "h21", S0))
 
         // h0 -> h11 -> h21
         //          \-> h22
@@ -568,7 +568,7 @@ class Tests {
             assert(str.startsWith("2_"))
         }
 
-        main_(arrayOf("chain", "like", "/xxx", h22, S0)) // l3
+        main_(arrayOf("chain", "like", "/xxx", h22, S0, "--why=l3")) // l3
 
         // h0 -> h11 -> h21 -> l3
         //          \-> h22
@@ -582,7 +582,7 @@ class Tests {
         assert( "0" == main_(arrayOf("chain", "reps", "/xxx", PUB1)))
 
         main_(arrayOf(H0, "host", "now", (3*hour).toString()))
-        /*val h41 =*/ main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "ok", S0))
+        /*val h41 =*/ main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "41", S0))
 
         // h0 -> h11 -> h21 -> l3 -> h41
         //          \-> h22 ------/
@@ -598,7 +598,7 @@ class Tests {
             assert(it == "like must not target itself")
         }
 
-        val l5 = main_(arrayOf("chain", "like", "/xxx", h22, S0)) // l5
+        val l5 = main_(arrayOf("chain", "like", "/xxx", h22, S0, "--why=l5")) // l5
 
         // h0 -> h11 -> h21 -> l3 -> h41 -> l5
         //          \-> h22 ------/
@@ -761,13 +761,14 @@ class Tests {
         main_(arrayOf(H1,"chain","like","/xxx",h7,S0))
 
         // h0 <- h11 <- h21 <- l3 <- h41 <- l5       l7 <- l8
-        //          \               /   \     \   /    \/
-        //           \- h22 <----------------- l6 <- h6 \
+        //          \               /   \        /    \/
+        //           \- h22 <---------------- l6 <- h6 \
         //                                             \- h7
 
         main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
             assert (it == "2 / 2")
         }
+        println(">>>")
         main_(arrayOf(H1, "chain", "reps", "/xxx", PUB0)).let {
             assert(it == "25")
         }
@@ -1229,10 +1230,18 @@ class Tests {
         // h0 -> h1 --> h21 -----------------------> h61
         //          \-> h20 -> h30 -> l40 -> l50 /-> l60
 
-        main(arrayOf(H0, "host", "now", "${12*hour}"))
+        main(arrayOf(H0, "host", "now", "${34*hour}"))
+        main_(arrayOf(H0, "chain", "reps", "/", PUB1))
+        main_(arrayOf(H0, "chain", "reps", "/", h61))
+        main_(arrayOf(H0, "chain", "reps", "/", h21))
+
+        main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
+            //assert(it.startsWith("7_"))
+        }
+
         /*val h7 =*/ main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h7"))
 
-        // h0 -> h1 --> h21 -----------------------> h61 --> h7
+        // h0 -> h1 --> h21 ---------------------\-> h61 --> h7
         //          \-> h20 -> h30 -> l40 -> l50 /-> l60 -/
 
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {

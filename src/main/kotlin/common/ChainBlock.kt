@@ -41,7 +41,7 @@ fun Chain.blockState (blk: Block) : State {
     // number of blocks that point back to it (-1 myself)
     //val fronts = max(0, this.bfsAll(blk.hash).count{ this.blockState(it)==State.ACCEPTED } - 1)
 
-    //println("rep ${blk.hash} = reps=$reps + ath=$ath")
+    println("rep ${blk.hash} = reps=$reps + ath=$ath // ${blk.immut.time}")
     return when {
         // unchangeable
         (blk.hash.toHeight() <= 1)  -> State.ACCEPTED      // first two blocks
@@ -98,26 +98,17 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
     }
 
     // must include author's prev if not rejected
-    val backs2 =
-        if (prev == null) {
-            backs
-        } else {
-            val ath = this.bfsBacksFindAuthor(sign.pvtToPub())
-            if (ath == null) {
-                backs
-            } else {
-                when (this.blockState(ath)) {
-                    State.REJECTED -> error("cannot link to rejected")
-                    State.ACCEPTED -> backs
-                    State.PENDING  -> backs
-                        .toSet()
-                        .plusElement(ath.hash)
-                        .minus(backs.filter { this.bfsFrontsIsFromTo(it,ath.hash) })
-                        .toTypedArray()
-                    else -> error("bug found: invalid state")
-                }
-            }
-        }
+    val ath = if (sign == null) null else this.bfsBacksFindAuthor(sign.pvtToPub())
+    val backs2 = when {
+        (prev == null) -> backs
+        (ath == null)  -> backs
+        (this.blockState(ath) == State.ACCEPTED) -> backs
+        else -> backs
+            .toSet()
+            .plusElement(ath.hash)
+            .minus(backs.filter { this.bfsFrontsIsFromTo(it,ath.hash) })
+            .toTypedArray()
+    }
 
     val imm = imm_.copy (
         crypt   = (crypt != null),
@@ -191,7 +182,7 @@ fun Chain.blockAssert (blk: Block) {
     val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
     if (blk.immut.backs.contains(gen)) {
         this
-            .bfsAll()
+            .bfsFrontsAll()
             .filter { it.hash.toHeight() == 1 }
             .let {
                 assert(it.isEmpty()) { "genesis is already referred" }
@@ -230,7 +221,7 @@ fun Chain.blockAssert (blk: Block) {
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
             this.trusted               ||   // dont check reps (private chain)
-            this.repsAuthor(blk.sign!!.pub, imm.time, this.getHeads(State.ALL)) > 0
+            this.repsAuthor(blk.sign!!.pub, imm.time, blk.immut.backs.toList()) > 0
         ) {
             "like author must have reputation"
         }

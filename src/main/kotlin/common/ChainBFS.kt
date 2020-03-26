@@ -47,8 +47,12 @@ private fun Chain.bfsFirst (starts: List<Hash>, fromGen: Boolean, pred: (Block) 
         }
 }
 
-fun Chain.bfsAll (start: Hash = this.getGenesis()) : List<Block> {
+fun Chain.bfsFrontsAll (start: Hash = this.getGenesis()) : List<Block> {
     return this.bfsFronts(start,false) { true }
+}
+
+fun Chain.bfsBacksAll (heads: List<Hash>) : List<Block> {
+    return this.bfsBacks(heads,false) { true }
 }
 
 fun Chain.bfsFronts (start: Hash, inc: Boolean, ok: (Block) -> Boolean) : List<Block> {

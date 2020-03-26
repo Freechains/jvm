@@ -11,7 +11,6 @@ import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 import java.lang.Integer.max
 import java.lang.Integer.min
-import java.util.*
 import kotlin.math.absoluteValue
 
 // internal methods are private but are used in tests
@@ -123,10 +122,10 @@ fun Chain.getHeads (want: State, hash: Hash = this.getGenesis()) : List<Hash> {
 fun Chain.repsPost (hash: String, isAll: Boolean) : Int {
     val blk = this.fsLoadBlock(hash,null)
 
-    val iReach = if (isAll) emptyList() else this.bfsAll(hash)
+    val iReach = if (isAll) emptyList() else this.bfsFrontsAll(hash)
 
     val likes = this
-        .bfsAll ()
+        .bfsFrontsAll ()
         .filter { x -> iReach.none { y -> x.hash == y.hash } } // remove likes reached from hash itself
         .filter { it.immut.like!=null && it.immut.like.hash==hash }
         .filter { isAll || blk.immut.time > (it.immut.time-T1D_rep_eng) }
@@ -163,9 +162,15 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
             max(gen,min(LK30_max,pos)) - neg
         }
 
-    val recv = mines
-        .map { this.repsPost(it.hash,true) }
-        .sum()                                               // likes I received
+    val recv = this.bfsBacksAll(heads) // all pointing to heads
+        .filter { it.immut.like != null }   // which are likes
+        .filter {                           // which are likes to me
+            this.fsLoadBlock(it.immut.like!!.hash,null).let {
+                (it.sign!=null && it.sign.pub==pub)
+            }
+        }
+        .map    { it.immut.like!!.n }       // get likes N
+        .sum()                              // likes I received
 
     val gave = mines
         .filter { it.immut.like != null }                    // likes I gave
