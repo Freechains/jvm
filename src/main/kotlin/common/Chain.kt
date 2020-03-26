@@ -118,16 +118,24 @@ fun Chain.getHeads (want: State, hash: Hash = this.getGenesis()) : List<Hash> {
     }
 }
 
-fun Chain.isFromTo (from: Hash, to: Hash) : Boolean {
+fun Chain.bfsFrontsIsFromTo (from: Hash, to: Hash) : Boolean {
     //println(this.bfsFirst(listOf(from), true) { it.hash == to })
-    return to == (this.bfsFirst(listOf(from), true) { it.hash == to }!!.hash)
+    return to == (this.bfsFrontsFirst(from) { it.hash == to }!!.hash)
 }
 
-fun Chain.findAuthorLast (pub: String) : Block? {
-    return this.bfsFirst(this.getHeads(State.ALL)) { it.isFrom(pub) }
+fun Chain.bfsBacksFindAuthor (pub: String) : Block? {
+    return this.bfsBacksFirst(this.getHeads(State.ALL)) { it.isFrom(pub) }
 }
 
-fun Chain.bfsFirst (starts: List<Hash>, fromGen: Boolean=false, pred: (Block) -> Boolean) : Block? {
+fun Chain.bfsFrontsFirst (start: Hash, pred: (Block) -> Boolean) : Block? {
+    return this.bfsFirst(listOf(start), true, pred)
+}
+
+fun Chain.bfsBacksFirst (starts: List<Hash>, pred: (Block) -> Boolean) : Block? {
+    return this.bfsFirst(starts, false, pred)
+}
+
+private fun Chain.bfsFirst (starts: List<Hash>, fromGen: Boolean, pred: (Block) -> Boolean) : Block? {
     return this
         .bfs(starts,true, fromGen) { !pred(it) }
         .last()
@@ -140,10 +148,18 @@ fun Chain.bfsFirst (starts: List<Hash>, fromGen: Boolean=false, pred: (Block) ->
 }
 
 fun Chain.bfsAll (start: Hash = this.getGenesis()) : List<Block> {
-    return this.bfs(listOf(start),false, true) { true }
+    return this.bfsFronts(start,false) { true }
 }
 
-fun Chain.bfs (starts: List<Hash>, inc: Boolean, fromGen: Boolean=false, ok: (Block) -> Boolean) : List<Block> {
+fun Chain.bfsFronts (start: Hash, inc: Boolean, ok: (Block) -> Boolean) : List<Block> {
+    return this.bfs(listOf(start), inc, true, ok)
+}
+
+fun Chain.bfsBacks (starts: List<Hash>, inc: Boolean, ok: (Block) -> Boolean) : List<Block> {
+    return this.bfs(starts, inc, false, ok)
+}
+
+internal fun Chain.bfs (starts: List<Hash>, inc: Boolean, fromGen: Boolean, ok: (Block) -> Boolean) : List<Block> {
     val ret = mutableListOf<Block>()
 
     val pending =
@@ -197,7 +213,7 @@ fun Chain.repsPost (hash: String, chkRejected: Boolean) : Int {
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.getHeads(State.ALL).toList()) : Int {
-    val gen = this.bfsFirst(listOf(this.getGenesis()),true) { it.hash.toHeight() >= 1 }.let {
+    val gen = this.bfsFrontsFirst(this.getGenesis()) { it.hash.toHeight() >= 1 }.let {
         when {
             (it == null)   -> 0
             it.isFrom(pub) -> LK30_max
@@ -206,7 +222,7 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash> = this.getHeads(
     }
 
     val mines = this
-        .bfsFirst(heads) { it.isFrom(pub) }.let { blk ->
+        .bfsBacksFirst(heads) { it.isFrom(pub) }.let { blk ->
             if (blk == null) {
                 emptyList()
             } else {

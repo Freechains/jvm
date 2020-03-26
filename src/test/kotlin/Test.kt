@@ -170,7 +170,7 @@ class Tests {
         val blk2 = c2.fsLoadBlock(blk.hash, null)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
 
-        assert(c2.isFromTo(blk.hash,blk.hash))
+        assert(c2.bfsFrontsIsFromTo(blk.hash,blk.hash))
     }
 
     @Test
@@ -264,7 +264,7 @@ class Tests {
 
         assert(chain.bfsAll().size == 7)
 
-        val x = chain.bfs(chain.getHeads(State.ALL),false) { it.hash.toHeight() > 2 }
+        val x = chain.bfsBacks(chain.getHeads(State.ALL),false) { it.hash.toHeight() > 2 }
         assert(x.size == 3)
 
         fun Chain.getMaxTime(): Long {
@@ -278,7 +278,7 @@ class Tests {
         //println(y.map { it.hash })
         assert(y.size == 4)
 
-        val z = chain.bfs(listOf(ab2.hash),false) { it.immut.time > 1 * day }
+        val z = chain.bfsBacks(listOf(ab2.hash),false) { it.immut.time > 1 * day }
         assert(z.size == 3)
     }
 

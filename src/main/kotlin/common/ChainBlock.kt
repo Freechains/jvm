@@ -12,19 +12,6 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 
 // STATE
 
-/*
-fun Chain.nonRejectedPrev (pub: String) : Block? {
-    fun rec (blk: Block?) : Block? {
-        return when {
-            (blk == null) -> null
-            (this.blockState(blk) != State.REJECTED) -> blk
-            else          -> rec(this.fsLoadBlock(blk.immut.prev!!,null))
-        }
-    }
-    return rec(this.findAuthorLast(pub))
-}
-*/
-
 fun Chain.hashState (hash: Hash) : State {
     return when {
         this.fsExistsBlock(hash,"/bans/") -> State.BANNED
@@ -74,24 +61,7 @@ fun Chain.blockState (blk: Block) : State {
 fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
     assert(imm_.prev == null) { "prev must be null" }
 
-    val prev = sign?.let { this.findAuthorLast(it.pvtToPub()) } ?.hash
-
-    /*
-    val prev = sign?.let { s -> this
-        .findAuthorLast(s.pvtToPub())
-        ?.let {
-            fun rec (blk: Block) : Block? {
-                return when {
-                    (this.blockState(blk) != State.REJECTED) -> blk
-                    (blk.immut.prev == null)                 -> null
-                    else                                     -> rec(this.fsLoadBlock(blk.immut.prev,null))
-                }
-            }
-            rec(it)
-        }
-        ?.hash
-    }
-    */
+    val prev = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash
 
     //println("pay=${imm_.payload} // ${(prev!=null && imm_.like!=null && this.isFromTo(imm_.like.hash,prev))}")
 
@@ -107,12 +77,12 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
                 ((liked.immut.time <= imm_.time-T1D_rep_eng))      -> accs
 
                 // author has post after liked, cannot move it
-                (prev!=null && this.isFromTo(imm_.like.hash,prev)) -> accs
+                (prev!=null && this.bfsFrontsIsFromTo(imm_.like.hash,prev)) -> accs
 
                 // move backs to before the liked post
                 else                                               -> accs
                     .map {
-                        if (this.isFromTo(imm_.like.hash, it)) {
+                        if (this.bfsFrontsIsFromTo(imm_.like.hash, it)) {
                             this.fsLoadBlock(imm_.like.hash,null).immut.backs.toList()
                         } else {
                             listOf(it)
@@ -132,7 +102,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
         if (prev == null) {
             backs
         } else {
-            val ath = this.findAuthorLast(sign.pvtToPub())
+            val ath = this.bfsBacksFindAuthor(sign.pvtToPub())
             if (ath == null) {
                 backs
             } else {
@@ -142,7 +112,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
                     State.PENDING  -> backs
                         .toSet()
                         .plusElement(ath.hash)
-                        .minus(backs.filter { this.isFromTo(it,ath.hash) })
+                        .minus(backs.filter { this.bfsFrontsIsFromTo(it,ath.hash) })
                         .toTypedArray()
                     else -> error("bug found: invalid state")
                 }
@@ -199,7 +169,7 @@ fun Chain.backsAssert (blk: Block) {
             when {
                 (this.blockState(it) == State.ACCEPTED) -> true
                 (blk.immut.prev == null)                -> false
-                else -> this.findAuthorLast(blk.sign!!.pub).let { (it!=null && this.blockState(it)!=State.REJECTED) }
+                else -> this.bfsBacksFindAuthor(blk.sign!!.pub).let { (it!=null && this.blockState(it)!=State.REJECTED) }
             }.let {
                 assert(it) { "backs must be accepted" }
             }
@@ -239,7 +209,7 @@ fun Chain.blockAssert (blk: Block) {
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
 
         // check if new post leads to latest post from author currently in the chain
-        this.bfsFirst(this.getHeads(State.ALL)) { it.isFrom(blk.sign.pub) }.let {
+        this.bfsBacksFirst(this.getHeads(State.ALL)) { it.isFrom(blk.sign.pub) }.let {
             //if (it != null) println("${imm.prev} --> ${blk.hash} = ${this.isFromTo(imm.prev!!,blk.hash)}")
             assert (
                 if (it == null)
