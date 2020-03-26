@@ -32,7 +32,7 @@ import kotlin.concurrent.thread
  *  - PROTO:
  *    - time limits constants
  *    - forks: reject smaller/newest branch
- *    - !ACC <- same author (allow same author to point back to non-accepted block)
+ *    - REJ <- same author, what to do?
  *    - initial cost per 32KB
  *    - prunning (hash of bases, starts with genesis), if they don't match, permanent fork
  *  - HOST: "create" receives pub/pvt args
@@ -169,6 +169,8 @@ class Tests {
         val blk = c2.blockNew(HC.now(), null, null)
         val blk2 = c2.fsLoadBlock(blk.hash, null)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
+
+        assert(c2.isFromTo(blk.hash,blk.hash))
     }
 
     @Test
@@ -923,22 +925,25 @@ class Tests {
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
 
         main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h3",S1)).let {
-            assert(it == "must point to author's previous post")
+            //assert(it == "backs must be accepted")
         }
+
+        // h1 <- h2 (p) <- h3
+        //   \-- hx (a)
 
         main_(arrayOf(H1, "host", "now", "${3*hour}"))
 
-        val h3 = main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h3",S1))
-        assert(h3.startsWith("3_"))
+        val h4 = main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h4",S1))
+        assert(h4.startsWith("4_"))
 
-        // h1 (g) <- h2 (a) <- h3 (p)
-        //      \ <- hx (a) <-/
+        // h1 <- h2 (a) <- h3 <- h4
+        //   \-- hx (a)
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
         main_(arrayOf(H1, "host", "now", "${6*hour}"))
 
-        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h4")).let {
-            assert(it.startsWith("4_"))
+        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h5")).let {
+            assert(it.startsWith("5_"))
         }
     }
 
@@ -1193,74 +1198,71 @@ class Tests {
         //          \-> h20
 
         // no double spend
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h20x")).let {
-            assert(it == "must point to author's previous post")
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h30")).let {
+            //assert(it == "backs must be accepted")
         }
 
-        main(arrayOf(H0, "host", "now", "${3*hour}"))
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h30"))
+        // h0 -> h1 --> h21
+        //          \-> h20 -> h30
 
-        // h0 -> h1 --> h20 -> h30
+        main(arrayOf(H0, "host", "now", "${3*hour}"))
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h40"))
+
+        // h0 -> h1 --> h20 -> h30 -> h40
         //          \-> h21
 
         main(arrayOf(H0, "host", "now", "${6*hour}"))
-        /*val l40 =*/ main_(arrayOf(H0, S0, "chain", "like", "/", h21))
+        /*val l50 =*/ main_(arrayOf(H0, S0, "chain", "like", "/", h21, "--why=l50"))
 
         // h0 -> h1 --> h21
-        //          \-> h20 -> h30 -> l40
+        //          \-> h20 -> h30 -> h40 -> l50
 
         main(arrayOf(H0, "host", "now", "${9*hour}"))
 
-        val h51 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h51"))
+        val h61 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h61"))
 
-        // h0 -> h1 --> h21 -----------------> h51
-        //          \-> h20 -> h30 -> l40 -/-> l50
+        // h0 -> h1 --> h21 -----------------------> h61
+        //          \-> h20 -> h30 -> l40 -> l50 /
 
-        /*val l50 =*/ main_(arrayOf(H0, S0, "chain", "like", "/", h51))
+        /*val l60 =*/ main_(arrayOf(H0, S0, "chain", "like", "/", h61, "--why=l60"))
+
+        // h0 -> h1 --> h21 -----------------------> h61
+        //          \-> h20 -> h30 -> l40 -> l50 /-> l60
 
         main(arrayOf(H0, "host", "now", "${12*hour}"))
-        /*val h6 =*/ main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h6"))
+        /*val h7 =*/ main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h7"))
 
-        // h0 -> h1 --> h21 -----------------> h51 --> h6
-        //          \-> h20 -> h30 -> l40 -/-> l50 -/
+        // h0 -> h1 --> h21 -----------------------> h61 --> h7
+        //          \-> h20 -> h30 -> l40 -> l50 /-> l60 -/
 
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
-            assert(it.startsWith("6_"))
+            assert(it.startsWith("7_"))
         }
 
-        // removes h21
-        /*val l- =*/ main_(arrayOf(H0, S0, "chain", "dislike", "/", h21))
+        // removes h21 (wont remove anything
+        /*val l- =*/ main_(arrayOf(H0, S0, "chain", "dislike", "/", h21, "--why=dislike"))
 
-        // h0 -> h1 --> h21 -----------------> h51 ---> h6
-        //          \-> h20 -> h30 -> l40 -/-> l50 -/-> l-
-
-        // h0 -> h1 --> h21
-        //          \-> h20 -> h30 -> l40
+        // h0 -> h1 --> h21 -----------------------> h61 --> h7
+        //          \-> h20 -> h30 -> l40 -> l50 /-> l60 -/-> l-
 
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
             assert(!it.contains("2_"))
         }
-        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {str ->
-            str.split(' ').let {
-                assert(it.size == 3)
-                it.sorted().let {
-                    assert(it[0].startsWith("2_"))
-                    assert(it[1].startsWith("5_"))
-                    assert(it[2].startsWith("6_"))
-                }
-            }
+        println(">>>")
+        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
+            assert(it.isEmpty())
         }
 
         main(arrayOf(H0, "host", "now", "${15*hour}"))
 
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let { str ->
             str.split(' ').let {
-                assert(it.size == 1) { it.size }
-                assert(it[0].startsWith("6_"))
+                assert(it.size == 2) { it.size }
+                it.forEach {
+                    assert(it.startsWith("7_"))
+                }
             }
         }
-
-        // TODO: check rems/ directory
     }
 
     @Test
@@ -1280,7 +1282,7 @@ class Tests {
 
         main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "0@h1"))
         val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "1@h2"))
-        main_(arrayOf(H0, S0, "chain", "like", "/", h2))
+        main_(arrayOf(H0, S0, "chain", "like", "/", "--why=0@l2", h2))
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
 
@@ -1292,11 +1294,12 @@ class Tests {
         // h0 <- 0@h1 <- 0@l2
         //            <- 1@h2
 
-        main_(arrayOf(H0, S0, "chain", "dislike", "/", h2))
+        // l3
+        main_(arrayOf(H0, S0, "chain", "dislike", "/", h2, "--why=0@l3"))
 
         // HOST-0
-        // h0 <- 0@h1 <- 0@l2 <- 0@l3
-        //            <- 1@h2 <.../
+        // h0 <- 0@h1 <- 0@l2+ <- 0@l3-
+        //            <- 1@h2
 
         main(arrayOf(H0, "host", "now", "${5*hour}"))
         main(arrayOf(H1, "host", "now", "${5*hour}"))
@@ -1318,7 +1321,7 @@ class Tests {
         main(arrayOf(H1, "host", "now", "${25*hour}"))
 
         // HOST-0
-        // h0 <- 0@h1 <- 0@l2 <- 0@l3
+        // h0 <- 0@h1 <- 0@l2 <- 0@l3-
         //            <- 1@h2 <.../
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let { str ->
             str.split(' ').let {
@@ -1330,8 +1333,8 @@ class Tests {
         main_(arrayOf(H1, S1, "chain", "post", "/", "inline", "utf8", "1@h3"))
 
         // HOST-1
-        // h0 <- 0@h1 <- 0@l2 | <-\
-        //            <- 1@h2 | <- 1@h3
+        // h0 <- 0@h1 <- 0@l2 <-\
+        //            <- 1@h2 <-/ 1@h3
         main_(arrayOf(H1, "chain", "heads", "accepted", "/")).let { str ->
             str.split(' ').let {
                 assert(it.size == 2) { it.size }
@@ -1346,20 +1349,20 @@ class Tests {
         }
 
         // send H1 -> H0
-        // 1@h2 is rejected in H0, so 1@h3 will be rejected
+        // 1@h3 will be rejected b/c 1@h2 is rejected in H0
         main_(arrayOf(H1, "chain", "send", "/", "localhost:8330")).let {
             assert(it.contains("0 / 1"))
         }
 
-        // try again after like
+        // l4: try again after like // like will be ignored b/c >24h
         main_(arrayOf(H0, S0, "chain", "like", "/", h2))
 
         // HOST-0
-        // h0 <- 0@h1 <- 0@l2 <- 0@l3 <- 0@l4
-        //            <- 1@h2 <.../......./
+        // h0 <- 0@h1 <- 0@l2 <- 0@l3- <- 0@l4+(old)
+        //            <- 1@h2 <.../.....xx/
 
         main_(arrayOf(H1, "chain", "send", "/", "localhost:8330")).let {
-            assert(it.contains("1 / 1"))
+            assert(it.contains("0 / 1"))
         }
 
         // HOST-1
@@ -1367,7 +1370,7 @@ class Tests {
         //            <- 1@h2 | <- 1@h3
 
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
-            assert(it.isEmpty())
+            assert(it.startsWith("2_"))
         }
         main_(arrayOf(H1, "chain", "heads", "rejected", "/")).let {
             assert(it.isEmpty())
@@ -1387,7 +1390,7 @@ class Tests {
 
         main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "0@h1"))
         val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "1@h2"))
-        main_(arrayOf(H0, S0, "chain", "like", "/", h2))
+        main_(arrayOf(H0, S0, "chain", "like", "/", h2, "--why=0@l2"))
 
         // HOST-0
         // h0 <- 0@h1 <-- 0@l2
@@ -1401,16 +1404,19 @@ class Tests {
 
         // l4 dislikes h2: h2 should remain accepted b/c h2<-l3
         main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "0@h3"))
-        main_(arrayOf(H0, S0, "chain", "dislike", "/", h2))
+        main_(arrayOf(H0, S0, "chain", "dislike", "/", h2, "--why=0@l3"))
 
         // HOST-0
-        // h0 <- 0@h1 <-- 0@l2 <-- 0@h3 <- 0@l4
-        //            <- 1@h2 <-/
+        // h0 <- 0@h1 <-- 0@l2 \ 0@h3 -- 0@l3
+        //            <- 1@h2  /
 
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
             assert(it.isEmpty())
         }
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
+            assert(it.startsWith("2_"))
+        }
+        main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
             assert(it.startsWith("4_"))
         }
     }

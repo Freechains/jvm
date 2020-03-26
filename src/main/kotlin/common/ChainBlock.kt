@@ -4,7 +4,6 @@ import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
-import java.lang.Integer.max
 import kotlin.math.sqrt
 
 fun Chain.fromOwner (blk: Block) : Boolean {
@@ -12,6 +11,19 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 }
 
 // STATE
+
+/*
+fun Chain.nonRejectedPrev (pub: String) : Block? {
+    fun rec (blk: Block?) : Block? {
+        return when {
+            (blk == null) -> null
+            (this.blockState(blk) != State.REJECTED) -> blk
+            else          -> rec(this.fsLoadBlock(blk.immut.prev!!,null))
+        }
+    }
+    return rec(this.findAuthorLast(pub))
+}
+*/
 
 fun Chain.hashState (hash: Hash) : State {
     return when {
@@ -62,9 +74,26 @@ fun Chain.blockState (blk: Block) : State {
 fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
     assert(imm_.prev == null) { "prev must be null" }
 
-    val prev = sign?.let { s ->
-        this.bfsFirst(this.getHeads(State.ALL)) { it.isFrom(s.pvtToPub()) } ?.hash
+    val prev = sign?.let { this.findAuthorLast(it.pvtToPub()) } ?.hash
+
+    /*
+    val prev = sign?.let { s -> this
+        .findAuthorLast(s.pvtToPub())
+        ?.let {
+            fun rec (blk: Block) : Block? {
+                return when {
+                    (this.blockState(blk) != State.REJECTED) -> blk
+                    (blk.immut.prev == null)                 -> null
+                    else                                     -> rec(this.fsLoadBlock(blk.immut.prev,null))
+                }
+            }
+            rec(it)
+        }
+        ?.hash
     }
+    */
+
+    //println("pay=${imm_.payload} // ${(prev!=null && imm_.like!=null && this.isFromTo(imm_.like.hash,prev))}")
 
     //assert(imm_.backs.isEmpty()) { "backs must be empty" }
     val accs = this.getHeads(State.ACCEPTED).toTypedArray()
@@ -98,11 +127,33 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
         }
     }
 
+    // must include author's prev if not rejected
+    val backs2 =
+        if (prev == null) {
+            backs
+        } else {
+            val ath = this.findAuthorLast(sign.pvtToPub())
+            if (ath == null) {
+                backs
+            } else {
+                when (this.blockState(ath)) {
+                    State.REJECTED -> error("cannot link to rejected")
+                    State.ACCEPTED -> backs
+                    State.PENDING  -> backs
+                        .toSet()
+                        .plusElement(ath.hash)
+                        .minus(backs.filter { this.isFromTo(it,ath.hash) })
+                        .toTypedArray()
+                    else -> error("bug found: invalid state")
+                }
+            }
+        }
+
     val imm = imm_.copy (
         crypt   = (crypt != null),
         payload = if (crypt == null) imm_.payload else imm_.payload.encrypt(crypt),
         prev    = prev,
-        backs   = backs
+        backs   = backs2
     )
     val hash = imm.toHash()
 
@@ -145,8 +196,12 @@ fun Chain.backsAssert (blk: Block) {
         assert(this.fsExistsBlock(bk)) { "back must exist" }
         this.fsLoadBlock(bk,null).let {
             assert(it.immut.time <= blk.immut.time) { "back must be older"}
-            if (blk.immut.like == null) {
-                assert(this.blockState(it) == State.ACCEPTED) { "backs must be accepted" }
+            when {
+                (this.blockState(it) == State.ACCEPTED) -> true
+                (blk.immut.prev == null)                -> false
+                else -> this.findAuthorLast(blk.sign!!.pub).let { (it!=null && this.blockState(it)!=State.REJECTED) }
+            }.let {
+                assert(it) { "backs must be accepted" }
             }
         }
     }
@@ -190,7 +245,7 @@ fun Chain.blockAssert (blk: Block) {
                 if (it == null)
                     (imm.prev == null)
                 else
-                    (imm.prev==it.hash) && (this.hashState(it.hash)==State.ACCEPTED)
+                    (imm.prev==it.hash) && (this.hashState(it.hash)!=State.REJECTED)
                         //&& (imm.backs.any { this.isFromTo(imm.prev,it) })
             ) { "must point to author's previous post" }
         }

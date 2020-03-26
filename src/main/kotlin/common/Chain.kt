@@ -123,6 +123,10 @@ fun Chain.isFromTo (from: Hash, to: Hash) : Boolean {
     return to == (this.bfsFirst(listOf(from), true) { it.hash == to }!!.hash)
 }
 
+fun Chain.findAuthorLast (pub: String) : Block? {
+    return this.bfsFirst(this.getHeads(State.ALL)) { it.isFrom(pub) }
+}
+
 fun Chain.bfsFirst (starts: List<Hash>, fromGen: Boolean=false, pred: (Block) -> Boolean) : Block? {
     return this
         .bfs(starts,true, fromGen) { !pred(it) }
@@ -176,9 +180,11 @@ fun Chain.bfs (starts: List<Hash>, inc: Boolean, fromGen: Boolean=false, ok: (Bl
 fun Chain.repsPost (hash: String, chkRejected: Boolean) : Int {
     val blk = this.fsLoadBlock(hash,null)
 
+    val iReach = if (chkRejected) this.bfsAll(hash) else emptyList()
+
     val likes = this
         .bfsAll ()
-        .minus  (if (chkRejected) this.bfsAll(hash) else emptyList())
+        .filter { x -> iReach.none { y -> x.hash == y.hash } } // remove likes reached from hash itself
         .filter { it.immut.like!=null && it.immut.like.hash==hash }
         .filter { !chkRejected || blk.immut.time > (it.immut.time-T1D_rep_eng) }
         .map    { it.immut.like!! }
@@ -186,7 +192,7 @@ fun Chain.repsPost (hash: String, chkRejected: Boolean) : Int {
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
 
-    //println("$hash // pos=$pos // neg=$neg // ")
+    //println("$hash // chk=$chkRejected // pos=$pos // neg=$neg")
     return pos + neg
 }
 
