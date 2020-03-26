@@ -21,27 +21,25 @@ fun Chain.hashState (hash: Hash) : State {
 }
 
 fun Chain.blockState (blk: Block) : State {
+    val now = getNow()
+
     fun oldEnough () : Boolean {
         val dt = blk.localTime - blk.immut.time
-        return blk.localTime <= getNow() - (T2H_past + sqrt(dt.toFloat()))   // old enough
+        return blk.localTime <= now - (T2H_past + sqrt(dt.toFloat()))   // old enough
     }
 
     val prev = blk.immut.prev
     val ath = when {
         (blk.sign == null) -> 0     // anon post, no author reps
         (prev == null)     -> 0     // no prev post, no author reps
-        else -> this.repsAuthor (
-            blk.sign.pub,
-            blk.immut.time,         // author rep at the time of block
-            listOf(prev)
-        )
+        else               -> this.repsAuthor(blk.sign.pub, now, listOf(prev))
     }
     val reps = this.repsPost(blk.hash,false)
 
     // number of blocks that point back to it (-1 myself)
     //val fronts = max(0, this.bfsAll(blk.hash).count{ this.blockState(it)==State.ACCEPTED } - 1)
 
-    println("rep ${blk.hash} = reps=$reps + ath=$ath // ${blk.immut.time}")
+    //println("rep ${blk.hash} = reps=$reps + ath=$ath // ${blk.immut.time}")
     return when {
         // unchangeable
         (blk.hash.toHeight() <= 1)  -> State.ACCEPTED      // first two blocks
@@ -155,11 +153,11 @@ fun Chain.backsAssert (blk: Block) {
     for (bk in blk.immut.backs) {
         //println("$it <- ${blk.hash}")
         assert(this.fsExistsBlock(bk)) { "back must exist" }
-        this.fsLoadBlock(bk,null).let {
-            assert(it.immut.time <= blk.immut.time) { "back must be older"}
+        this.fsLoadBlock(bk,null).let { bbk ->
+            assert(bbk.immut.time <= blk.immut.time) { "back must be older"}
             when {
-                (this.blockState(it) == State.ACCEPTED) -> true
-                (blk.immut.prev == null)                -> false
+                (this.blockState(bbk) == State.ACCEPTED) -> true
+                (blk.immut.prev == null)                 -> false
                 else -> this.bfsBacksFindAuthor(blk.sign!!.pub).let { (it!=null && this.blockState(it)!=State.REJECTED) }
             }.let {
                 assert(it) { "backs must be accepted" }

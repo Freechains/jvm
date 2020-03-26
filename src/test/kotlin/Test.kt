@@ -768,7 +768,6 @@ class Tests {
         main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
             assert (it == "2 / 2")
         }
-        println(">>>")
         main_(arrayOf(H1, "chain", "reps", "/xxx", PUB0)).let {
             assert(it == "25")
         }
@@ -1102,7 +1101,6 @@ class Tests {
                 assert(it.size == 2)
             }
         }
-        //println(">>>")
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
             assert(it.contains("2_"))
         }
@@ -1231,24 +1229,12 @@ class Tests {
         //          \-> h20 -> h30 -> l40 -> l50 /-> l60
 
         main(arrayOf(H0, "host", "now", "${34*hour}"))
-        main_(arrayOf(H0, "chain", "reps", "/", PUB1))
-        main_(arrayOf(H0, "chain", "reps", "/", h61))
-        main_(arrayOf(H0, "chain", "reps", "/", h21))
-
-        main_(arrayOf(H0, "chain", "heads", "pending", "/")).let {
-            //assert(it.startsWith("7_"))
-        }
-
         /*val h7 =*/ main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h7"))
 
         // h0 -> h1 --> h21 ---------------------\-> h61 --> h7
         //          \-> h20 -> h30 -> l40 -> l50 /-> l60 -/
 
-        main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
-            assert(it.startsWith("7_"))
-        }
-
-        // removes h21 (wont remove anything
+        // removes h21 (wont remove anything)
         /*val l- =*/ main_(arrayOf(H0, S0, "chain", "dislike", "/", h21, "--why=dislike"))
 
         // h0 -> h1 --> h21 -----------------------> h61 --> h7
@@ -1257,12 +1243,11 @@ class Tests {
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let {
             assert(!it.contains("2_"))
         }
-        println(">>>")
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
             assert(it.isEmpty())
         }
 
-        main(arrayOf(H0, "host", "now", "${15*hour}"))
+        main(arrayOf(H0, "host", "now", "${40*hour}"))
 
         main_(arrayOf(H0, "chain", "heads", "accepted", "/")).let { str ->
             str.split(' ').let {
@@ -1462,7 +1447,6 @@ class Tests {
         // h0 <- 0@h1 <-- 0@l2 <-- 0@h3 <- 0@l4
         //            <- 1@h2 <-/
 
-        println(">>>")
         main_(arrayOf(H0, "chain", "heads", "rejected", "/")).let {
             assert(it.isEmpty())
         }
