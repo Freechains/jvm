@@ -162,9 +162,10 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
             max(gen,min(LK30_max,pos)) - neg
         }
 
-    val recv = this.bfsBacksAll(heads) // all pointing to heads
-        .filter { it.immut.like != null }   // which are likes
-        .filter {                           // which are likes to me
+    val recv = this.bfsBacksAll(heads)                     // all pointing to heads
+        .filter { it.immut.like != null }                       // which are likes
+        .filter { this.fsExistsBlock(it.immut.like!!.hash) }    // and exists (maybe banned)
+        .filter {                                               // and are to me
             this.fsLoadBlock(it.immut.like!!.hash,null).let {
                 (it.sign!=null && it.sign.pub==pub)
             }

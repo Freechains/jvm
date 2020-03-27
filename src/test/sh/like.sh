@@ -40,7 +40,7 @@ diff <(echo $v1) <(echo 0) || exit 1
 
 # fail
 f1=`freechains $H0 $SIG0 chain like / $b1`
-diff <(echo $f1) <(echo "must point to author's previous post") || exit 1
+diff <(echo $f1) <(echo "like author must have reputation") || exit 1
 
 freechains $H0 host now 8000000   # 2h
 

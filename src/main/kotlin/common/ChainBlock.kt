@@ -143,7 +143,7 @@ fun Chain.blockChain (blk: Block) {
         this.fsLoadBlock(bk, null).let {
             assert(!it.fronts.contains(blk.hash)) { "bug found: " + it.hash + " -> " + blk.hash }
             it.fronts.add(blk.hash)
-            //it.fronts.sort()
+            it.fronts.sort()            // TODO: for external tests in FS (sync.sh)
             this.fsSaveBlock(it)
         }
     }
@@ -212,9 +212,12 @@ fun Chain.blockAssert (blk: Block) {
 
     if (imm.like != null) {
         assert(blk.sign != null) { "like must be signed"}
-        assert(this.fsExistsBlock(imm.like.hash)) { "like must have valid target" }
-        this.fsLoadBlock(imm.like.hash,null).let {
-            assert(!it.isFrom(blk.sign!!.pub)) { "like must not target itself" }
+        // may receive out of order // may point to rejected post
+        //assert(this.fsExistsBlock(imm.like.hash)) { "like must have valid target" }
+        if (this.fsExistsBlock(imm.like.hash)) {
+            this.fsLoadBlock(imm.like.hash,null).let {
+                assert(!it.isFrom(blk.sign!!.pub)) { "like must not target itself" }
+            }
         }
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
