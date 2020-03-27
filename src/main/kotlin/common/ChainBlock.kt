@@ -64,19 +64,19 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
     //assert(imm_.backs.isEmpty()) { "backs must be empty" }
     val accs = this.getHeads(State.ACCEPTED).toTypedArray()
     val backs = when {
-        imm_.backs.isNotEmpty() -> imm_.backs
-        (imm_.like == null)     -> accs
+        imm_.backs.isNotEmpty()                                             -> imm_.backs
+        (imm_.like == null)                                                 -> accs
         else -> {
             val liked = this.fsLoadBlock(imm_.like.hash, null)
             when {
                 // engraved, no reason to move this like out
-                ((liked.immut.time <= imm_.time-T1D_eng))      -> accs
+                ((liked.immut.time <= imm_.time-T1D_eng))                   -> accs
 
                 // author has post after liked, cannot move it
                 (prev!=null && this.bfsFrontsIsFromTo(imm_.like.hash,prev)) -> accs
 
                 // move backs to before the liked post
-                else                                               -> accs
+                else                                                        -> accs
                     .map {
                         if (this.bfsFrontsIsFromTo(imm_.like.hash, it)) {
                             this.fsLoadBlock(imm_.like.hash,null).immut.backs.toList()
@@ -178,7 +178,7 @@ fun Chain.blockAssert (blk: Block) {
     assert(imm.time >= now-T120D_past) { "too old" }
 
     val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
-    if (blk.immut.backs.contains(gen)) {
+    if (imm.backs.contains(gen)) {
         this
             .bfsFrontsAll()
             .filter { it.hash.toHeight() == 1 }
@@ -204,7 +204,7 @@ fun Chain.blockAssert (blk: Block) {
                 if (it == null)
                     (imm.prev == null)
                 else
-                    (imm.prev==it.hash) && (this.hashState(it.hash,blk.immut.time)!=State.REJECTED)
+                    (imm.prev==it.hash) && (this.hashState(it.hash,imm.time)!=State.REJECTED)
                         //&& (imm.backs.any { this.isFromTo(imm.prev,it) })
             ) { "must point to author's previous post" }
         }
@@ -222,7 +222,7 @@ fun Chain.blockAssert (blk: Block) {
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
             this.trusted               ||   // dont check reps (private chain)
-            this.repsAuthor(blk.sign!!.pub, imm.time, blk.immut.backs.toList()) > 0
+            this.repsAuthor(blk.sign!!.pub, imm.time, imm.backs.toList()) > 0
         ) {
             "like author must have reputation"
         }

@@ -153,10 +153,10 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
         .filter { it.immut.like == null }                    // not likes
         .let { list ->
             val pos = list
-                .filter { now >= it.immut.time + T1D_rep }   // posts older than 1 day
+                .filter { now >= it.immut.time + T1D_reps }   // posts older than 1 day
                 .count()
             val neg = list
-                .filter { now <  it.immut.time + T1D_rep }    // posts newer than 1 day
+                .filter { now <  it.immut.time + T1D_reps }    // posts newer than 1 day
                 .count()
             //println("gen=$gen // pos=$pos // neg=$neg // now=$now")
             max(gen,min(LK30_max,pos)) - neg
