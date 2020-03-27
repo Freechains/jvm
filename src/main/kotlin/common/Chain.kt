@@ -82,7 +82,7 @@ fun Immut.toHash () : Hash {
 // HEADS
 
 fun Chain.getHeads (want: State, hash: Hash = this.getGenesis()) : List<Hash> {
-    val have = if (want == State.ALL) null else this.hashState(hash)
+    val have = if (want == State.ALL) null else this.hashState(hash, getNow())
 
     val rec = this.fsLoadBlock(hash, null)
         .fronts
@@ -128,7 +128,7 @@ fun Chain.repsPost (hash: String, isAll: Boolean) : Int {
         .bfsFrontsAll ()
         .filter { x -> iReach.none { y -> x.hash == y.hash } } // remove likes reached from hash itself
         .filter { it.immut.like!=null && it.immut.like.hash==hash }
-        .filter { isAll || blk.immut.time > (it.immut.time-T1D_rep_eng) }
+        .filter { isAll || blk.immut.time > (it.immut.time-T1D_eng) }
         .map    { it.immut.like!! }
 
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
@@ -153,10 +153,10 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
         .filter { it.immut.like == null }                    // not likes
         .let { list ->
             val pos = list
-                .filter { it.immut.time <= now - T1D_rep_eng }   // posts older than 1 day
+                .filter { now >= it.immut.time + T1D_rep }   // posts older than 1 day
                 .count()
             val neg = list
-                .filter { it.immut.time > now - T1D_rep_eng }    // posts newer than 1 day
+                .filter { now <  it.immut.time + T1D_rep }    // posts newer than 1 day
                 .count()
             //println("gen=$gen // pos=$pos // neg=$neg // now=$now")
             max(gen,min(LK30_max,pos)) - neg

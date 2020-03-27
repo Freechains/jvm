@@ -12,20 +12,18 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 
 // STATE
 
-fun Chain.hashState (hash: Hash) : State {
+fun Chain.hashState (hash: Hash, now: Long) : State {
     return when {
         this.fsExistsBlock(hash,"/bans/") -> State.BANNED
         ! this.fsExistsBlock(hash)            -> State.MISSING
-        else -> this.blockState(this.fsLoadBlock(hash,null))
+        else -> this.blockState(this.fsLoadBlock(hash,null), now)
     }
 }
 
-fun Chain.blockState (blk: Block) : State {
-    val now = getNow()
-
+fun Chain.blockState (blk: Block, now: Long) : State {
     fun oldEnough () : Boolean {
         val dt = blk.localTime - blk.immut.time
-        return blk.localTime <= now - (T2H_past + sqrt(dt.toFloat()))   // old enough
+        return now >= blk.localTime + (T2H_tine + sqrt(dt.toFloat()))   // old enough
     }
 
     val prev = blk.immut.prev
@@ -72,7 +70,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
             val liked = this.fsLoadBlock(imm_.like.hash, null)
             when {
                 // engraved, no reason to move this like out
-                ((liked.immut.time <= imm_.time-T1D_rep_eng))      -> accs
+                ((liked.immut.time <= imm_.time-T1D_eng))      -> accs
 
                 // author has post after liked, cannot move it
                 (prev!=null && this.bfsFrontsIsFromTo(imm_.like.hash,prev)) -> accs
@@ -100,7 +98,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
     val backs2 = when {
         (prev == null) -> backs
         (ath == null)  -> backs
-        (this.blockState(ath) == State.ACCEPTED) -> backs
+        (this.blockState(ath,imm_.time) == State.ACCEPTED) -> backs
         else -> backs
             .toSet()
             .plusElement(ath.hash)
@@ -156,9 +154,11 @@ fun Chain.backsAssert (blk: Block) {
         this.fsLoadBlock(bk,null).let { bbk ->
             assert(bbk.immut.time <= blk.immut.time) { "back must be older"}
             when {
-                (this.blockState(bbk) == State.ACCEPTED) -> true
-                (blk.immut.prev == null)                 -> false
-                else -> this.bfsBacksFindAuthor(blk.sign!!.pub).let { (it!=null && this.blockState(it)!=State.REJECTED) }
+                (this.blockState(bbk,blk.immut.time) == State.ACCEPTED) -> true
+                (blk.immut.prev == null)                                -> false
+                else -> this.bfsBacksFindAuthor(blk.sign!!.pub).let {
+                    (it!=null && this.blockState(it,blk.immut.time)!=State.REJECTED)
+                }
             }.let {
                 assert(it) { "backs must be accepted" }
             }
@@ -204,7 +204,7 @@ fun Chain.blockAssert (blk: Block) {
                 if (it == null)
                     (imm.prev == null)
                 else
-                    (imm.prev==it.hash) && (this.hashState(it.hash)!=State.REJECTED)
+                    (imm.prev==it.hash) && (this.hashState(it.hash,blk.immut.time)!=State.REJECTED)
                         //&& (imm.backs.any { this.isFromTo(imm.prev,it) })
             ) { "must point to author's previous post" }
         }

@@ -377,7 +377,7 @@ fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
             if (hash.isEmpty()) {                   // 4
                 break                               // nothing else to answer
             } else {
-                writer.writeLineX(chain.hashState(hash).toString_())   // 3: have or not block
+                writer.writeLineX(chain.hashState(hash, getNow()).toString_())   // 3: have or not block
             }
         }
 
