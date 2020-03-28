@@ -21,11 +21,6 @@ fun Chain.hashState (hash: Hash, now: Long) : State {
 }
 
 fun Chain.blockState (blk: Block, now: Long) : State {
-    fun oldEnough () : Boolean {
-        val dt = blk.localTime - blk.immut.time
-        return now >= blk.localTime + (T2H_tine + sqrt(dt.toFloat()))   // old enough
-    }
-
     val prev = blk.immut.prev
     val ath = when {
         (blk.sign == null) -> 0     // anon post, no author reps
@@ -47,7 +42,7 @@ fun Chain.blockState (blk: Block, now: Long) : State {
 
         // changeable
         (reps+ath <= 0)             -> State.REJECTED      // not enough reps
-        (! oldEnough())             -> State.PENDING       // not old enough
+        (now < blk.tineTime)        -> State.PENDING       // not old enough
         else                        -> State.ACCEPTED      // enough reps, enough time
     }
 }
@@ -93,7 +88,15 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
             Signature(sig_hash, sign.pvtToPub())
         }
 
-    val new = Block(imm, hash, signature)
+    val now = getNow()
+    val bkMax = imm.backs
+        .map { this.fsLoadBlock(it,null) }
+        .map { it.immut.time }
+        .max ()!!
+        .toFloat()
+    val tine = now + T2H_tine + sqrt(now - bkMax)
+
+    val new = Block(imm, hash, signature, tine.toLong())
     this.blockChain(new)
     return new
 }

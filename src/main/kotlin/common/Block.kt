@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
+import kotlin.math.sqrt
 
 typealias Hash = String
 
@@ -59,12 +60,12 @@ data class Immut (
 
 @Serializable
 data class Block (
-    val immut     : Immut,              // things to hash
-    val hash      : Hash,               // hash of immut
-    val sign      : Signature?
+    val immut    : Immut,           // things to hash
+    val hash     : Hash,            // hash of immut
+    val sign     : Signature?,
+    var tineTime : Long
 ) {
-    var fronts    : MutableList<Hash> = mutableListOf() // front links (next blocks)
-    var localTime : Long = getNow()     // local time
+    var fronts   : MutableList<Hash> = mutableListOf() // front links (next blocks)
 }
 
 fun Immut.toJson (): String {

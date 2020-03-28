@@ -30,11 +30,13 @@ import kotlin.concurrent.thread
  *    - isolate case that depend on the recv order
  *    - blink impossible (fronts rule), once published on top: dislike does not affect removal / parallel pub refused
  *  - PROTO:
+ *    - trusted hosts // forward bans
  *    - time limits constants
  *    - forks: reject smaller/newest branch
  *    - REJ <- same author, what to do?
  *    - initial cost per 32KB
  *    - prunning (hash of bases, starts with genesis), if they don't match, permanent fork
+ *      - new idea 4-month window every day at 0:00
  *  - HOST: "create" receives pub/pvt args
  *    - creates pvt chain oo (for logs, periodic bcast)
  *    - save CFG in a chain
