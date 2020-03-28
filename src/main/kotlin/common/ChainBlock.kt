@@ -15,7 +15,7 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 fun Chain.hashState (hash: Hash, now: Long) : State {
     return when {
         this.fsExistsBlock(hash,"/bans/") -> State.BANNED
-        ! this.fsExistsBlock(hash)            -> State.MISSING
+        ! this.fsExistsBlock(hash)             -> State.MISSING
         else -> this.blockState(this.fsLoadBlock(hash,null), now)
     }
 }
@@ -32,7 +32,7 @@ fun Chain.blockState (blk: Block, now: Long) : State {
         (prev == null)     -> 0     // no prev post, no author reps
         else               -> this.repsAuthor(blk.sign.pub, now, listOf(prev))
     }
-    val reps = this.repsPost(blk.hash,false)
+    val reps = this.repsPost(blk.hash,true)
 
     // number of blocks that point back to it (-1 myself)
     //val fronts = max(0, this.bfsAll(blk.hash).count{ this.blockState(it)==State.ACCEPTED } - 1)
@@ -57,43 +57,9 @@ fun Chain.blockState (blk: Block, now: Long) : State {
 fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
     assert(imm_.prev == null) { "prev must be null" }
 
-    val prev = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash
-
-    //println("pay=${imm_.payload} // ${(prev!=null && imm_.like!=null && this.isFromTo(imm_.like.hash,prev))}")
-
-    //assert(imm_.backs.isEmpty()) { "backs must be empty" }
-    val accs = this.getHeads(State.ACCEPTED).toTypedArray()
-    val backs = when {
-        imm_.backs.isNotEmpty()                                             -> imm_.backs
-        (imm_.like == null)                                                 -> accs
-        else -> {
-            val liked = this.fsLoadBlock(imm_.like.hash, null)
-            when {
-                // engraved, no reason to move this like out
-                ((liked.immut.time <= imm_.time-T1D_eng))                   -> accs
-
-                // author has post after liked, cannot move it
-                (prev!=null && this.bfsFrontsIsFromTo(imm_.like.hash,prev)) -> accs
-
-                // move backs to before the liked post
-                else                                                        -> accs
-                    .map {
-                        if (this.bfsFrontsIsFromTo(imm_.like.hash, it)) {
-                            this.fsLoadBlock(imm_.like.hash,null).immut.backs.toList()
-                        } else {
-                            listOf(it)
-                        }
-                    }
-                    .toList()
-                    .flatten()
-                    .toTypedArray()
-                    //.toSet()
-                    //.toList()
-            }
-        }
-    }
-
     // must include author's prev if not rejected
+    val backs = if (imm_.backs.isNotEmpty()) imm_.backs else this.getHeads(State.ACCEPTED).toTypedArray()
+    val prev = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash
     val ath = if (sign == null) null else this.bfsBacksFindAuthor(sign.pvtToPub())
     val backs2 = when {
         (prev == null) -> backs
@@ -109,7 +75,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
     val imm = imm_.copy (
         crypt   = (crypt != null),
         payload = if (crypt == null) imm_.payload else imm_.payload.encrypt(crypt),
-        prev    = prev,
+        prev    = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash,
         backs   = backs2
     )
     val hash = imm.toHash()
@@ -204,8 +170,7 @@ fun Chain.blockAssert (blk: Block) {
                 if (it == null)
                     (imm.prev == null)
                 else
-                    (imm.prev==it.hash) && (this.hashState(it.hash,imm.time)!=State.REJECTED)
-                        //&& (imm.backs.any { this.isFromTo(imm.prev,it) })
+                    (imm.prev==it.hash)
             ) { "must point to author's previous post" }
         }
     }

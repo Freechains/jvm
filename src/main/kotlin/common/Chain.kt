@@ -119,23 +119,17 @@ fun Chain.getHeads (want: State, hash: Hash = this.getGenesis()) : List<Hash> {
 
 // REPUTATION
 
-fun Chain.repsPost (hash: String, isAll: Boolean) : Int {
-    val blk = this.fsLoadBlock(hash,null)
-
-    val iReach = if (isAll) emptyList() else this.bfsFrontsAll(hash)
-
+fun Chain.repsPost (hash: String, onlyPos: Boolean) : Int {
     val likes = this
         .bfsFrontsAll ()
-        .filter { x -> iReach.none { y -> x.hash == y.hash } } // remove likes reached from hash itself
         .filter { it.immut.like!=null && it.immut.like.hash==hash }
-        .filter { isAll || blk.immut.time > (it.immut.time-T1D_eng) }
         .map    { it.immut.like!! }
 
     val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
 
     //println("$hash // chk=$chkRejected // pos=$pos // neg=$neg")
-    return pos + neg
+    return pos + (if (onlyPos) 0 else neg)
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {

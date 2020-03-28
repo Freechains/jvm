@@ -22,7 +22,7 @@ g=`freechains --host=localhost:8400 chain genesis /`
 h=`freechains --host=localhost:8400 --time=0 --sign=$PVT chain post / inline utf8 Hello_World`
 freechains --host=localhost:8400 chain get / "$h" > $FC/freechains-tests-get-1.out
 freechains --host=localhost:8400 chain get / 0_B5E21297B8EBEE0CFA0FA5AD30F21B8AE9AE9BBF25F2729989FE5A092B86B129 > $FC/freechains-tests-get-0.out
-hs=`freechains --host=localhost:8400 chain heads pending /`
+hs=`freechains --host=localhost:8400 chain heads accepted /`
 freechains --host=localhost:8400 chain get / "$g" > $FC/freechains-tests-gen.out
 freechains --host=localhost:8400 chain get / "$hs" > $FC/freechains-tests-heads.out
 
