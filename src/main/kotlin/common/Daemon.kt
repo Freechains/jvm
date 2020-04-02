@@ -13,6 +13,7 @@ import org.freechains.platform.lazySodium
 import java.lang.Long.max
 import java.util.*
 import kotlin.collections.HashSet
+import kotlin.math.sqrt
 
 class Daemon (host : Host) {
     private val listenLists = mutableMapOf<String,MutableSet<DataOutputStream>>()
@@ -389,6 +390,20 @@ fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
         xxx@for (j in 1..nin) {
             try {
                 val blk = reader.readLinesX().jsonToBlock() // 6
+
+                val loc = chain.getHeads(State.ACCEPTED)
+                    .map { chain.fsLoadBlock(it,null) }
+                    .map { it.immut.time }
+                    .max ()!!
+                    .toFloat()
+                val rem = blk.immut.backs
+                    .map { chain.fsLoadBlock(it,null) }
+                    .map { it.immut.time }
+                    .max ()!!
+                    .toFloat()
+                val tine = T2H_tine + sqrt(loc - rem)
+                blk.tineTime = getNow() + tine.toLong()
+
                 //println("[recv] ${blk.hash}")
                 chain.blockChain(blk)
                 nmin++

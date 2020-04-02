@@ -62,10 +62,10 @@ data class Immut (
 data class Block (
     val immut    : Immut,           // things to hash
     val hash     : Hash,            // hash of immut
-    val sign     : Signature?,
-    var tineTime : Long
+    val sign     : Signature?
 ) {
     var fronts   : MutableList<Hash> = mutableListOf() // front links (next blocks)
+    var tineTime : Long = getNow()+T2H_tine
 }
 
 fun Immut.toJson (): String {

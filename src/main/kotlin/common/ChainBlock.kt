@@ -88,15 +88,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
             Signature(sig_hash, sign.pvtToPub())
         }
 
-    val now = getNow()
-    val bkMax = imm.backs
-        .map { this.fsLoadBlock(it,null) }
-        .map { it.immut.time }
-        .max ()!!
-        .toFloat()
-    val tine = now + T2H_tine + sqrt(now - bkMax)
-
-    val new = Block(imm, hash, signature, tine.toLong())
+    val new = Block(imm, hash, signature)
     this.blockChain(new)
     return new
 }

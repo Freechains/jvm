@@ -25,10 +25,8 @@ import kotlin.concurrent.thread
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 KB
  *  - Simulation.kt
- *  - liferea, /home, table/shared/trusted column, docs, fred, ppt
- *  - PPT:
- *    - isolate case that depend on the recv order
- *    - blink impossible (fronts rule), once published on top: dislike does not affect removal / parallel pub refused
+ *  - liferea, /home, docs
+ *  - ban PUB
  *  - PROTO:
  *    - trusted hosts // forward bans
  *    - time limits constants
@@ -46,8 +44,6 @@ import kotlin.concurrent.thread
  *  - TEST
  *    - --utf8-eof
  *    - oonly
- *    - fork w/ double spend (second should go to noob list)
- *    - old tests
  *  - REFACTOR
  *    - join (stop/now), they use connection
  *    - chain/.* move dir files
@@ -55,7 +51,6 @@ import kotlin.concurrent.thread
  *    - freechains now s/ time (retorna now)
  *    - freechains host restart
  *    - freechains crypto w/o passphrase (to self generate)
- *    - --ref=<hash> [post] sets back reference to post (currently only auto w/ likes)
  *  - REPS
  *    - signal remote as soon as local detects the first rejected in the chain (to avoid many others in the same chain)
  *    - limit rejecteds per IP
@@ -76,6 +71,7 @@ import kotlin.concurrent.thread
  *    - blk/hash variations for all functions (avoid extra blockLoads)
  *  - IDEAS:
  *    - chain for restauration of state in other host holding all necessary commands
+ *    - post especial de BAN que quem confia segue automaticamente
  *  - all use cases (chain cfg e usos da industria)
  *  - commands with auth. ip port time to avoid reuse
  *  - RX Kotlin
