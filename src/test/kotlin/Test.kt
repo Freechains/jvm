@@ -573,11 +573,11 @@ class Tests {
         main_(arrayOf("chain", "like", "/xxx", h22, S0, "--why=l3")) // l3
 
         // h0 -> h11 -> h21 -> l3
-        //          \-> h22
+        //          \-> h22 /
 
         main_(arrayOf("chain", "heads", "linked",  "/xxx")).let { str ->
             str.split(' ').let {
-                assert(it.size == 2)
+                assert(it.size == 1)
                 assert(it[0].startsWith("3_") || it[1].startsWith("3_"))
             }
         }
@@ -694,20 +694,20 @@ class Tests {
             assert(it == "1 / 1")
         }
         main_(arrayOf(H1, "chain", "heads", "linked", "/xxx")).let {
-            assert(it.startsWith("6_"))
+            assert(it.startsWith("7_"))
         }
 
         main_(arrayOf(H1,"chain","like","/xxx",h7,S0))
 
-        // h0 <- h11 <- h21 <- l3 <- h41 <- l5       l7
-        //          \               /         \    /
+        // h0 <- h11 <- h21 <- l3 <- h41 <- l5          l7
+        //          \               /         \        /
         //           \- h22 <-------           l6 <- h7
 
         main_(arrayOf(H1, "chain", "heads", "linked", "/xxx")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 it.forEach {
-                    assert(it.startsWith("7_"))
+                    assert(it.startsWith("8_"))
                 }
             }
         }
@@ -722,17 +722,17 @@ class Tests {
 
         main_(arrayOf(H0, "chain", "heads", "linked", "/xxx")).let { str ->
             str.split(' ').let {
-                assert(it.size == 2)
+                assert(it.size == 1)
                 it.forEach {
-                    assert(it.startsWith("7_"))
+                    assert(it.startsWith("8_"))
                 }
             }
         }
         main_(arrayOf(H1, "chain", "heads", "linked", "/xxx")).let { str ->
             str.split(' ').let {
-                assert(it.size == 2)
+                assert(it.size == 1)
                 it.forEach {
-                    assert(it.startsWith("7_"))
+                    assert(it.startsWith("8_"))
                 }
             }
         }
@@ -740,16 +740,16 @@ class Tests {
         // new post, no rep
         val h8 = main_(arrayOf(H1, "chain", "post", "/xxx", "inline", "utf8", "no sig"))
 
-        // h0 <- h11 <- h21 <- l3 <- h41 <- l5       l7
-        //          \               /         \    /
-        //           \- h22 <-------           l6 <- h7 <- h8
+        // h0 <- h11 <- h21 <- l3 <- h41 <- l5          l7 <- h8
+        //          \               /         \        /
+        //           \- h22 <-------           l6 <- h7
 
         main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
             assert(it.equals("0 / 0"))
         }
 
         main_(arrayOf(H1, "chain", "heads", "blocked", "/xxx")).let {
-            assert(it.startsWith("8_"))
+            assert(it.startsWith("9_"))
         }
 
         main_(arrayOf(H1, "chain", "get", "/xxx", h8))

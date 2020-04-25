@@ -124,7 +124,7 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
 
     //println("$hash // chk=$chkRejected // pos=$pos // neg=$neg")
-    return Pair(pos,neg)
+    return Pair(pos,-neg)
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
@@ -168,7 +168,7 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
         .map { it.immut.like!!.n.absoluteValue }
         .sum()
 
-    //println("gave=$gave // recv=$recv")
+    //println("posts=$posts + recv=$recv - gave=$gave")
     return posts + recv - gave
 }
 

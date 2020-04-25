@@ -31,7 +31,7 @@ fun Chain.blockState (blk: Block, now: Long) : State {
     // number of blocks that point back to it (-1 myself)
     //val fronts = max(0, this.bfsAll(blk.hash).count{ this.blockState(it)==State.ACCEPTED } - 1)
 
-    //println("rep ${blk.hash} = reps=$reps + ath=$ath // ${blk.immut.time}")
+    //println("rep ${blk.hash} = reps=$pos-$neg + ath=$ath // ${blk.immut.time}")
     return when {
         // unchangeable
         (blk.hash.toHeight() <= 1)  -> State.ACCEPTED       // first two blocks
