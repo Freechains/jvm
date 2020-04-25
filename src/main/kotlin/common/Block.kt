@@ -9,16 +9,16 @@ import kotlin.math.sqrt
 typealias Hash = String
 
 enum class State {
-    MISSING, BANNED, REJECTED, PENDING, ACCEPTED, ALL
+    MISSING, BLOCKED, LINKED, REJECTED, ACCEPTED, ALL
 }
 
 fun State.toString_ () : String {
     return when (this) {
         State.ALL      -> "all"
         State.ACCEPTED -> "accepted"
-        State.PENDING  -> "pending"
         State.REJECTED -> "rejected"
-        State.BANNED   -> "banned"
+        State.LINKED   -> "linked"
+        State.BLOCKED  -> "blocked"
         State.MISSING  -> "missing"
     }
 }
@@ -27,9 +27,9 @@ fun String.toState () : State {
     return when (this) {
         "all"      -> State.ALL
         "accepted" -> State.ACCEPTED
-        "pending"  -> State.PENDING
         "rejected" -> State.REJECTED
-        "banned"   -> State.BANNED
+        "linked"   -> State.LINKED
+        "blocked"  -> State.BLOCKED
         "missing"  -> State.MISSING
         else       -> error("bug found")
     }

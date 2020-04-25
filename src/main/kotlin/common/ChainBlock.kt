@@ -14,8 +14,7 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 
 fun Chain.hashState (hash: Hash, now: Long) : State {
     return when {
-        this.fsExistsBlock(hash,"/bans/") -> State.BANNED
-        ! this.fsExistsBlock(hash)             -> State.MISSING
+        ! this.fsExistsBlock(hash) -> State.MISSING
         else -> this.blockState(this.fsLoadBlock(hash,null), now)
     }
 }
@@ -27,7 +26,7 @@ fun Chain.blockState (blk: Block, now: Long) : State {
         (prev == null)     -> 0     // no prev post, no author reps
         else               -> this.repsAuthor(blk.sign.pub, now, listOf(prev))
     }
-    val reps = this.repsPost(blk.hash,true)
+    val (pos,neg) = this.repsPost(blk.hash)
 
     // number of blocks that point back to it (-1 myself)
     //val fronts = max(0, this.bfsAll(blk.hash).count{ this.blockState(it)==State.ACCEPTED } - 1)
@@ -35,15 +34,15 @@ fun Chain.blockState (blk: Block, now: Long) : State {
     //println("rep ${blk.hash} = reps=$reps + ath=$ath // ${blk.immut.time}")
     return when {
         // unchangeable
-        (blk.hash.toHeight() <= 1)  -> State.ACCEPTED      // first two blocks
-        this.fromOwner(blk)         -> State.ACCEPTED      // owner signature
-        this.trusted                -> State.ACCEPTED      // chain with trusted hosts/authors
-        (blk.immut.like != null)    -> State.ACCEPTED      // a like
+        (blk.hash.toHeight() <= 1)  -> State.ACCEPTED       // first two blocks
+        this.fromOwner(blk)         -> State.ACCEPTED       // owner signature
+        this.trusted                -> State.ACCEPTED       // chain with trusted hosts/authors only
+        (blk.immut.like != null)    -> State.ACCEPTED       // a like
 
         // changeable
-        (reps+ath <= 0)             -> State.REJECTED      // not enough reps
-        (now < blk.tineTime)        -> State.PENDING       // not old enough
-        else                        -> State.ACCEPTED      // enough reps, enough time
+        (pos==0 && ath<=0)          -> State.BLOCKED        // no likes && noob author
+        (2*neg >= pos)              -> State.REJECTED       // too much dislikes
+        else                        -> State.ACCEPTED
     }
 }
 
@@ -52,8 +51,20 @@ fun Chain.blockState (blk: Block, now: Long) : State {
 fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
     assert(imm_.prev == null) { "prev must be null" }
 
+    val backs= if (imm_.backs.isNotEmpty()) imm_.backs else this.getHeads(State.LINKED).toTypedArray()
+
+    // must point to liked block directly or indirectly
+    val backs2 = when {
+        (imm_.like == null) -> backs
+        backs.any {
+            this.bfsFrontsIsFromTo(imm_.like.hash, it)
+        }                   -> backs
+        else                -> backs + arrayOf(imm_.like.hash)
+    }
+
+    // TODO: why should include authors' prev?
+    /*
     // must include author's prev if not rejected
-    val backs = if (imm_.backs.isNotEmpty()) imm_.backs else this.getHeads(State.ACCEPTED).toTypedArray()
     val prev = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash
     val ath = if (sign == null) null else this.bfsBacksFindAuthor(sign.pvtToPub())
     val backs2 = when {
@@ -66,6 +77,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
             .minus(backs.filter { this.bfsFrontsIsFromTo(it,ath.hash) })
             .toTypedArray()
     }
+    */
 
     val imm = imm_.copy (
         crypt   = (crypt != null),

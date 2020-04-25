@@ -96,21 +96,16 @@ fun Chain.getHeads (want: State, hash: Hash = this.getGenesis()) : List<Hash> {
     }
 
     return when (want) {
-        State.ALL              -> f(hash, rec)
-        State.REJECTED ->
+        State.ALL             -> f(hash, rec)
+        State.BLOCKED ->
             when (have!!) {
-                State.REJECTED -> listOf(hash)
-                else           -> rec
+                State.BLOCKED -> listOf(hash)
+                else          -> rec
             }
-        State.ACCEPTED ->
+        State.LINKED ->
             when (have!!) {
                 State.ACCEPTED -> f(hash, rec)
-                else           -> emptyList()
-            }
-        State.PENDING ->
-            when (have!!) {
-                State.ACCEPTED -> f(hash, rec)
-                State.PENDING  -> f(hash, rec)
+                State.REJECTED -> f(hash, rec)
                 else           -> emptyList()
             }
         else -> error("impossible case")
@@ -119,9 +114,9 @@ fun Chain.getHeads (want: State, hash: Hash = this.getGenesis()) : List<Hash> {
 
 // REPUTATION
 
-fun Chain.repsPost (hash: String, onlyPos: Boolean) : Int {
+fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     val likes = this
-        .bfsFrontsAll ()
+        .bfsFrontsAll(hash)
         .filter { it.immut.like!=null && it.immut.like.hash==hash }
         .map    { it.immut.like!! }
 
@@ -129,7 +124,7 @@ fun Chain.repsPost (hash: String, onlyPos: Boolean) : Int {
     val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
 
     //println("$hash // chk=$chkRejected // pos=$pos // neg=$neg")
-    return pos + (if (onlyPos) 0 else neg)
+    return Pair(pos,neg)
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {

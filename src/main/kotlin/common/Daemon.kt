@@ -174,7 +174,8 @@ class Daemon (host : Host) {
 
                             val likes =
                                 if (ref.hashIsBlock()) {
-                                    chain.repsPost(ref, false)
+                                    val (pos,neg) = chain.repsPost(ref)
+                                    pos - neg
                                 } else {
                                     chain.repsAuthor(ref, getNow(), chain.getHeads(State.ALL))
                                 }
@@ -218,7 +219,7 @@ class Daemon (host : Host) {
                                     assert(lkr.isEmpty())
                                     null
                                 } else {
-                                    assert(lkn==-1 || lkn==1) { "invalid like"}
+                                    assert(lkn==-1 || lkn==1) { "invalid like" }
                                     assert(lkr.hashIsBlock()) { "expected block hash" }
                                     Like(lkn, lkr)
                                 }
@@ -229,7 +230,10 @@ class Daemon (host : Host) {
                                     Immut (
                                         max (
                                             time.nowToTime(),
-                                            1 + chain.getHeads(State.ACCEPTED).map { chain.fsLoadBlock(it, null).immut.time }.max()!!
+                                            1 + max (
+                                                chain.fsLoadBlock(lkr,null).immut.time,
+                                                chain.getHeads(State.LINKED).map { chain.fsLoadBlock(it, null).immut.time }.max()!!
+                                            )
                                         ),
                                         cods[0],
                                         false,
@@ -302,7 +306,7 @@ fun Socket.chainSend (chain: Chain) : Pair<Int,Int> {
     var nmax    = 0
 
     // for each local head
-    val heads = chain.getHeads(State.PENDING)
+    val heads = chain.getHeads(State.LINKED)
     val nout = heads.size
     writer.writeLineX(nout.toString())                              // 1
     for (head in heads) {
@@ -391,7 +395,7 @@ fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
             try {
                 val blk = reader.readLinesX().jsonToBlock() // 6
 
-                val loc = chain.getHeads(State.ACCEPTED)
+                val loc = chain.getHeads(State.LINKED)
                     .map { chain.fsLoadBlock(it,null) }
                     .map { it.immut.time }
                     .max ()!!
