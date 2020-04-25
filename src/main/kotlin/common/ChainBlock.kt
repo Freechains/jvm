@@ -127,10 +127,10 @@ fun Chain.backsAssert (blk: Block) {
         this.fsLoadBlock(bk,null).let { bbk ->
             assert(bbk.immut.time <= blk.immut.time) { "back must be older"}
             when {
-                (this.blockState(bbk,blk.immut.time) == State.ACCEPTED) -> true
+                (this.blockState(bbk,blk.immut.time) != State.BLOCKED) -> true
                 (blk.immut.prev == null)                                -> false
                 else -> this.bfsBacksFindAuthor(blk.sign!!.pub).let {
-                    (it!=null && this.blockState(it,blk.immut.time)!=State.REJECTED)
+                    (it!=null && this.blockState(it,blk.immut.time)!=State.BLOCKED)
                 }
             }.let {
                 assert(it) { "backs must be accepted" }
