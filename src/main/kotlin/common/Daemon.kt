@@ -184,25 +184,6 @@ class Daemon (host : Host) {
                             System.err.println("chain reps: $likes")
                         }
 
-                        "FC chain ban" -> {
-                            val hash = reader.readLineX()
-                            if (! chain.fsExistsBlock(hash)) {
-                                writer.writeLineX("false")
-                            } else {
-                                chain.blockBan(hash)
-                                writer.writeLineX("true")
-                            }
-                        }
-                        "FC chain unban" -> {
-                            val hash = reader.readLineX()
-                            if (chain.fsExistsBlock(hash,"/bans/")) {
-                                chain.blockUnban(hash)
-                                writer.writeLineX("true")
-                            } else {
-                                writer.writeLineX("false")
-                            }
-                        }
-
                         "FC chain post" -> {
                             val time = reader.readLineX()
                             val sign = reader.readLineX()   // "" / <pvt>

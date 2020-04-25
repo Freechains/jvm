@@ -24,7 +24,6 @@ Usage:
     freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
     freechains [options] chain (like | dislike) <chain> <hash>
     freechains [options] chain reps <chain> <hash_or_pub>
-    freechains [options] chain (ban | unban) <chain> <hash>
     freechains [options] chain listen <chain>
     freechains [options] chain send <chain> <host:port>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
@@ -143,18 +142,6 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX("FC chain reps")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<hash_or_pub>"] as String)
-                    return reader.readLineX()
-                }
-                opts["ban"] as Boolean -> {
-                    writer.writeLineX("FC chain ban")
-                    writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(opts["<hash>"] as String)
-                    return reader.readLineX()
-                }
-                opts["unban"] as Boolean -> {
-                    writer.writeLineX("FC chain unban")
-                    writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(opts["<hash>"] as String)
                     return reader.readLineX()
                 }
 

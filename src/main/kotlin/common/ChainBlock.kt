@@ -140,8 +140,6 @@ fun Chain.backsAssert (blk: Block) {
 }
 
 fun Chain.blockAssert (blk: Block) {
-    assert(! this.fsExistsBlock(blk.hash,"/bans/")) { "block is banned" }
-
     val imm = blk.immut
     assert(blk.hash == imm.toHash()) { "hash must verify" }
     this.backsAssert(blk)                   // backs exist and are older
@@ -199,46 +197,4 @@ fun Chain.blockAssert (blk: Block) {
             "like author must have reputation"
         }
     }
-}
-
-// BAN
-
-fun Chain.blockBan (hash: Hash) {
-    //println("rem $hash // ${blk.fronts}")
-    val blk = this.fsLoadBlock(hash, null)
-
-    // remove myself as front of all my backs
-    for (bk in blk.immut.backs) {
-        this.fsLoadBlock(bk, null).let {
-            it.fronts.remove(hash)
-            this.fsSaveBlock(it)
-        }
-    }
-
-    for (fr in blk.fronts) {
-        this.blockBan(fr)
-    }
-
-    this.fsSaveBlock(blk, "/bans/")
-    this.fsRemBlock(blk.hash)
-}
-
-
-fun Chain.blockUnban (hash: Hash) {
-    //println("rem $hash // ${blk.fronts}")
-    val blk = this.fsLoadBlock(hash, null, "/bans/")
-
-    // add myself as front of all my backs
-    for (bk in blk.immut.backs) {
-        this.fsLoadBlock(bk, null).let {
-            it.fronts.add(hash)
-            this.fsSaveBlock(it)
-        }
-    }
-
-    blk.fronts.clear()
-
-    this.fsSaveBlock(blk)
-    this.fsRemBlock(blk.hash, "/bans/")
-
 }

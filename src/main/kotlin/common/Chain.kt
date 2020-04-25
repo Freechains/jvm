@@ -178,17 +178,12 @@ internal fun Chain.fsSave () {
     val dir = File(this.root + this.name + "/blocks/")
     if (!dir.exists()) {
         dir.mkdirs()
-        File(this.root + this.name + "/bans/").mkdirs()
     }
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
 }
 
-fun Chain.fsRemBlock (hash: Hash, dir: String="/blocks/") {
-    assert(File(this.root + this.name + dir + hash + ".blk").delete()) { "block is not found" }
-}
-
-fun Chain.fsLoadBlock (hash: Hash, crypt: HKey?, dir: String="/blocks/") : Block {
-    val blk = File(this.root + this.name + dir + hash + ".blk").readText().jsonToBlock()
+fun Chain.fsLoadBlock (hash: Hash, crypt: HKey?) : Block {
+    val blk = File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
     if (crypt==null || !blk.immut.crypt) {
         return blk
     }
@@ -200,11 +195,11 @@ fun Chain.fsLoadBlock (hash: Hash, crypt: HKey?, dir: String="/blocks/") : Block
     )
 }
 
-fun Chain.fsExistsBlock (hash: Hash, dir: String ="/blocks/") : Boolean {
+fun Chain.fsExistsBlock (hash: Hash) : Boolean {
     return (this.hash == hash) ||
-           File(this.root + this.name + dir + hash + ".blk").exists()
+           File(this.root + this.name + "/blocks/" + hash + ".blk").exists()
 }
 
-fun Chain.fsSaveBlock (blk: Block, dir: String="/blocks/") {
-    File(this.root + this.name + dir + blk.hash + ".blk").writeText(blk.toJson()+"\n")
+fun Chain.fsSaveBlock (blk: Block) {
+    File(this.root + this.name + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
