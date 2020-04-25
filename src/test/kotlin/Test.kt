@@ -327,7 +327,6 @@ class Tests {
         assert(main_(arrayOf("chain", "heads", "linked", "/xxx")).startsWith("0_"))
 
         main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", S0))
-        error("oi")
         assert(main_(arrayOf("chain", "heads", "linked", "/xxx")).startsWith("1_"))
         main_(arrayOf("chain", "heads", "blocked", "/xxx")).let {
             assert(it.isEmpty())

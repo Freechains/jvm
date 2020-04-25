@@ -231,7 +231,7 @@ class Daemon (host : Host) {
                                         max (
                                             time.nowToTime(),
                                             1 + max (
-                                                chain.fsLoadBlock(lkr,null).immut.time,
+                                                if (like==null) 0 else chain.fsLoadBlock(lkr,null).immut.time,
                                                 chain.getHeads(State.LINKED).map { chain.fsLoadBlock(it, null).immut.time }.max()!!
                                             )
                                         ),
