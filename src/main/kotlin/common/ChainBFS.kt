@@ -2,9 +2,22 @@ package org.freechains.common
 
 import java.util.*
 
+enum class BfsDir {
+    BACKS, FRONTS
+}
+
+// remove heads that point to other heads
+fun Chain.bfsCleanHeads (heads: List<Hash>) : List<Hash> {
+    return heads.filter { from ->
+        heads.none { to ->
+            (from != to) && this.bfsFrontsIsFromTo(from,to)
+        }
+    }
+}
+
 fun Chain.bfsFrontsIsFromTo (from: Hash, to: Hash) : Boolean {
     //println(this.bfsFirst(listOf(from), true) { it.hash == to })
-    return to == (this.bfsFrontsFirst(from) { it.hash == to }!!.hash)
+    return this.bfsFrontsFirst(from) { it.hash == to } != null
 }
 
 fun Chain.bfsBacksFindAuthor (pub: String) : Block? {
@@ -12,11 +25,11 @@ fun Chain.bfsBacksFindAuthor (pub: String) : Block? {
 }
 
 fun Chain.bfsFrontsFirst (start: Hash, pred: (Block) -> Boolean) : Block? {
-    return this.bfsFirst(listOf(start), true, pred)
+    return this.bfsFirst(listOf(start), BfsDir.FRONTS, pred)
 }
 
 fun Chain.bfsBacksFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
-    return this.bfsFirst(heads, false, pred)
+    return this.bfsFirst(heads, BfsDir.BACKS, pred)
 }
 
 fun Chain.bfsBacksAuthor (heads: List<Hash>, pub: String) : List<Block> {
@@ -35,15 +48,12 @@ fun Chain.bfsBacksAuthor (heads: List<Hash>, pub: String) : List<Block> {
         }
 }
 
-private fun Chain.bfsFirst (starts: List<Hash>, fromGen: Boolean, pred: (Block) -> Boolean) : Block? {
+private fun Chain.bfsFirst (starts: List<Hash>, dir: BfsDir, pred: (Block) -> Boolean) : Block? {
     return this
-        .bfs(starts,true, fromGen) { !pred(it) }
+        .bfs(starts,true, dir) { !pred(it) }
         .last()
         .let {
-            if (it.hash == this.getGenesis())
-                null
-            else
-                it
+            if (pred(it)) it else null
         }
 }
 
@@ -56,18 +66,18 @@ fun Chain.bfsBacksAll (heads: List<Hash>) : List<Block> {
 }
 
 fun Chain.bfsFronts (start: Hash, inc: Boolean, ok: (Block) -> Boolean) : List<Block> {
-    return this.bfs(listOf(start), inc, true, ok)
+    return this.bfs(listOf(start), inc, BfsDir.FRONTS, ok)
 }
 
 fun Chain.bfsBacks (starts: List<Hash>, inc: Boolean, ok: (Block) -> Boolean) : List<Block> {
-    return this.bfs(starts, inc, false, ok)
+    return this.bfs(starts, inc, BfsDir.BACKS, ok)
 }
 
-internal fun Chain.bfs (starts: List<Hash>, inc: Boolean, fromGen: Boolean, ok: (Block) -> Boolean) : List<Block> {
+internal fun Chain.bfs (starts: List<Hash>, inc: Boolean, dir: BfsDir, ok: (Block) -> Boolean) : List<Block> {
     val ret = mutableListOf<Block>()
 
     val pending =
-        if (fromGen) {
+        if (dir == BfsDir.FRONTS) {
             TreeSet<Block>(compareBy { it.immut.time })
         } else {
             TreeSet<Block>(compareByDescending { it.immut.time })       // TODO: val cmp = ...
@@ -86,7 +96,7 @@ internal fun Chain.bfs (starts: List<Hash>, inc: Boolean, fromGen: Boolean, ok: 
             break
         }
 
-        val list = if (fromGen) blk.fronts else blk.immut.backs.toList()
+        val list = if (dir == BfsDir.FRONTS) blk.fronts else blk.immut.backs.toList()
         pending.addAll(list.minus(visited).map { this.fsLoadBlock(it,null) })
         visited.addAll(list)
         ret.add(blk)

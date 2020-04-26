@@ -95,9 +95,6 @@ import kotlin.concurrent.thread
  *  - RPi: cable eth + wifi router + phones
  */
 
-fun Immut.now (t: Long = getNow()) : Immut {
-    return this.copy(time = t)
-}
 val H   = Immut(0, "",false, "", null, null, emptyArray())
 val HC  = H.copy(code="utf8", crypt=true)
 
@@ -175,7 +172,7 @@ class Tests {
         val c2 = h.loadChain(c1.name)
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
-        val blk = c2.blockNew(HC.now(), null, null)
+        val blk = c2.blockNew(HC, null, null)
         val blk2 = c2.fsLoadBlock(blk.hash, null)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
 
@@ -186,9 +183,9 @@ class Tests {
     fun c1_post() {
         val host = Host_load("/tmp/freechains/tests/local/")
         val chain = host.joinChain("/", false, ChainPub(false,PUB0))
-        val n1 = chain.blockNew(H.now(), PVT0, null)
-        val n2 = chain.blockNew(H.now(), PVT0, null)
-        val n3 = chain.blockNew(H.now(), null, null)
+        val n1 = chain.blockNew(H, PVT0, null)
+        val n2 = chain.blockNew(H, PVT0, null)
+        val n3 = chain.blockNew(H, null, null)
 
         var ok = false
         try {
@@ -224,8 +221,8 @@ class Tests {
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
         val srcChain = src.joinChain("/d3", false, ChainPub(false,PUB1))
-        srcChain.blockNew(HC.now(), PVT1, null)
-        srcChain.blockNew(HC.now(), PVT1, null)
+        srcChain.blockNew(HC, PVT1, null)
+        srcChain.blockNew(HC, PVT1, null)
         thread { Daemon(src).daemon() }
 
         // DESTINY
@@ -246,54 +243,8 @@ class Tests {
     }
 
     @Test
-    fun e1_graph() {
-        a_reset()
-        val h = Host_create("/tmp/freechains/tests/graph/")
-        val chain = h.joinChain("/", true, ChainPub(false,PUB0))
-
-        setNow(1*day)
-        val ab0 = chain.blockNew(HC.now(1*day), PVT0, null)
-        setNow(2*day)
-        chain.blockNew(HC.now(2*day-1).copy(payload = "a1"), PVT0, null)
-        val b1 = chain.blockNew(HC.now().copy(backs=arrayOf(ab0.hash)), PVT1, null)
-        setNow(27*day)
-        val ab2 = chain.blockNew(HC.now(), PVT0, null)
-        setNow(28*day)
-        //assert(chain.blockState(b1) == BlockState.REJECTED)
-        chain.blockNew(HC.now().copy(backs = arrayOf(b1.hash)), PVT1, null)
-        setNow(32*day)
-        chain.blockNew(HC.now(), PVT0, null)
-
-        /*
-                      /-- (a1) --\
-        (G) -- (ab0) <            >-- (ab2) --\
-                      \          /             > (ab3)
-                       \-- (b1) +---- (b2) ---/
-         */
-
-        assert(chain.bfsFrontsAll().size == 7)
-
-        val x = chain.bfsBacks(chain.getHeads(State.ALL),false) { it.hash.toHeight() > 2 }
-        assert(x.size == 3)
-
-        fun Chain.getMaxTime(): Long {
-            return this.getHeads(State.ALL)
-                .map { this.fsLoadBlock(it, null) }
-                .map { it.immut.time }
-                .max()!!
-        }
-
-        val y = chain.bfsFrontsAll().filter { it.immut.time >= chain.getMaxTime() - 30 * day }
-        //println(y.map { it.hash })
-        assert(y.size == 4)
-
-        val z = chain.bfsBacks(listOf(ab2.hash),false) { it.immut.time > 1 * day }
-        assert(z.size == 3)
-    }
-
-    @Test
     fun f1_peers() {
-        //a_reset()
+        a_reset()
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
         val h1Chain = h1.joinChain("/xxx", false, ChainPub(false,PUB1))

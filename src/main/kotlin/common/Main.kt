@@ -32,7 +32,6 @@ Options:
     --help                 [none]           displays this help
     --version              [none]           displays version information
     --host=<addr:port>     [all]            sets address and port to connect [default: localhost:8330]
-    --time=<ms>            [post|like]      sets block timestamp [default: now]
     --sign=<pvtkey>        [post|like]      signs post with given private key
     --crypt=<key>          [get|post]       (de|en)crypts post with given shared or private key
     --why=<text>           [like]           explains reason for the like
@@ -163,7 +162,6 @@ fun main_ (args: Array<String>) : String {
                     assert(opts["--sign"] is String) { "expected `--sign`" }
                     writer.writeLineX("FC chain post")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(opts["--time"] as String)
                     writer.writeLineX(opts["--sign"] as String)
                     writer.writeLineX("")   // crypt
                     writer.writeLineX(lk)
@@ -178,7 +176,6 @@ fun main_ (args: Array<String>) : String {
                     val eof = opts["--utf8-eof"] as String? ?: ""
                     writer.writeLineX("FC chain post")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(opts["--time"] as String)
                     writer.writeLineX(opts["--sign"] as String? ?: "")
                     writer.writeLineX((opts["--crypt"] as String? ?: "").toString())
                     writer.writeLineX("0")

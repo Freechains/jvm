@@ -4,6 +4,7 @@ import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import kotlin.math.max
 import kotlin.math.sqrt
 
 fun Chain.fromOwner (blk: Block) : Boolean {
@@ -49,42 +50,41 @@ fun Chain.blockState (blk: Block, now: Long) : State {
 // NEW
 
 fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
+    assert(imm_.time == 0.toLong()) { "time must be 0" }
     assert(imm_.prev == null) { "prev must be null" }
 
-    val backs= if (imm_.backs.isNotEmpty()) imm_.backs else this.getHeads(State.LINKED).toTypedArray()
-
-    // must point to liked block directly or indirectly
-    val backs2 = when {
-        (imm_.like == null) -> backs
-        backs.any {
-            this.bfsFrontsIsFromTo(imm_.like.hash, it)
-        }                   -> backs
-        else                -> backs + arrayOf(imm_.like.hash)
-    }
-
-    // TODO: why should include authors' prev?
-    /*
-    // must include author's prev if not rejected
-    val prev = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash
-    val ath = if (sign == null) null else this.bfsBacksFindAuthor(sign.pvtToPub())
-    val backs2 = when {
-        (prev == null) -> backs
-        (ath == null)  -> backs
-        (this.blockState(ath,imm_.time) == State.ACCEPTED) -> backs
-        else -> backs
-            .toSet()
-            .plusElement(ath.hash)
-            .minus(backs.filter { this.bfsFrontsIsFromTo(it,ath.hash) })
-            .toTypedArray()
-    }
-    */
+    assert(imm_.backs.isEmpty())
+    val backs = this.getHeads(State.LINKED)
+        .let { backs ->
+            backs.plus (
+                // must point to liked block
+                when {
+                    (imm_.like == null) -> emptyArray()
+                    backs.any {
+                        this.bfsFrontsIsFromTo(
+                            imm_.like.hash,
+                            it
+                        )  // already does indirectly (it points to some of the heads)
+                    } -> emptyArray()
+                    else -> arrayOf(imm_.like.hash)  // point directly (it was blocked)
+                }
+            )
+        }
+        .let { backs ->
+            this.bfsCleanHeads(backs.toList())
+        }
 
     val imm = imm_.copy (
+        max (
+            getNow(),
+            1 + backs.map { this.fsLoadBlock(it, null).immut.time }.max()!!
+        ),
         crypt   = (crypt != null),
         payload = if (crypt == null) imm_.payload else imm_.payload.encrypt(crypt),
         prev    = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash,
-        backs   = backs2
+        backs   = backs.toTypedArray()
     )
+    println(">>> ${imm.time} // ${imm_.time}")
     val hash = imm.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
@@ -118,6 +118,10 @@ fun Chain.blockChain (blk: Block) {
             this.fsSaveBlock(it)
         }
     }
+
+    this.heads.add(blk.hash)
+    blk.immut.backs.forEach { this.heads.remove(it) }
+    this.fsSave()
 }
 
 fun Chain.backsAssert (blk: Block) {
@@ -146,6 +150,7 @@ fun Chain.blockAssert (blk: Block) {
 
     val now = getNow()
     assert(imm.time <= now+T30M_future) { "from the future" }
+    println("${imm.time} >= $T120D_past")
     assert(imm.time >= now-T120D_past) { "too old" }
 
     val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)

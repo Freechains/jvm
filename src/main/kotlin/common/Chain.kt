@@ -29,7 +29,7 @@ data class Chain (
     val pub     : ChainPub?
 ) {
     val hash    : String = this.toHash()
-    //val heads   : ArrayList<Hash> = arrayListOf(this.getGenesis())
+    val heads   : ArrayList<Hash> = arrayListOf(this.getGenesis())
 }
 
 // TODO: change to contract/constructor assertion
@@ -82,35 +82,24 @@ fun Immut.toHash () : Hash {
 
 // HEADS
 
-fun Chain.getHeads (want: State, hash: Hash = this.getGenesis()) : List<Hash> {
-    val have = if (want == State.ALL) null else this.hashState(hash, getNow())
+fun Chain.getHeads (want: State) : List<Hash> {
+    val now = getNow()
 
-    val rec = this.fsLoadBlock(hash, null)
-        .fronts
-        .map { this.getHeads(want, it) }
-        .flatten()
-        .toSet()
-        .toList()
-
-    fun f (hash: Hash, list: List<Hash>) : List<Hash> {
-        return if (list.isEmpty()) listOf(hash) else list
+    fun aux (hash: Hash) : List<Hash> {
+        val blk = this.fsLoadBlock(hash,null)
+        val state = this.blockState(blk,now)
+        return when (want) {
+            State.ALL     -> listOf(hash)
+            State.LINKED  -> if (state >  State.LINKED)  listOf(hash) else blk.immut.backs.map(::aux).flatten()
+            State.BLOCKED -> if (state == State.BLOCKED) listOf(hash) else emptyList()
+            else -> error("impossible case")
+        }
     }
 
-    return when (want) {
-        State.ALL             -> f(hash, rec)
-        State.BLOCKED ->
-            when (have!!) {
-                State.BLOCKED -> listOf(hash)
-                else          -> rec
-            }
-        State.LINKED ->
-            when (have!!) {
-                State.ACCEPTED -> f(hash, rec)
-                State.REJECTED -> f(hash, rec)
-                else           -> emptyList()
-            }
-        else -> error("impossible case")
-    }
+    return this.heads
+        .map (::aux)
+        .flatten ()
+        .let { this.bfsCleanHeads(it) }
 }
 
 // REPUTATION

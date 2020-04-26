@@ -185,7 +185,6 @@ class Daemon (host : Host) {
                         }
 
                         "FC chain post" -> {
-                            val time = reader.readLineX()
                             val sign = reader.readLineX()   // "" / <pvt>
                             val crypt= reader.readLineX()
                             val lkn    = reader.readLineX().toInt()
@@ -209,13 +208,7 @@ class Daemon (host : Host) {
                             try {
                                 val blk = chain.blockNew (
                                     Immut (
-                                        max (
-                                            time.nowToTime(),
-                                            1 + max (
-                                                if (like==null) 0 else chain.fsLoadBlock(lkr,null).immut.time,
-                                                chain.getHeads(State.LINKED).map { chain.fsLoadBlock(it, null).immut.time }.max()!!
-                                            )
-                                        ),
+                                        0,
                                         cods[0],
                                         false,
                                         pay,
