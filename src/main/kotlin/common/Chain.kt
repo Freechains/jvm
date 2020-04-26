@@ -29,6 +29,7 @@ data class Chain (
     val pub     : ChainPub?
 ) {
     val hash    : String = this.toHash()
+    //val heads   : ArrayList<Hash> = arrayListOf(this.getGenesis())
 }
 
 // TODO: change to contract/constructor assertion

@@ -25,7 +25,11 @@ import kotlin.concurrent.thread
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
 
- *  - restore chain.fronts implementation
+ *  - remove times
+ *  - restore chain.heads implementation
+ *    - remove fronts?
+ *  - remove getHeads(ALL)?
+ *    - only makes sense BLOCKED/LINKED?
  *  - hash1/hash2
  *    - test dislikes already here
  *    - new tests of rejected across node

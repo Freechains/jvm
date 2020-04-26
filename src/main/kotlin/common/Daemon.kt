@@ -375,20 +375,6 @@ fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
         xxx@for (j in 1..nin) {
             try {
                 val blk = reader.readLinesX().jsonToBlock() // 6
-
-                val loc = chain.getHeads(State.LINKED)
-                    .map { chain.fsLoadBlock(it,null) }
-                    .map { it.immut.time }
-                    .max ()!!
-                    .toFloat()
-                val rem = blk.immut.backs
-                    .map { chain.fsLoadBlock(it,null) }
-                    .map { it.immut.time }
-                    .max ()!!
-                    .toFloat()
-                val tine = T2H_tine + sqrt(loc - rem)
-                blk.tineTime = getNow() + tine.toLong()
-
                 //println("[recv] ${blk.hash}")
                 chain.blockChain(blk)
                 nmin++
