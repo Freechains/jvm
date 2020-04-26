@@ -17,7 +17,7 @@ fun Chain.bfsCleanHeads (heads: List<Hash>) : List<Hash> {
 
 fun Chain.bfsFrontsIsFromTo (from: Hash, to: Hash) : Boolean {
     //println(this.bfsFirst(listOf(from), true) { it.hash == to })
-    return this.bfsFrontsFirst(from) { it.hash == to } != null
+    return this.bfsFrontsFirst(from) { it.hash1 == to } != null
 }
 
 fun Chain.bfsBacksFindAuthor (pub: String) : Block? {

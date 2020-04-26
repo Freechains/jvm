@@ -25,11 +25,6 @@ import kotlin.concurrent.thread
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
 
- *  - remove times
- *  - restore chain.heads implementation
- *    - remove fronts?
- *  - remove getHeads(ALL)?
- *    - only makes sense BLOCKED/LINKED?
  *  - hash1/hash2
  *    - test dislikes already here
  *    - new tests of rejected across node
@@ -173,10 +168,10 @@ class Tests {
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
         val blk = c2.blockNew(HC, null, null)
-        val blk2 = c2.fsLoadBlock(blk.hash, null)
+        val blk2 = c2.fsLoadBlock(blk.hash1, null)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
 
-        assert(c2.bfsFrontsIsFromTo(blk.hash,blk.hash))
+        assert(c2.bfsFrontsIsFromTo(blk.hash1,blk.hash1))
     }
 
     @Test
@@ -198,9 +193,9 @@ class Tests {
 
         assert(chain.fsExistsBlock(chain.getGenesis()))
         //println(n1.toHeightHash())
-        assert(chain.fsExistsBlock(n1.hash))
-        assert(chain.fsExistsBlock(n2.hash))
-        assert(chain.fsExistsBlock(n3.hash))
+        assert(chain.fsExistsBlock(n1.hash1))
+        assert(chain.fsExistsBlock(n2.hash1))
+        assert(chain.fsExistsBlock(n3.hash1))
         assert(!chain.fsExistsBlock("2_........"))
     }
 
@@ -402,7 +397,7 @@ class Tests {
         //println(c1.root)
         val n1 = c1.blockNew(HC.copy(payload = "aaa"), null, SHA0)
         //println(n1.hash)
-        val n2 = c1.fsLoadBlock(n1.hash, SHA0)
+        val n2 = c1.fsLoadBlock(n1.hash1, SHA0)
         assert(n2.immut.payload == "aaa")
         //Thread.sleep(500)
     }
