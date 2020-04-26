@@ -37,14 +37,13 @@ fun Host.joinChain (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
     val genesis = Block (
         Immut (
             0,
-            "",
-            false,
-            Pair("",""),
+            Payload("", false, ""),
             null,
             null,
             emptyArray()
         ),
         chain.getGenesis(),
+        "",
         null
     )
     chain.fsSaveBlock(genesis)

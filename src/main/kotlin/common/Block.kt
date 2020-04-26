@@ -48,11 +48,16 @@ data class Signature (
 )
 
 @Serializable
+data class Payload (            // payload metadata
+    val code    : String,       // encoding
+    val crypt   : Boolean,      // is encrypted (method depends on chain)
+    val hash    : Hash          // hash of contents
+)
+
+@Serializable
 data class Immut (
     val time    : Long,         // author's timestamp
-    val code    : String,       // payload encoding
-    val crypt   : Boolean,      // payload is encrypted (method depends on chain)
-    val payload : Pair<String,Hash>,
+    val pay     : Payload,      // payload metadata
     val prev    : Hash?,        // previous author's post (null if anonymous // gen if first post)
     val like    : Like?,        // point to liked post
     val backs   : Array<Hash>   // back links (happened-before blocks)
@@ -60,11 +65,12 @@ data class Immut (
 
 @Serializable
 data class Block (
-    val immut    : Immut,           // things to hash
-    val hash     : Hash,            // hash of immut
-    val sign     : Signature?
+    val immut   : Immut,        // things to hash
+    val hash    : Hash,         // hash of immut
+    val pay     : String,       // actual payload contents
+    val sign    : Signature?
 ) {
-    var fronts   : MutableList<Hash> = mutableListOf() // front links (next blocks)
+    var fronts  : MutableList<Hash> = mutableListOf() // front links (next blocks)
 }
 
 fun Immut.toJson (): String {

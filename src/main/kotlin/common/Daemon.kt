@@ -209,13 +209,12 @@ class Daemon (host : Host) {
                                 val blk = chain.blockNew (
                                     Immut (
                                         0,
-                                        cods[0],
-                                        false,
-                                        Pair(pay,""),
+                                        Payload(cods[0], false, ""),
                                         null,
                                         like,
                                         emptyArray()
                                     ),
+                                    pay,
                                     if (sign.isEmpty()) null else sign,
                                     if (crypt.isEmpty()) null else crypt
                                 )

@@ -61,7 +61,7 @@ fun Chain.getGenesis () : Hash {
 // HASH
 
 val zeros = ByteArray(GenericHash.BYTES)
-private fun String.calcHash () : String {
+fun String.calcHash () : String {
     return lazySodium.cryptoGenericHash(this, Key.fromBytes(zeros))
 }
 
@@ -174,14 +174,16 @@ internal fun Chain.fsSave () {
 
 fun Chain.fsLoadBlock (hash: Hash, crypt: HKey?) : Block {
     val blk = File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
-    if (crypt==null || !blk.immut.crypt) {
+    if (crypt==null || !blk.immut.pay.crypt) {
         return blk
     }
     return blk.copy (
         immut = blk.immut.copy (
-            crypt   = false,
-            payload = Pair(blk.immut.payload.first.decrypt(crypt), blk.immut.payload.second)
-        )
+            pay = blk.immut.pay.copy (
+                crypt = false
+            )
+        ),
+        pay = blk.pay.decrypt(crypt)
     )
 }
 

@@ -49,9 +49,10 @@ fun Chain.blockState (blk: Block, now: Long) : State {
 
 // NEW
 
-fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
-    assert(imm_.time == 0.toLong()) { "time must be 0" }
-    assert(imm_.prev == null) { "prev must be null" }
+fun Chain.blockNew (imm_: Immut, pay_: String, sign: HKey?, crypt: HKey?) : Block {
+    assert(imm_.time      == 0.toLong()) { "time must not be set" }
+    assert(imm_.pay.hash  == "")         { "pay must not be set" }
+    assert(imm_.prev      == null)       { "prev must not be set" }
 
     assert(imm_.backs.isEmpty())
     val backs = this.getHeads(State.LINKED)
@@ -75,15 +76,18 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
         }
 
     val imm = imm_.copy (
-        max (
+        time = max (
             getNow(),
             1 + backs.map { this.fsLoadBlock(it, null).immut.time }.max()!!
         ),
-        crypt   = (crypt != null),
-        payload = if (crypt == null) imm_.payload else Pair(imm_.payload.first.encrypt(crypt),imm_.payload.second),
-        prev    = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash,
-        backs   = backs.toTypedArray()
+        pay = imm_.pay.copy (
+            crypt = (crypt != null),
+            hash  = pay_.calcHash()
+        ),
+        prev  = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash,
+        backs = backs.toTypedArray()
     )
+    val pay = if (crypt == null) pay_ else pay_.encrypt(crypt)
     val hash = imm.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
@@ -99,7 +103,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
             Signature(sig_hash, sign.pvtToPub())
         }
 
-    val new = Block(imm, hash, signature)
+    val new = Block(imm, hash, pay, signature)
     this.blockChain(new)
     return new
 }
@@ -144,6 +148,7 @@ fun Chain.backsAssert (blk: Block) {
 
 fun Chain.blockAssert (blk: Block) {
     val imm = blk.immut
+    println(">>> ${blk.hash} vs ${imm.toHash()}")
     assert(blk.hash == imm.toHash()) { "hash must verify" }
     this.backsAssert(blk)                   // backs exist and are older
 
