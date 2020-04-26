@@ -10,8 +10,10 @@ import kotlin.concurrent.thread
 import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import java.lang.Long.max
 import java.util.*
 import kotlin.collections.HashSet
+import kotlin.math.sqrt
 
 class Daemon (host : Host) {
     private val listenLists = mutableMapOf<String,MutableSet<DataOutputStream>>()
@@ -217,7 +219,7 @@ class Daemon (host : Host) {
                                     if (sign.isEmpty()) null else sign,
                                     if (crypt.isEmpty()) null else crypt
                                 )
-                                ret = blk.hash1
+                                ret = blk.hash
                             } catch (e: Throwable) {
                                 //System.err.println(e.stackTrace.contentToString())
                                 ret = e.message!!

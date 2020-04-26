@@ -43,9 +43,8 @@ data class Like (
 
 @Serializable
 data class Signature (
-    val hash1 : String,    // signature
-    //val hash2 : String,    // signature
-    val pub   : HKey       // of pubkey (if "", assumes pub of chain)
+    val hash : String,    // signature
+    val pub  : HKey       // of pubkey (if "", assumes pub of chain)
 )
 
 @Serializable
@@ -62,8 +61,7 @@ data class Immut (
 @Serializable
 data class Block (
     val immut    : Immut,           // things to hash
-    val hash1    : Hash,            // hash of immut, except payload
-    //val hash2    : Hash,            // hash of payload
+    val hash     : Hash,            // hash of immut
     val sign     : Signature?
 ) {
     var fronts   : MutableList<Hash> = mutableListOf() // front links (next blocks)

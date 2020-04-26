@@ -5,6 +5,7 @@ import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 import kotlin.math.max
+import kotlin.math.sqrt
 
 fun Chain.fromOwner (blk: Block) : Boolean {
     return (this.pub != null) && blk.isFrom(this.pub.key)
@@ -26,7 +27,7 @@ fun Chain.blockState (blk: Block, now: Long) : State {
         (prev == null)     -> 0     // no prev post, no author reps
         else               -> this.repsAuthor(blk.sign.pub, now, listOf(prev))
     }
-    val (pos,neg) = this.repsPost(blk.hash1)
+    val (pos,neg) = this.repsPost(blk.hash)
 
     // number of blocks that point back to it (-1 myself)
     //val fronts = max(0, this.bfsAll(blk.hash).count{ this.blockState(it)==State.ACCEPTED } - 1)
@@ -34,7 +35,7 @@ fun Chain.blockState (blk: Block, now: Long) : State {
     //println("rep ${blk.hash} = reps=$pos-$neg + ath=$ath // ${blk.immut.time}")
     return when {
         // unchangeable
-        (blk.hash1.toHeight() <= 1)  -> State.ACCEPTED       // first two blocks
+        (blk.hash.toHeight() <= 1)  -> State.ACCEPTED       // first two blocks
         this.fromOwner(blk)         -> State.ACCEPTED       // owner signature
         this.trusted                -> State.ACCEPTED       // chain with trusted hosts/authors only
         (blk.immut.like != null)    -> State.ACCEPTED       // a like
@@ -80,7 +81,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
         ),
         crypt   = (crypt != null),
         payload = if (crypt == null) imm_.payload else imm_.payload.encrypt(crypt),
-        prev    = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash1,
+        prev    = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash,
         backs   = backs.toTypedArray()
     )
     println(">>> ${imm.time} // ${imm_.time}")
@@ -111,14 +112,14 @@ fun Chain.blockChain (blk: Block) {
     // addBlockAsFrontOfBacks
     for (bk in blk.immut.backs) {
         this.fsLoadBlock(bk, null).let {
-            assert(!it.fronts.contains(blk.hash1)) { "bug found: " + it.hash1 + " -> " + blk.hash1 }
-            it.fronts.add(blk.hash1)
+            assert(!it.fronts.contains(blk.hash)) { "bug found: " + it.hash + " -> " + blk.hash }
+            it.fronts.add(blk.hash)
             it.fronts.sort()            // TODO: for external tests in FS (sync.sh)
             this.fsSaveBlock(it)
         }
     }
 
-    this.heads.add(blk.hash1)
+    this.heads.add(blk.hash)
     blk.immut.backs.forEach { this.heads.remove(it) }
     this.fsSave()
 }
@@ -144,7 +145,7 @@ fun Chain.backsAssert (blk: Block) {
 
 fun Chain.blockAssert (blk: Block) {
     val imm = blk.immut
-    assert(blk.hash1 == imm.toHash()) { "hash must verify" }
+    assert(blk.hash == imm.toHash()) { "hash must verify" }
     this.backsAssert(blk)                   // backs exist and are older
 
     val now = getNow()
@@ -156,7 +157,7 @@ fun Chain.blockAssert (blk: Block) {
     if (imm.backs.contains(gen)) {
         this
             .bfsFrontsAll()
-            .filter { it.hash1.toHeight() == 1 }
+            .filter { it.hash.toHeight() == 1 }
             .let {
                 assert(it.isEmpty()) { "genesis is already referred" }
             }
@@ -167,8 +168,8 @@ fun Chain.blockAssert (blk: Block) {
     }
 
     if (blk.sign != null) {                 // sig.hash/blk.hash/sig.pubkey all match
-        val sig = LazySodium.toBin(blk.sign.hash1)
-        val msg = lazySodium.bytes(blk.hash1)
+        val sig = LazySodium.toBin(blk.sign.hash)
+        val msg = lazySodium.bytes(blk.hash)
         val key = Key.fromHexString(blk.sign.pub).asBytes
         assert(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
 
@@ -179,7 +180,7 @@ fun Chain.blockAssert (blk: Block) {
                 if (it == null)
                     (imm.prev == null)
                 else
-                    (imm.prev==it.hash1)
+                    (imm.prev==it.hash)
             ) { "must point to author's previous post" }
         }
     }
