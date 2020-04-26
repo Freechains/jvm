@@ -80,7 +80,7 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
             1 + backs.map { this.fsLoadBlock(it, null).immut.time }.max()!!
         ),
         crypt   = (crypt != null),
-        payload = if (crypt == null) imm_.payload else imm_.payload.encrypt(crypt),
+        payload = if (crypt == null) imm_.payload else Pair(imm_.payload.first.encrypt(crypt),imm_.payload.second),
         prev    = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash,
         backs   = backs.toTypedArray()
     )

@@ -180,7 +180,7 @@ fun Chain.fsLoadBlock (hash: Hash, crypt: HKey?) : Block {
     return blk.copy (
         immut = blk.immut.copy (
             crypt   = false,
-            payload = blk.immut.payload.decrypt(crypt)
+            payload = Pair(blk.immut.payload.first.decrypt(crypt), blk.immut.payload.second)
         )
     )
 }

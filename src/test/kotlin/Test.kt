@@ -95,7 +95,7 @@ import kotlin.concurrent.thread
  *  - RPi: cable eth + wifi router + phones
  */
 
-val H   = Immut(0, "",false, "", null, null, emptyArray())
+val H   = Immut(0, "",false, Pair("",""), null, null, emptyArray())
 val HC  = H.copy(code="utf8", crypt=true)
 
 const val PVT0 = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
@@ -189,7 +189,7 @@ class Tests {
 
         var ok = false
         try {
-            val n = n3.copy(immut = n3.immut.copy(payload = "xxx"))
+            val n = n3.copy(immut = n3.immut.copy(payload = Pair("xxx","")))
             chain.blockAssert(n)
         } catch (e: Throwable) {
             ok = true
@@ -400,10 +400,10 @@ class Tests {
         val host = Host_load("/tmp/freechains/tests/M2/")
         val c1 = host.loadChain("/sym")
         //println(c1.root)
-        val n1 = c1.blockNew(HC.copy(payload = "aaa"), null, SHA0)
+        val n1 = c1.blockNew(HC.copy(payload = Pair("aaa","")), null, SHA0)
         //println(n1.hash)
         val n2 = c1.fsLoadBlock(n1.hash, SHA0)
-        assert(n2.immut.payload == "aaa")
+        assert(n2.immut.payload.first == "aaa")
         //Thread.sleep(500)
     }
 
@@ -449,7 +449,7 @@ class Tests {
 
         val json = main_(arrayOf("chain", "get", "/xxx", hash, "--crypt=$PVT0"))
         val blk = json.jsonToBlock()
-        assert(blk.immut.payload == "aaa")
+        assert(blk.immut.payload.first == "aaa")
 
         main(arrayOf("chain", "send", "/xxx", "localhost:8331"))
         val json2 = main_(arrayOf(H1, "chain", "get", "/xxx", hash))
@@ -459,7 +459,7 @@ class Tests {
         val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "bbbb", S1))
         val j2 = main_(arrayOf("chain", "get", "/xxx", h2))
         val b2 = j2.jsonToBlock()
-        assert(b2.immut.payload == "bbbb")
+        assert(b2.immut.payload.first == "bbbb")
     }
 
     @Test
@@ -713,7 +713,7 @@ class Tests {
             .jsonToBlock()
             .immut.payload
             .let {
-                assert(it == "no sig")
+                assert(it.first == "no sig")
             }
 
         // like post w/o pub

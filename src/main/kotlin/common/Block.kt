@@ -52,7 +52,7 @@ data class Immut (
     val time    : Long,         // author's timestamp
     val code    : String,       // payload encoding
     val crypt   : Boolean,      // payload is encrypted (method depends on chain)
-    val payload : String,
+    val payload : Pair<String,Hash>,
     val prev    : Hash?,        // previous author's post (null if anonymous // gen if first post)
     val like    : Like?,        // point to liked post
     val backs   : Array<Hash>   // back links (happened-before blocks)

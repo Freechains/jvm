@@ -211,7 +211,7 @@ class Daemon (host : Host) {
                                         0,
                                         cods[0],
                                         false,
-                                        pay,
+                                        Pair(pay,""),
                                         null,
                                         like,
                                         emptyArray()
