@@ -118,11 +118,11 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
-    val gen = this.bfsFrontsFirst(this.getGenesis()) { it.hash.toHeight() >= 1 }.let {
+    val gen = this.fsLoadBlock(this.getGenesis(),null).fronts.let {
         when {
-            (it == null)   -> 0
-            it.isFrom(pub) -> LK30_max
-            else           -> 0
+            it.isEmpty() -> 0
+            this.fsLoadBlock(it.first(),null).isFrom((pub)) -> LK30_max
+            else         -> 0
         }
     }
 

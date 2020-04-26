@@ -84,7 +84,6 @@ fun Chain.blockNew (imm_: Immut, sign: HKey?, crypt: HKey?) : Block {
         prev    = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash,
         backs   = backs.toTypedArray()
     )
-    println(">>> ${imm.time} // ${imm_.time}")
     val hash = imm.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
@@ -150,7 +149,6 @@ fun Chain.blockAssert (blk: Block) {
 
     val now = getNow()
     assert(imm.time <= now+T30M_future) { "from the future" }
-    println("${imm.time} >= $T120D_past")
     assert(imm.time >= now-T120D_past) { "too old" }
 
     val gen = this.getGenesis()      // unique genesis front (unique 1_xxx)
