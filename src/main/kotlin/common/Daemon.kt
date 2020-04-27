@@ -317,10 +317,14 @@ fun Socket.chainSend (chain: Chain) : Pair<Int,Int> {
         val nin = toSend.size
         val sorted = toSend.sortedWith(compareBy{it.toHeight()})
         for (hash in sorted) {
-            val blk = chain.fsLoadBlock(hash, null)
-            blk.fronts.clear()
+            val blk1 = chain.fsLoadBlock(hash, null)
+            blk1.fronts.clear()
+            val blk2 = when (chain.blockState(blk1, getNow())) {
+                State.REJECTED -> blk1.copy(pay = "")   // don't send actual payload if rejected
+                else           -> blk1
+            }
             //println("[send] $hash")
-            writer.writeBytes(blk.toJson())          // 6
+            writer.writeBytes(blk2.toJson())          // 6
             writer.writeLineX("\n")
         }
         val nin2 = reader.readLineX().toInt()    // 7: how many blocks again
@@ -344,6 +348,10 @@ fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
 
     var nmax = 0
     var nmin = 0
+
+    // list of received rejected blocks (empty payloads)
+    // will check if are really rejected
+    val rejs = mutableListOf<Block>()
 
     // for each remote head
     val nout = reader.readLineX().toInt()        // 1
@@ -369,6 +377,13 @@ fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
                 val blk = reader.readLinesX().jsonToBlock() // 6
                 //println("[recv] ${blk.hash}")
                 chain.blockChain(blk)
+                if (blk.pay == "") {
+                    if (blk.immut.pay.hash == "".calcHash()) {
+                        // payload is really an empty string
+                    } else {
+                        rejs.add(blk)
+                    }
+                }
                 nmin++
                 nin2++
             } catch (e: Throwable) {
@@ -379,5 +394,10 @@ fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
         writer.writeLineX(nin2.toString())             // 7
     }
     writer.writeLineX(nout.toString())                // 8
+
+    for (blk in rejs) {
+        assert(chain.blockState(blk, getNow()) == State.REJECTED)
+    }
+
     return Pair(nmin,nmax)
 }
