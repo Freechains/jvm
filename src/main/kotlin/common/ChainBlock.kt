@@ -28,8 +28,7 @@ fun Chain.blockState (blk: Block, now: Long) : State {
     }
     val (pos,neg) = this.repsPost(blk.hash)
 
-    println("BLOCK ${this.hash}")
-    val unit = this.hash.toHeight().toReps()
+    val unit = blk.hash.toHeight().toReps()
 
     // number of blocks that point back to it (-1 myself)
     //val fronts = max(0, this.bfsAll(blk.hash).count{ this.blockState(it)==State.ACCEPTED } - 1)
