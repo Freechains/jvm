@@ -52,7 +52,7 @@ import kotlin.concurrent.thread
  *  - TEST
  *    - --utf8-eof
  *    - oonly
- *    - proof that pay="" is really rejected
+ *    - proof that pay="" is really hidden
  *  - REFACTOR
  *    - join (stop/now), they use connection
  *    - chain/.* move dir files

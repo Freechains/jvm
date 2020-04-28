@@ -10,10 +10,8 @@ import kotlin.concurrent.thread
 import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
-import java.lang.Long.max
 import java.util.*
 import kotlin.collections.HashSet
-import kotlin.math.sqrt
 
 class Daemon (host : Host) {
     private val listenLists = mutableMapOf<String,MutableSet<DataOutputStream>>()
@@ -320,7 +318,7 @@ fun Socket.chainSend (chain: Chain) : Pair<Int,Int> {
             val blk1 = chain.fsLoadBlock(hash, null)
             blk1.fronts.clear()
             val blk2 = when (chain.blockState(blk1, getNow())) {
-                State.REJECTED -> blk1.copy(pay = "")   // don't send actual payload if rejected
+                State.HIDDEN -> blk1.copy(pay = "")   // don't send actual payload if hidden
                 else           -> blk1
             }
             //println("[send] $hash")
@@ -349,9 +347,9 @@ fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
     var nmax = 0
     var nmin = 0
 
-    // list of received rejected blocks (empty payloads)
-    // will check if are really rejected
-    val rejs = mutableListOf<Block>()
+    // list of received hidden blocks (empty payloads)
+    // will check if are really hidden
+    val hiddens = mutableListOf<Block>()
 
     // for each remote head
     val nout = reader.readLineX().toInt()        // 1
@@ -381,7 +379,7 @@ fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
                     if (blk.immut.pay.hash == "".calcHash()) {
                         // payload is really an empty string
                     } else {
-                        rejs.add(blk)
+                        hiddens.add(blk)
                     }
                 }
                 nmin++
@@ -395,8 +393,8 @@ fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
     }
     writer.writeLineX(nout.toString())                // 8
 
-    for (blk in rejs) {
-        assert(chain.blockState(blk, getNow()) == State.REJECTED)
+    for (blk in hiddens) {
+        assert(chain.blockState(blk, getNow()) == State.HIDDEN)
     }
 
     return Pair(nmin,nmax)

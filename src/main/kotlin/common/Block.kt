@@ -4,19 +4,18 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
-import kotlin.math.sqrt
 
 typealias Hash = String
 
 enum class State {
-    MISSING, BLOCKED, LINKED, REJECTED, ACCEPTED, ALL
+    MISSING, BLOCKED, LINKED, HIDDEN, ACCEPTED, ALL
 }
 
 fun State.toString_ () : String {
     return when (this) {
         State.ALL      -> "all"
         State.ACCEPTED -> "accepted"
-        State.REJECTED -> "rejected"
+        State.HIDDEN   -> "hidden"
         State.LINKED   -> "linked"
         State.BLOCKED  -> "blocked"
         State.MISSING  -> "missing"
@@ -27,7 +26,7 @@ fun String.toState () : State {
     return when (this) {
         "all"      -> State.ALL
         "accepted" -> State.ACCEPTED
-        "rejected" -> State.REJECTED
+        "hidden"   -> State.HIDDEN
         "linked"   -> State.LINKED
         "blocked"  -> State.BLOCKED
         "missing"  -> State.MISSING

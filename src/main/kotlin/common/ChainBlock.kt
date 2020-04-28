@@ -148,7 +148,7 @@ fun Chain.backsAssert (blk: Block) {
 
 fun Chain.blockAssert (blk: Block) {
     val imm = blk.immut
-    println(">>> ${blk.hash} vs ${imm.toHash()}")
+    //println(">>> ${blk.hash} vs ${imm.toHash()}")
     assert(blk.hash == imm.toHash()) { "hash must verify" }
     this.backsAssert(blk)                   // backs exist and are older
 
@@ -200,7 +200,7 @@ fun Chain.blockAssert (blk: Block) {
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
             this.trusted               ||   // dont check reps (private chain)
-            this.repsAuthor(blk.sign!!.pub, imm.time, imm.backs.toList()) > 0
+            this.repsAuthor(blk.sign!!.pub, imm.time, imm.backs.toList()) >= this.hash.toHeight().toReps()
         ) {
             "like author must have reputation"
         }
