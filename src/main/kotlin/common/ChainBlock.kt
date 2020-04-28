@@ -201,7 +201,7 @@ fun Chain.blockAssert (blk: Block) {
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
             this.trusted               ||   // dont check reps (private chain)
-            this.repsAuthor(blk.sign!!.pub, imm.time, imm.backs.toList()) >= this.hash.toHeight().toReps()
+            this.repsAuthor(blk.sign!!.pub, imm.time, imm.backs.toList()) >= blk.hash.toHeight().toReps()
         ) {
             "like author must have reputation"
         }

@@ -542,7 +542,7 @@ class Tests {
         /*val h41 =*/ main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "41", S0))
 
         // h0 -> h11 -> h21 -> l3 -> h41
-        //          \-> h22 ------/
+        //          \-> h22 --/
 
         main_(arrayOf(H0, "host", "now", (1*day+4*hour).toString()))
 
@@ -558,7 +558,7 @@ class Tests {
         val l5 = main_(arrayOf("chain", "like", "/xxx", h22, S0, "--why=l5")) // l5
 
         // h0 -> h11 -> h21 -> l3 -> h41 -> l5
-        //          \-> h22 ------/
+        //          \-> h22 --/
 
         main_(arrayOf("chain", "reps", "/xxx", PUB0)).let {
             assert(it == "28")
@@ -578,7 +578,7 @@ class Tests {
         /*val l6 =*/ main_(arrayOf("chain","dislike","/xxx",l5,"--why=l6",S1))
 
         // h0 <- h11 <- h21 <- l3 <- h41 <- l5
-        //          \               /         \
+        //          \         /               \
         //           \- h22 <-------           l6
 
         main_(arrayOf("chain", "reps", "/xxx", PUB1)).let {
