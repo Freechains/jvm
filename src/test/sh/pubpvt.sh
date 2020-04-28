@@ -43,8 +43,8 @@ freechains --host=localhost:8400 chain send / localhost:8401  # FAIL
 freechains --host=localhost:8400 chain send / localhost:8402  # SUCCESS
 
 # compare them
-! diff -q -I tineTime $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
-diff -I tineTime $FC/8400/chains/blocks/ $FC/8402/chains/blocks/      || exit 1
+! diff -q $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+diff $FC/8400/chains/blocks/ $FC/8402/chains/blocks/      || exit 1
 
 # post to 8400, send to 8401 (fail) 8402 (succees, but crypted)
 h=`freechains --host=localhost:8400 --sign=$PVT --crypt=$PVT chain post / inline utf8 Hello_World`
@@ -52,9 +52,9 @@ freechains --host=localhost:8400 chain send / localhost:8401  # FAIL
 freechains --host=localhost:8400 chain send / localhost:8402  # SUCCESS
 
 freechains --host=localhost:8400 --crypt=$PVT chain get / $h > $FC/dec.blk
-diff <(jq ".immut.payload" $FC/dec.blk) <(echo '"Hello_World"') || exit 1
+diff <(jq ".pay" $FC/dec.blk) <(echo '"Hello_World"') || exit 1
 freechains --host=localhost:8402 chain get / $h > $FC/enc.blk
-diff <(jq ".immut.crypt" $FC/enc.blk) <(echo 'true') || exit 1
+diff <(jq ".immut.pay.crypt" $FC/enc.blk) <(echo 'true') || exit 1
 
 # stop hosts
 freechains host stop --host=localhost:8400 &

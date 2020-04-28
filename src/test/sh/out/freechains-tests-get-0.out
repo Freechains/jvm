@@ -1,18 +1,20 @@
 {
     "immut": {
         "time": 0,
-        "code": "",
-        "crypt": false,
-        "payload": "",
+        "pay": {
+            "code": "",
+            "crypt": false,
+            "hash": ""
+        },
         "prev": null,
         "like": null,
         "backs": [
         ]
     },
     "hash": "0_B5E21297B8EBEE0CFA0FA5AD30F21B8AE9AE9BBF25F2729989FE5A092B86B129",
+    "pay": "",
     "sign": null,
     "fronts": [
-        "1_8373332E95C3DDCC46E55C1C2FAD918375A16F434A270EDD1EBD6BE8C7179E89"
-    ],
-    "tineTime": 1585160616084
+        "1_BEF97216C4D9D11DB2FA60A007122FBA050083C39FED2DC50D19847E1C9D4D4C"
+    ]
 }

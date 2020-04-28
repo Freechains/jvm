@@ -19,21 +19,21 @@ sleep 0.5
 freechains --host=localhost:8400 chain join / owner-only $PUB
 freechains --host=localhost:8400 host now 0
 g=`freechains --host=localhost:8400 chain genesis /`
-h=`freechains --host=localhost:8400 --time=0 --sign=$PVT chain post / inline utf8 Hello_World`
+h=`freechains --host=localhost:8400 --sign=$PVT chain post / inline utf8 Hello_World`
 freechains --host=localhost:8400 chain get / "$h" > $FC/freechains-tests-get-1.out
 freechains --host=localhost:8400 chain get / 0_B5E21297B8EBEE0CFA0FA5AD30F21B8AE9AE9BBF25F2729989FE5A092B86B129 > $FC/freechains-tests-get-0.out
-hs=`freechains --host=localhost:8400 chain heads accepted /`
+hs=`freechains --host=localhost:8400 chain heads linked /`
 freechains --host=localhost:8400 chain get / "$g" > $FC/freechains-tests-gen.out
 freechains --host=localhost:8400 chain get / "$hs" > $FC/freechains-tests-heads.out
 
-diff -I tineTime $FC/freechains-tests-gen.out   out/freechains-tests-get-0.out || exit 1
-diff -I tineTime $FC/freechains-tests-get-0.out out/freechains-tests-get-0.out || exit 1
-diff -I tineTime $FC/freechains-tests-get-1.out out/freechains-tests-get-1.out || exit 1
-diff -I tineTime $FC/freechains-tests-heads.out out/freechains-tests-get-1.out || exit 1
+diff -I 1_ $FC/freechains-tests-gen.out   out/freechains-tests-get-0.out || exit 1
+diff -I 1_ $FC/freechains-tests-get-0.out out/freechains-tests-get-0.out || exit 1
+diff -I time -I hash $FC/freechains-tests-get-1.out out/freechains-tests-get-1.out || exit 1
+diff -I time -I hash $FC/freechains-tests-heads.out out/freechains-tests-get-1.out || exit 1
 
 h=`freechains --host=localhost:8400 --sign=$PVT chain post / file base64 /bin/cat`
 freechains --host=localhost:8400 chain get / "$h" > $FC/cat.blk
-jq ".immut.payload" $FC/cat.blk | tr -d '"' | base64 --decode > $FC/cat
+jq ".pay" $FC/cat.blk | tr -d '"' | base64 --decode > $FC/cat
 diff $FC/cat /bin/cat || exit 1
 
 ###############################################################################
@@ -48,7 +48,7 @@ freechains --host=localhost:8400 chain --sign=$PVT post / inline utf8 111
 freechains --host=localhost:8400 chain --sign=$PVT post / inline utf8 222
 freechains --host=localhost:8400 chain send / localhost:8401
 
-diff -I tineTime $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 ret=`ls $FC/8400/chains/blocks/ | wc`
 if [ "$ret" != "      5       5     355" ]; then
   echo "$ret"
@@ -71,7 +71,7 @@ P2=$!
 wait $P1 $P2
 #sleep 10
 
-diff -I tineTime $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
+diff $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
 ret=`ls $FC/8401/chains/blocks/ | wc`
 if [ "$ret" != "      5       5     355" ]; then
   echo "$ret"
@@ -94,8 +94,8 @@ freechains --host=localhost:8400 chain send / localhost:8402 &
 P2=$!
 wait $P1 $P2
 
-diff -I tineTime $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
-diff -I tineTime $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
+diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+diff $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
 ret=`ls $FC/8401/chains/blocks/ | wc`
 if [ "$ret" != "     55      55    3950" ]; then
   echo "$ret"
@@ -128,7 +128,7 @@ sleep 300
 for i in $(seq 8411 8420)
 do
   echo ">>> $i"
-  diff -I tineTime $FC/8400/chains/blocks/ $FC/$i/chains/blocks/ || exit 1
+  diff $FC/8400/chains/blocks/ $FC/$i/chains/blocks/ || exit 1
 done
 
 for i in $(seq 8411 8420)
@@ -148,7 +148,7 @@ sleep 120
 
 for i in $(seq 8421 8430)
 do
-  diff -I tineTime $FC/8400/chains/blocks/ $FC/$i/chains/blocks/ || exit 1
+  diff $FC/8400/chains/blocks/ $FC/$i/chains/blocks/ || exit 1
 done
 
 ###############################################################################

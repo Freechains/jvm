@@ -53,9 +53,9 @@ freechains --host=localhost:8400 chain send / localhost:8402
 freechains --host=localhost:8400 chain send / localhost:8403
 
 # compare them
-diff -I tineTime $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
-diff -I tineTime $FC/8400/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
-diff -I tineTime $FC/8400/chains/blocks/ $FC/8403/chains/blocks/ || exit 1
+diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+diff $FC/8400/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
+diff $FC/8400/chains/blocks/ $FC/8403/chains/blocks/ || exit 1
 
 freechains --host=localhost:8400 --crypt=$k0 chain get / $h1 > $FC/v01.blk
 freechains --host=localhost:8400 --crypt=$k0 chain get / $h2 > $FC/v02.blk

@@ -36,7 +36,7 @@ freechains $H1 host now 0
 
 freechains $H0 $S0 chain post / inline utf8 zero
 freechains $H0 $S1 chain post / inline utf8 xxxx
-freechains $H0 $S0 chain like / `freechains $H0 chain heads rejected /` --why="like xxxx"
+freechains $H0 $S0 chain like / `freechains $H0 chain heads blocked /` --why="like xxxx"
 
 freechains $H0 chain send / localhost:8401
 
@@ -56,7 +56,7 @@ haaaa=`freechains $H1 chain post / inline utf8 aaaa`
 #             \- xxxx <-/ \
 #                          aaaa
 
-! diff -q -I tineTime $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+! diff -q $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 
 freechains $H0 $S0 chain like / $h1111 --why="like 1111"
 freechains $H1 $S1 chain like / $haaaa --why="like aaaa"
@@ -72,7 +72,7 @@ freechains $H1 host now 98000000
 freechains $H0 chain send / localhost:8401
 freechains $H1 chain send / localhost:8400
 
-diff -I tineTime $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
+diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 
 ###############################################################################
 
