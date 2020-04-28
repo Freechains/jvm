@@ -12,6 +12,7 @@ import org.freechains.platform.lazySodium
 import java.lang.Integer.max
 import java.lang.Integer.min
 import kotlin.math.absoluteValue
+import kotlin.math.ceil
 
 // internal methods are private but are used in tests
 
@@ -104,14 +105,19 @@ fun Chain.getHeads (want: State) : List<Hash> {
 
 // REPUTATION
 
+fun Int.toReps () : Int {
+    return ceil(this.toFloat() / 10).toInt()
+}
+
 fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     val likes = this
         .bfsFrontsAll(hash)
-        .filter { it.immut.like!=null && it.immut.like.hash==hash }
-        .map    { it.immut.like!! }
+        .filter { it.immut.like != null }           // only likes
+        .filter { it.immut.like!!.hash == hash }    // only likes to this post
+        .map    { it.immut.like!!.n * it.hash.toHeight().toReps() }
 
-    val pos = likes.filter { it.n > 0 }.map { it.n }.sum()
-    val neg = likes.filter { it.n < 0 }.map { it.n }.sum()
+    val pos = likes.filter { it > 0 }.map { it }.sum()
+    val neg = likes.filter { it < 0 }.map { it }.sum()
 
     //println("$hash // chk=$chkRejected // pos=$pos // neg=$neg")
     return Pair(pos,-neg)
@@ -128,34 +134,35 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
 
     val mines = this.bfsBacksAuthor(heads,pub)
 
-    val posts = mines                                   // mines
-        .filter { it.immut.like == null }                    // not likes
+    val posts = mines                                    // mines
+        .filter { it.immut.like == null }                     // not likes
         .let { list ->
             val pos = list
                 .filter { now >= it.immut.time + T1D_reps }   // posts older than 1 day
-                .count()
+                .map    { it.hash.toHeight().toReps() }       // get reps of each post height
+                .sum    ()                                    // sum everything
             val neg = list
-                .filter { now <  it.immut.time + T1D_reps }    // posts newer than 1 day
-                .count()
+                .filter { now <  it.immut.time + T1D_reps }   // posts newer than 1 day
+                .map    { it.hash.toHeight().toReps() }       // get reps of each post height
+                .sum    ()                                    // sum everything
             //println("gen=$gen // pos=$pos // neg=$neg // now=$now")
             max(gen,min(LK30_max,pos)) - neg
         }
 
-    val recv = this.bfsBacksAll(heads)                     // all pointing to heads
+    val recv = this.bfsBacksAll(heads)                     // all pointing from heads to genesis
         .filter { it.immut.like != null }                       // which are likes
-        .filter { this.fsExistsBlock(it.immut.like!!.hash) }    // and exists (maybe banned)
         .filter {                                               // and are to me
             this.fsLoadBlock(it.immut.like!!.hash,null).let {
                 (it.sign!=null && it.sign.pub==pub)
             }
         }
-        .map    { it.immut.like!!.n }       // get likes N
-        .sum()                              // likes I received
+        .map    { it.immut.like!!.n * it.hash.toHeight().toReps() } // get likes N
+        .sum()                                                      // likes I received
 
     val gave = mines
-        .filter { it.immut.like != null }                    // likes I gave
+        .filter { it.immut.like != null }                       // likes I gave
         //.let { println(it) ; it }
-        .map { it.immut.like!!.n.absoluteValue }
+        .map { it.hash.toHeight().toReps() }                    // doesn't matter the signal
         .sum()
 
     //println("posts=$posts + recv=$recv - gave=$gave")

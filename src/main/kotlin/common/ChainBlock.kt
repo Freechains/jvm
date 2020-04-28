@@ -5,7 +5,6 @@ import com.goterl.lazycode.lazysodium.interfaces.Sign
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
 import kotlin.math.max
-import kotlin.math.sqrt
 
 fun Chain.fromOwner (blk: Block) : Boolean {
     return (this.pub != null) && blk.isFrom(this.pub.key)
@@ -29,6 +28,9 @@ fun Chain.blockState (blk: Block, now: Long) : State {
     }
     val (pos,neg) = this.repsPost(blk.hash)
 
+    println("BLOCK ${this.hash}")
+    val unit = this.hash.toHeight().toReps()
+
     // number of blocks that point back to it (-1 myself)
     //val fronts = max(0, this.bfsAll(blk.hash).count{ this.blockState(it)==State.ACCEPTED } - 1)
 
@@ -41,8 +43,8 @@ fun Chain.blockState (blk: Block, now: Long) : State {
         (blk.immut.like != null)    -> State.ACCEPTED       // a like
 
         // changeable
-        (pos==0 && ath<=0)          -> State.BLOCKED        // no likes && noob author
-        (2*neg >= pos)              -> State.REJECTED       // too much dislikes
+        (pos==0 && ath<unit)        -> State.BLOCKED        // no likes && noob author
+        (2*neg >= pos)              -> State.HIDDEN       // too much dislikes
         else                        -> State.ACCEPTED
     }
 }
