@@ -191,7 +191,7 @@ class Daemon (host : Host) {
 
                             val cods = code.split(' ')
                             val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
-                            assert(pay.length <= S128_max) { "post is too large" }
+                            assert(pay.length <= S128_pay) { "post is too large" }
 
                             val like =
                                 if (lkn == 0) {
@@ -374,7 +374,8 @@ fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
         xxx@for (j in 1..nin) {
             try {
                 val blk = reader.readLinesX().jsonToBlock() // 6
-                assert(blk.pay.length <= S128_max) { "post is too large" }
+                assert(blk.pay.length <= S128_pay) { "post is too large" }
+                assert(chain.getHeads(State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
 
                 //println("[recv] ${blk.hash}")
                 chain.blockChain(blk)

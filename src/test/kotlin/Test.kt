@@ -24,17 +24,10 @@ import kotlin.concurrent.thread
  *                                reps             28-02    29-02    17-03   19-03    25-04   28-04
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 -> 1513 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
- *  - max size of payload, max number of blockeds
  *  - Simulation.kt
  *  - liferea, /home, docs
- *  - ban PUB
  *  - PROTO:
  *    - autor fork: merge largest instead of reject
- *    - trusted hosts // forward bans
- *    - time limits constants
- *    - forks: reject smaller/newest branch
- *    - REJ <- same author, what to do?
- *    - initial cost per 32KB
  *    - prunning (hash of bases, starts with genesis), if they don't match, permanent fork
  *      - new idea 4-month window every day at 0:00
  *  - HOST: "create" receives pub/pvt args
@@ -44,8 +37,7 @@ import kotlin.concurrent.thread
  *    - replicate command (all state)
  *    - all conns start with pubs from both ends
  *  - TEST
- *    - --utf8-eof
- *    - oonly
+ *    - --utf8-eof, oonly, N16_blocked, S128_payload
  *    - proof that pay="" is really hidden
  *  - REFACTOR
  *    - join (stop/now), they use connection
@@ -54,10 +46,6 @@ import kotlin.concurrent.thread
  *    - freechains now s/ time (retorna now)
  *    - freechains host restart
  *    - freechains crypto w/o passphrase (to self generate)
- *  - REPS
- *    - signal remote as soon as local detects the first rejected in the chain (to avoid many others in the same chain)
- *    - limit rejecteds per IP
- *    - likes in n-depth tree (vs 1-depth)
  *  - VERSIONS
  *    - jvm,android,lua
  *    - remove jar from repo, use github releases
@@ -74,8 +62,6 @@ import kotlin.concurrent.thread
  *    - blk/hash variations for all functions (avoid extra blockLoads)
  *  - IDEAS:
  *    - chain for restauration of state in other host holding all necessary commands
- *    - post especial de BAN que quem confia segue automaticamente
- *  - all use cases (chain cfg e usos da industria)
  *  - commands with auth. ip port time to avoid reuse
  *  - RX Kotlin
  *  - pipes / filtros

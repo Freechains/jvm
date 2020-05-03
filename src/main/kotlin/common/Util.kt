@@ -10,13 +10,14 @@ const val day  = 24*hour
 // TODO
 const val T90D_rep    = 90*day          // consider last 90d for reputation
 const val T120D_past  = 4*T90D_rep/3    // reject posts +120d in the past
-
 const val T30M_future = 30*min          // refuse posts +30m in the future
 const val T1D_reps    = 1*day           // account to reputation posts older than 1 day only (count negatively otherwise)
 
 const val LK30_max = 30
 
-const val S128_max = 128000             // 128 KBytes maximum size of payload
+const val S128_pay = 128000             // 128 KBytes maximum size of payload
+
+const val N16_blockeds = 16             // hold at most 16 blocked blocks locally
 
 fun String.pvtToPub () : String {
     return this.substring(this.length/2)
