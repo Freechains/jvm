@@ -65,19 +65,22 @@ class Daemon (host : Host) {
         val writer = DataOutputStream(remote.getOutputStream()!!)
         var shouldClose = true
         val ln = reader.readLineX()
-        when (ln) {
-            "FC host stop" -> {
+        val (v1,v2,v3,cmd) =
+            Regex("FC v(\\d+)\\.(\\d+)\\.(\\d+) (.*)").find(ln)!!.destructured
+        assert(MAJOR==v1.toInt() && MINOR>=v2.toInt()) { "incompatible versions" }
+        when (cmd) {
+            "host stop" -> {
                 writer.writeLineX("true")
                 server.close()
                 System.err.println("host stop: $local")
             }
-            "FC host now" -> {
+            "host now" -> {
                 val now= reader.readLineX().toLong()
                 setNow(now)
                 writer.writeLineX("true")
                 System.err.println("host now: $now")
             }
-            "FC crypto create" -> {
+            "crypto create" -> {
                 fun pwHash (pwd: ByteArray) : ByteArray {
                     val out  = ByteArray(32)                       // TODO: why?
                     val salt = ByteArray(PwHash.ARGON2ID_SALTBYTES)     // all zeros
@@ -106,7 +109,7 @@ class Daemon (host : Host) {
                     }
                 }
             }
-            "FC chain join" -> {
+            "chain join" -> {
                 val name= reader.readLineX().nameCheck()
                 val trusted= reader.readLineX().toBoolean()
                 val type= reader.readLineX()
@@ -124,7 +127,7 @@ class Daemon (host : Host) {
                 writer.writeLineX(chain.hash)
                 System.err.println("chain join: $name (${chain.hash})")
             }
-            "FC chain listen" -> {
+            "chain listen" -> {
                 val name= reader.readLineX().nameCheck()
                 synchronized (listenLists) {
                     if (! listenLists.containsKey(name)) {
@@ -135,26 +138,26 @@ class Daemon (host : Host) {
                 shouldClose = false
             }
             else -> {
-                assert(ln.startsWith("FC chain"))
+                assert(cmd.startsWith("chain"))
                 val name  = reader.readLineX().nameCheck()
                 val chain = synchronized (getLock()) {
                     local.loadChain(name)
                 }
                 synchronized (getLock(chain)) {
-                    when (ln) {
-                        "FC chain genesis" -> {
+                    when (cmd) {
+                        "chain genesis" -> {
                             val hash  = chain.getGenesis()
                             writer.writeLineX(hash)
                             System.err.println("chain genesis: $hash")
                         }
-                        "FC chain heads" -> {
+                        "chain heads" -> {
                             val state = reader.readLineX().toState()
                             val heads = chain.getHeads(state)
                             val hs = heads.joinToString(" ")
                             writer.writeLineX(hs)
                             System.err.println("chain heads: $hs")
                         }
-                        "FC chain get" -> {
+                        "chain get" -> {
                             val hash = reader.readLineX()
                             val crypt= reader.readLineX()
 
@@ -167,7 +170,7 @@ class Daemon (host : Host) {
                             //writer.writeLineX("\n")
                             System.err.println("chain get: $hash")
                         }
-                        "FC chain reps" -> {
+                        "chain reps" -> {
                             val ref = reader.readLineX()
 
                             val likes =
@@ -182,7 +185,7 @@ class Daemon (host : Host) {
                             System.err.println("chain reps: $likes")
                         }
 
-                        "FC chain post" -> {
+                        "chain post" -> {
                             val sign = reader.readLineX()   // "" / <pvt>
                             val crypt= reader.readLineX()
                             val lkn    = reader.readLineX().toInt()
@@ -229,7 +232,7 @@ class Daemon (host : Host) {
                                 signal(name,1)
                             }
                         }
-                        "FC chain send" -> {
+                        "chain send" -> {
                             val host2 = reader.readLineX()
 
                             val (host,port) = host2.hostSplit()
@@ -239,7 +242,7 @@ class Daemon (host : Host) {
                             System.err.println("chain send: $name ($nmin/$nmax)")
                             writer.writeLineX("$nmin / $nmax")
                         }
-                        "FC chain recv" -> {
+                        "chain recv" -> {
                             val (nmin,nmax) = remote.chainRecv(chain)
                             System.err.println("chain recv: $name: ($nmin/$nmax)")
                             thread {
@@ -270,7 +273,7 @@ fun Socket.chainSend (chain: Chain) : Pair<Int,Int> {
     //   - pushes into toSend
     // - sends toSend
 
-    writer.writeLineX("FC chain recv")
+    writer.writeLineX("$PRE chain recv")
     writer.writeLineX(chain.name)
 
     val visited = HashSet<Hash>()

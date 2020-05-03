@@ -49,7 +49,7 @@ fun main (args: Array<String>) {
 }
 
 fun main_ (args: Array<String>) : String {
-    val opts = Docopt(doc).withVersion("freechains v0.2").parse(args.toMutableList())
+    val opts = Docopt(doc).withVersion("freechains $VERSION").parse(args.toMutableList())
 
     Thread.setDefaultUncaughtExceptionHandler { _: Thread?, e: Throwable? ->
         System.err.println(
@@ -82,7 +82,7 @@ fun main_ (args: Array<String>) : String {
                     val socket = Socket(host, port)
                     val writer = DataOutputStream(socket.getOutputStream()!!)
                     val reader = DataInputStream(socket.getInputStream()!!)
-                    writer.writeLineX("FC host stop")
+                    writer.writeLineX("$PRE host stop")
                     assert(reader.readLineX() == "true")
                     socket.close()
                     return "true"
@@ -93,7 +93,7 @@ fun main_ (args: Array<String>) : String {
                     val writer = DataOutputStream(socket.getOutputStream()!!)
                     val reader = DataInputStream(socket.getInputStream()!!)
                     val now= opts["<time>"] as String
-                    writer.writeLineX("FC host now")
+                    writer.writeLineX("$PRE host now")
                     writer.writeLineX(now)
                     assert(reader.readLineX() == "true")
                     socket.close()
@@ -108,7 +108,7 @@ fun main_ (args: Array<String>) : String {
             when {
                 //     freechains [options] chain join <chain> [ [owner-only] <pub> ]
                 opts["join"] as Boolean -> {
-                    writer.writeLineX("FC chain join")
+                    writer.writeLineX("$PRE chain join")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(if (opts["trusted"] is String) "true" else "false")
                     if (opts["<pub>"] != null) {
@@ -120,12 +120,12 @@ fun main_ (args: Array<String>) : String {
                     return reader.readLineX()
                 }
                 opts["genesis"] as Boolean -> {
-                    writer.writeLineX("FC chain genesis")
+                    writer.writeLineX("$PRE chain genesis")
                     writer.writeLineX(opts["<chain>"] as String)
                     return reader.readLineX()
                 }
                 opts["heads"] as Boolean -> {
-                    writer.writeLineX("FC chain heads")
+                    writer.writeLineX("$PRE chain heads")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX (
                         when {
@@ -138,14 +138,14 @@ fun main_ (args: Array<String>) : String {
                     return ret
                 }
                 opts["reps"] as Boolean -> {
-                    writer.writeLineX("FC chain reps")
+                    writer.writeLineX("$PRE chain reps")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<hash_or_pub>"] as String)
                     return reader.readLineX()
                 }
 
                 opts["get"] as Boolean -> {
-                    writer.writeLineX("FC chain get")
+                    writer.writeLineX("$PRE chain get")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<hash>"] as Hash)
                     writer.writeLineX(opts["--crypt"] as String? ?: "")
@@ -160,7 +160,7 @@ fun main_ (args: Array<String>) : String {
                 opts["dislike"] as Boolean -> {
                     val lk = if (opts["like"] as Boolean) "+1" else "-1"
                     assert(opts["--sign"] is String) { "expected `--sign`" }
-                    writer.writeLineX("FC chain post")
+                    writer.writeLineX("$PRE chain post")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["--sign"] as String)
                     writer.writeLineX("")   // crypt
@@ -174,7 +174,7 @@ fun main_ (args: Array<String>) : String {
                 }
                 opts["post"] as Boolean -> {
                     val eof = opts["--utf8-eof"] as String? ?: ""
-                    writer.writeLineX("FC chain post")
+                    writer.writeLineX("$PRE chain post")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["--sign"] as String? ?: "")
                     writer.writeLineX((opts["--crypt"] as String? ?: "").toString())
@@ -201,7 +201,7 @@ fun main_ (args: Array<String>) : String {
                     return hash
                 }
                 opts["listen"] as Boolean -> {
-                    writer.writeLineX("FC chain listen")
+                    writer.writeLineX("$PRE chain listen")
                     writer.writeLineX(opts["<chain>"] as String)
                     while (true) {
                         val n = reader.readLineX()
@@ -209,7 +209,7 @@ fun main_ (args: Array<String>) : String {
                     }
                 }
                 opts["send"] as Boolean -> {
-                    writer.writeLineX("FC chain send")
+                    writer.writeLineX("$PRE chain send")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<host:port>"] as String)
                     return reader.readLineX()
@@ -226,7 +226,7 @@ fun main_ (args: Array<String>) : String {
                 // freechains [options] crypto create (shared | pubpvt) <passphrase>
                 opts["create"] as Boolean -> {
                     val isShared = opts["shared"] as Boolean
-                    writer.writeLineX("FC crypto create")
+                    writer.writeLineX("$PRE crypto create")
                     writer.writeLineX(if (isShared) "shared" else "pubpvt")
                     writer.writeLineX(opts["<passphrase>"] as String)
                     return reader.readLineX()
