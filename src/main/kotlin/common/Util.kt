@@ -16,6 +16,8 @@ const val T1D_reps    = 1*day           // account to reputation posts older tha
 
 const val LK30_max = 30
 
+const val S128_max = 128000             // 128 KBytes maximum size of payload
+
 fun String.pvtToPub () : String {
     return this.substring(this.length/2)
 }

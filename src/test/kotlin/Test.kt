@@ -24,12 +24,12 @@ import kotlin.concurrent.thread
  *                                reps             28-02    29-02    17-03   19-03    25-04   28-04
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 -> 1513 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
- *  - read payload from input
  *  - max size of payload, max number of blockeds
  *  - Simulation.kt
  *  - liferea, /home, docs
  *  - ban PUB
  *  - PROTO:
+ *    - autor fork: merge largest instead of reject
  *    - trusted hosts // forward bans
  *    - time limits constants
  *    - forks: reject smaller/newest branch
