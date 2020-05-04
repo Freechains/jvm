@@ -2,7 +2,6 @@
     "immut": {
         "time": 0,
         "pay": {
-            "code": "",
             "crypt": false,
             "hash": ""
         },
