@@ -40,7 +40,7 @@ import kotlin.concurrent.thread
  *    - replicate command (all state)
  *    - all conns start with pubs from both ends
  *  - TEST
- *    - --utf8-eof, oonly, N16_blocked, S128_payload
+ *    - oonly, N16_blocked, S128_payload
  *    - proof that pay="" is really hidden
  *  - REFACTOR
  *    - join (stop/now), they use connection
@@ -76,8 +76,8 @@ import kotlin.concurrent.thread
  *  - RPi: cable eth + wifi router + phones
  */
 
-val H   = Immut(0, Payload("", false,""),null, null, emptyArray())
-val HC  = H.copy(pay=H.pay.copy("utf8",true))
+val H   = Immut(0, Payload(false,""),null, null, emptyArray())
+val HC  = H.copy(pay=H.pay.copy(true))
 
 const val PVT0 = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
 const val PUB0 = "3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"

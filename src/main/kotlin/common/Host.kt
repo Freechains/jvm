@@ -37,7 +37,7 @@ fun Host.joinChain (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
     val genesis = Block (
         Immut (
             0,
-            Payload("", false, ""),
+            Payload( false, ""),
             null,
             null,
             emptyArray()

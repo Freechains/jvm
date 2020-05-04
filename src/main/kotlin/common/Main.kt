@@ -35,7 +35,6 @@ Options:
     --sign=<pvtkey>        [post|like]      signs post with given private key
     --crypt=<key>          [get|post]       (de|en)crypts post with given shared or private key
     --why=<text>           [like]           explains reason for the like
-    --utf8-eof=<word>      [post]           sets word terminator for utf8 post
 
 More Information:
 

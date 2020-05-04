@@ -48,7 +48,6 @@ data class Signature (
 
 @Serializable
 data class Payload (            // payload metadata
-    val code    : String,       // encoding
     val crypt   : Boolean,      // is encrypted (method depends on chain)
     val hash    : Hash          // hash of contents
 )

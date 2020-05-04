@@ -2,7 +2,6 @@
     "immut": {
         "time": 364,
         "pay": {
-            "code": "utf8",
             "crypt": false,
             "hash": "FB3927E0A16C436E2EC70731F3076861802AB95A6F229531BBD785AF99DEFC87"
         },

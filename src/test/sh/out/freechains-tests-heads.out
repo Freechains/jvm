@@ -1,7 +1,6 @@
 {
     "immut": {
         "time": 0,
-        "encoding": "utf8",
         "payload": "Hello_World",
         "backs": [
             "0_DE42BBDC6A347195D5C80F8C98B3246F53ADF316152DB36950572B75F49CA3AA"

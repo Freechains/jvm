@@ -213,7 +213,7 @@ class Daemon (host : Host) {
                                 val blk = chain.blockNew (
                                     Immut (
                                         0,
-                                        Payload("utf8", false, ""),
+                                        Payload(false, ""),
                                         null,
                                         like,
                                         emptyArray()
