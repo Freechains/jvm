@@ -157,6 +157,21 @@ class Daemon (host : Host) {
                             writer.writeLineX(hs)
                             System.err.println("chain heads: $hs")
                         }
+                        "chain traverse" -> {
+                            val state = reader.readLineX().toState()
+                            val heads = chain.getHeads(state)
+                            val downto = reader.readLineX().split(" ")
+                            //println("H=$heads // D=$downto")
+                            val all = chain
+                                .bfsBacks(heads,false) {
+                                    //println("TRY ${it.hash} -> ${downto.contains(it.hash)}")
+                                    !downto.contains(it.hash)
+                                }
+                                .map{it.hash}
+                            val ret = all.joinToString("")
+                            writer.writeLineX(ret)
+                            System.err.println("chain traverse: $ret")
+                        }
                         "chain get" -> {
                             val hash = reader.readLineX()
                             val crypt= reader.readLineX()

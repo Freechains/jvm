@@ -289,6 +289,24 @@ class Tests {
     }
 
     @Test
+    fun m02_trav() {
+        a_reset()
+        main(arrayOf("host", "create", "/tmp/freechains/tests/trav/"))
+        thread {
+            main(arrayOf("host", "start", "/tmp/freechains/tests/trav/"))
+        }
+        Thread.sleep(100)
+        main(arrayOf("chain", "join", "/"))
+        val gen = main_(arrayOf("chain", "genesis", "/"))
+        main_(arrayOf("chain", "post", "/", "inline", "aaa", S0))
+        main_(arrayOf("chain", "traverse", "/", "all", gen)).let {
+            it.split(" ").let {
+                assert(it.size == 1 && it[0].startsWith("1_"))
+            }
+        }
+    }
+
+    @Test
     fun m02_crypto() {
         //a_reset()
         main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
