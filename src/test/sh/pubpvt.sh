@@ -40,7 +40,7 @@ diff <(echo "$g0") <(echo "$g2") || exit 1
 # post to 8400, send to 8401 (fail) 8402 (succees)
 freechains --host=localhost:8400 --sign=$PVT chain post / inline Hello_World
 freechains --host=localhost:8400 chain send / localhost:8401  # FAIL
-freechains --host=localhost:8402 chain recv / localhost:8401  # SUCCESS
+freechains --host=localhost:8402 chain recv / localhost:8400  # SUCCESS
 
 # compare them
 ! diff -q $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
