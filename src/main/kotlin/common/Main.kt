@@ -196,7 +196,6 @@ fun main_ (args: Array<String>) : String {
                     }
                     writer.writeLineX(pay.length.toString())
                     writer.writeBytes(pay)
-                    writer.writeLineX("\n")
 
                     val hash = reader.readLineX()
                     return hash

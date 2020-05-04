@@ -206,11 +206,8 @@ class Daemon (host : Host) {
                             val lkn     = reader.readLineX().toInt()
                             val lkr  = reader.readLineX()
                             val len     = reader.readLineX().toInt()
-                            var pay  = reader.readLinesX()
-                            while (pay.length < len) {
-                                pay += "\n"
-                                pay += reader.readLinesX()
-                            }
+                            //println("LEN=$len")
+                            var pay  = reader.readNBytes(len).toString()
                             assert(pay.length <= S128_pay) { "post is too large" }
 
                             val like =
