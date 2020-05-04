@@ -24,7 +24,7 @@ Usage:
     freechains [options] chain post <chain> (file | inline | -) [<path_or_text>]
     freechains [options] chain (like | dislike) <chain> <hash>
     freechains [options] chain reps <chain> <hash_or_pub>
-    freechains [options] chain traverse <chain> (all | linked) <hash>...
+    freechains [options] chain traverse <chain> (all | linked) <heads>...
     freechains [options] chain listen <chain>
     freechains [options] chain recv <chain> <host:port>
     freechains [options] chain send <chain> <host:port>
@@ -213,7 +213,7 @@ fun main_ (args: Array<String>) : String {
                             else -> error("bug found")
                         }
                     )
-                    writer.writeLineX((opts["<hash>"] as ArrayList<String>).joinToString(" "))
+                    writer.writeLineX((opts["<heads>"] as ArrayList<String>).joinToString(" "))
                     val ret = reader.readLineX()
                     return ret
                 }

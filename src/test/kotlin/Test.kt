@@ -290,7 +290,7 @@ class Tests {
 
     @Test
     fun m02_trav() {
-        a_reset()
+        //a_reset()
         main(arrayOf("host", "create", "/tmp/freechains/tests/trav/"))
         thread {
             main(arrayOf("host", "start", "/tmp/freechains/tests/trav/"))
