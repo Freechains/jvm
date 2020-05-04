@@ -45,7 +45,7 @@ freechains host start $FC/8401 &
 sleep 0.5
 freechains --host=localhost:8401 host now 0
 freechains --host=localhost:8401 chain join / owner-only $PUB
-freechains --host=localhost:8400 chain --sign=$PVT post / inline 111
+echo 111 | freechains --host=localhost:8400 chain --sign=$PVT post / -
 freechains --host=localhost:8400 chain --sign=$PVT post / inline 222
 freechains --host=localhost:8400 chain send / localhost:8401
 

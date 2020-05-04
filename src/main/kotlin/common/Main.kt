@@ -167,10 +167,15 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX("")   // crypt
                     writer.writeLineX(lk)
                     writer.writeLineX((opts["<hash>"] as String))
-                    writer.writeLineX("utf8")
-                    writer.writeLineX((opts["--why"] as String?).let {
-                        if (it == null) "" else it + "\n"
-                    })
+                    (opts["--why"] as String?).let {
+                        if (it == null) {
+                            writer.writeLineX("0")
+                            writer.writeLineX("")
+                        } else {
+                            writer.writeLineX(it.length.toString())
+                            writer.writeLineX(it + "\n")
+                        }
+                    }
                     return reader.readLineX()
                 }
                 opts["post"] as Boolean -> {
@@ -184,8 +189,10 @@ fun main_ (args: Array<String>) : String {
                     val pay = when {
                         opts["inline"] as Boolean -> (opts["<path_or_text>"] as String)
                         opts["file"]   as Boolean -> File(opts["<path_or_text>"] as String).readBytes().toString(Charsets.UTF_8)
-                        else -> error("TODO -")
+                        opts["-"]      as Boolean -> System.`in`.readAllBytes().toString(Charsets.UTF_8)
+                        else -> error("impossible case")
                     }
+                    writer.writeLineX(pay.length.toString())
                     writer.writeBytes(pay)
                     writer.writeLineX("\n")
 

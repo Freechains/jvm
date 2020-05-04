@@ -188,9 +188,14 @@ class Daemon (host : Host) {
                         "chain post" -> {
                             val sign = reader.readLineX()   // "" / <pvt>
                             val crypt= reader.readLineX()
-                            val lkn    = reader.readLineX().toInt()
-                            val lkr = reader.readLineX()
-                            val pay  = reader.readLinesX()
+                            val lkn     = reader.readLineX().toInt()
+                            val lkr  = reader.readLineX()
+                            val len     = reader.readLineX().toInt()
+                            var pay  = reader.readLinesX()
+                            while (pay.length < len) {
+                                pay += "\n"
+                                pay += reader.readLinesX()
+                            }
                             assert(pay.length <= S128_pay) { "post is too large" }
 
                             val like =
