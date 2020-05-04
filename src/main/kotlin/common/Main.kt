@@ -19,7 +19,7 @@ Usage:
     freechains [options] host now <time>
     freechains [options] chain join <chain> [trusted] [ [owner-only] <pub> ]
     freechains [options] chain genesis <chain>
-    freechains [options] chain heads (linked | blocked) <chain>
+    freechains [options] chain heads (all | linked | blocked) <chain>
     freechains [options] chain get <chain> <hash>
     freechains [options] chain post <chain> (file | inline | -) [<path_or_text>]
     freechains [options] chain (like | dislike) <chain> <hash>
@@ -129,6 +129,7 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX (
                         when {
+                            opts["all"]     as Boolean -> "all"
                             opts["linked"]  as Boolean -> "linked"
                             opts["blocked"] as Boolean -> "blocked"
                             else -> error("bug found")
