@@ -27,11 +27,11 @@ fun DataInputStream.readLineX () : String {
     return ret.toByteArray().toString(Charsets.UTF_8)
 }
 
-fun DataInputStream.readLinesX (eof: String = "") : String {
+fun DataInputStream.readLinesX () : String {
     var ret = ""
     while (true) {
         val line = this.readLineX()
-        if (line == eof) {
+        if (line == "") {
             break
         } else {
             ret += line + "\n"

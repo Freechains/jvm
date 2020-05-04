@@ -190,10 +190,7 @@ class Daemon (host : Host) {
                             val crypt= reader.readLineX()
                             val lkn    = reader.readLineX().toInt()
                             val lkr = reader.readLineX()
-                            val code = reader.readLineX()
-
-                            val cods = code.split(' ')
-                            val pay  = reader.readLinesX(cods.getOrNull(1) ?: "")
+                            val pay  = reader.readLinesX()
                             assert(pay.length <= S128_pay) { "post is too large" }
 
                             val like =
@@ -211,7 +208,7 @@ class Daemon (host : Host) {
                                 val blk = chain.blockNew (
                                     Immut (
                                         0,
-                                        Payload(cods[0], false, ""),
+                                        Payload("utf8", false, ""),
                                         null,
                                         like,
                                         emptyArray()

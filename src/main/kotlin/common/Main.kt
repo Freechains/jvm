@@ -21,7 +21,7 @@ Usage:
     freechains [options] chain genesis <chain>
     freechains [options] chain heads (linked | blocked) <chain>
     freechains [options] chain get <chain> <hash>
-    freechains [options] chain post <chain> (file | inline | -) (utf8 | base64) [<path_or_text>]
+    freechains [options] chain post <chain> (file | inline | -) [<path_or_text>]
     freechains [options] chain (like | dislike) <chain> <hash>
     freechains [options] chain reps <chain> <hash_or_pub>
     freechains [options] chain listen <chain>
@@ -45,6 +45,7 @@ More Information:
 """
 
 fun main (args: Array<String>) {
+    //println(args.contentToString())
     output(main_(args))
 }
 
@@ -173,29 +174,20 @@ fun main_ (args: Array<String>) : String {
                     return reader.readLineX()
                 }
                 opts["post"] as Boolean -> {
-                    val eof = opts["--utf8-eof"] as String? ?: ""
                     writer.writeLineX("$PRE chain post")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["--sign"] as String? ?: "")
                     writer.writeLineX((opts["--crypt"] as String? ?: "").toString())
                     writer.writeLineX("0")
                     writer.writeLineX("")
-                    writer.writeLineX(if (opts["utf8"] as Boolean) "utf8"+(if (eof.isEmpty()) "" else " "+eof) else "base64")
 
-                    val bytes = when {
-                        opts["inline"] as Boolean -> (opts["<path_or_text>"] as String).toByteArray()
-                        opts["file"] as Boolean -> File(opts["<path_or_text>"] as String).readBytes()
+                    val pay = when {
+                        opts["inline"] as Boolean -> (opts["<path_or_text>"] as String)
+                        opts["file"]   as Boolean -> File(opts["<path_or_text>"] as String).readBytes().toString(Charsets.UTF_8)
                         else -> error("TODO -")
                     }
-                    val payload = when {
-                        (opts["inline"] as Boolean || opts["utf8"] as Boolean) -> bytes.toString(Charsets.UTF_8)
-                        opts["base64"] as Boolean -> Base64.getEncoder().encode(bytes).toString(Charsets.UTF_8)
-                        else -> error("bug found")
-                    }
-                    writer.writeBytes(payload)
-                    if (eof.isEmpty()) {
-                        writer.writeLineX("\n")
-                    }
+                    writer.writeBytes(pay)
+                    writer.writeLineX("\n")
 
                     val hash = reader.readLineX()
                     return hash

@@ -24,6 +24,8 @@ import kotlin.concurrent.thread
  *                                reps             28-02    29-02    17-03   19-03    25-04   28-04
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 -> 1513 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
+ *  - file n / - / inline
+ *  - chain heads all
  *  - Simulation.kt
  *  - liferea, /home, docs
  *  - PROTO:
@@ -261,7 +263,7 @@ class Tests {
         assert(main_(arrayOf("chain", "genesis", "/xxx")).startsWith("0_"))
         assert(main_(arrayOf("chain", "heads", "linked", "/xxx")).startsWith("0_"))
 
-        main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", S0))
+        main_(arrayOf("chain", "post", "/xxx", "inline", "aaa", S0))
         assert(main_(arrayOf("chain", "heads", "linked", "/xxx")).startsWith("1_"))
         main_(arrayOf("chain", "heads", "blocked", "/xxx")).let {
             assert(it.isEmpty())
@@ -273,14 +275,14 @@ class Tests {
             }
         }
 
-        /*val h2 =*/ main_(arrayOf(S0, "chain", "post", "/xxx", "file", "utf8", "/tmp/freechains/tests/M1/host"))
+        /*val h2 =*/ main_(arrayOf(S0, "chain", "post", "/xxx", "file", "/tmp/freechains/tests/M1/host"))
 
         // h0 -> h1 -> h2
 
         assert(main_(arrayOf("chain", "heads", "linked",  "/xxx")).startsWith("2_"))
         assert(main_(arrayOf("chain", "heads", "blocked", "/xxx")).isEmpty())
 
-        main(arrayOf("chain", "post", "/xxx", "file", "base64", "/bin/cat"))
+        //main(arrayOf("chain", "post", "/xxx", "file", "base64", "/bin/cat"))
         main(arrayOf("host", "stop"))
         // TODO: check genesis 2x, "aaa", "host"
         // $ cat /tmp/freechains/tests/M1/chains/xxx/blocks/*
@@ -409,7 +411,7 @@ class Tests {
             )
         )
 
-        main(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", "--crypt=$SHA0"))
+        main(arrayOf("chain", "post", "/xxx", "inline", "aaa", "--crypt=$SHA0"))
         main(arrayOf("chain", "send", "/xxx", "localhost:8331"))
     }
 
@@ -423,7 +425,7 @@ class Tests {
         Thread.sleep(100)
         main(arrayOf("chain", "join", "/xxx", PUB0))
         main(arrayOf(H1, "chain", "join", "/xxx", PUB0))
-        val hash = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "aaa", S0, "--crypt=$PVT0"))
+        val hash = main_(arrayOf("chain", "post", "/xxx", "inline", "aaa", S0, "--crypt=$PVT0"))
 
         val json = main_(arrayOf("chain", "get", "/xxx", hash, "--crypt=$PVT0"))
         val blk = json.jsonToBlock()
@@ -434,7 +436,7 @@ class Tests {
         val blk2 = json2.jsonToBlock()
         assert(blk2.immut.pay.crypt)
 
-        val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "bbbb", S1))
+        val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "bbbb", S1))
         val j2 = main_(arrayOf("chain", "get", "/xxx", h2))
         val b2 = j2.jsonToBlock()
         assert(b2.pay == "bbbb")
@@ -451,9 +453,9 @@ class Tests {
         Thread.sleep(100)
 
         main_(arrayOf(H0, "chain", "join", "/"))
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "first-0", S0))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "first-0", S0))
         main_(arrayOf(H1, "chain", "join", "/"))
-        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "first-1", S1))
+        main_(arrayOf(H1, "chain", "post", "/", "inline", "first-1", S1))
         Thread.sleep(100)
 
         // H0: g <- f0
@@ -491,9 +493,9 @@ class Tests {
 
         main_(arrayOf(H0, "host", "now", "0"))
 
-        val h11 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "h11", S0))
-        val h22 = main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "h22", S1))
-        /*val h21 =*/ main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "h21", S0))
+        val h11 = main_(arrayOf("chain", "post", "/xxx", "inline", "h11", S0))
+        val h22 = main_(arrayOf("chain", "post", "/xxx", "inline", "h22", S1))
+        /*val h21 =*/ main_(arrayOf("chain", "post", "/xxx", "inline", "h21", S0))
 
         // h0 -> h11 -> h21
         //          \-> h22
@@ -519,7 +521,7 @@ class Tests {
         assert( "0" == main_(arrayOf("chain", "reps", "/xxx", PUB1)))
 
         main_(arrayOf(H0, "host", "now", (3*hour).toString()))
-        /*val h41 =*/ main_(arrayOf("chain", "post", "/xxx", "inline", "utf8", "41", S0))
+        /*val h41 =*/ main_(arrayOf("chain", "post", "/xxx", "inline", "41", S0))
 
         // h0 -> h11 -> h21 -> l3 -> h41
         //          \-> h22 --/
@@ -619,7 +621,7 @@ class Tests {
         //           \- h22 <-------           l6
 
         assert("2" == main_(arrayOf("chain", "reps", "/xxx", PUB1)))
-        val h7 = main_(arrayOf(H1, "chain", "post", "/xxx", "inline", "utf8", "no rep", S1))
+        val h7 = main_(arrayOf(H1, "chain", "post", "/xxx", "inline", "no rep", S1))
 
         // h0 <- h11 <- h21 <- l3 <- h41 <- l5
         //          \               /         \
@@ -673,7 +675,7 @@ class Tests {
         }
 
         // new post, no rep
-        val h8 = main_(arrayOf(H1, "chain", "post", "/xxx", "inline", "utf8", "no sig"))
+        val h8 = main_(arrayOf(H1, "chain", "post", "/xxx", "inline", "no sig"))
 
         // h0 <- h11 <- h21 <- l3 <- h41 <- l5          l7 <- h8
         //          \               /         \        /
@@ -740,9 +742,9 @@ class Tests {
         main(arrayOf(H0, "host", "now", "0"))
         main(arrayOf(H1, "host", "now", "0"))
 
-        val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1", S1))
-        val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2", S1))
-        val hx = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "hx", S0))
+        val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "h1", S1))
+        val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "h2", S1))
+        val hx = main_(arrayOf(H0, "chain", "post", "/", "inline", "hx", S0))
 
         // h1 <- h2 (a) <- hx (r)
 
@@ -753,7 +755,7 @@ class Tests {
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
 
-        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h3",S1)).let {
+        main_(arrayOf(H1, "chain", "post", "/", "inline", "h3",S1)).let {
             //assert(it == "backs must be accepted")
         }
 
@@ -762,7 +764,7 @@ class Tests {
 
         main_(arrayOf(H1, "host", "now", "${3*hour}"))
 
-        val h4 = main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h4",S1))
+        val h4 = main_(arrayOf(H1, "chain", "post", "/", "inline", "h4",S1))
         assert(h4.startsWith("5_"))
 
         // h1 <- h2 (a) <- h3 <- h4
@@ -771,7 +773,7 @@ class Tests {
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
         main_(arrayOf(H1, "host", "now", "${6*hour}"))
 
-        main_(arrayOf(H1, "chain", "post", "/", "inline", "utf8", "h5")).let {
+        main_(arrayOf(H1, "chain", "post", "/", "inline", "h5")).let {
             assert(it.startsWith("6_"))
         }
     }
@@ -788,10 +790,10 @@ class Tests {
         main(arrayOf(H0, "chain", "join", "/"))
         main(arrayOf(H1, "chain", "join", "/"))
 
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1",S0))
-        val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2"))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "h1",S0))
+        val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "h2"))
         main_(arrayOf(H0,"chain","like","/",h2,S0))
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h3"))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "h3"))
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
 
@@ -814,9 +816,9 @@ class Tests {
         main(arrayOf(H1, "chain", "join", "/"))
         main(arrayOf(H1, "host", "now", "0"))
 
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1",S0))
-        val h21 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h21"))
-        val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h22"))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "h1",S0))
+        val h21 = main_(arrayOf(H0, "chain", "post", "/", "inline", "h21"))
+        val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "h22"))
 
         // h0 -> h1 -> h21
         //          -> h22
@@ -886,7 +888,7 @@ class Tests {
             assert(it.isEmpty())
         }
 
-        /*val h43 =*/ main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h43"))
+        /*val h43 =*/ main_(arrayOf(H0, "chain", "post", "/", "inline", "h43"))
 
         // h0 -> h1 -> h21 -> l2 -> l3 -> l4 -> h43
         //          -> h22
@@ -927,8 +929,8 @@ class Tests {
         main(arrayOf(H0, "chain", "join", "/"))
 
         main(arrayOf(H0, "host", "now", "0"))
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h1", S0))
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h2", S1)).let {
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "h1", S0))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "h2", S1)).let {
             main_(arrayOf(H0,S0,"chain","like","/",it))
         }
 
@@ -945,7 +947,7 @@ class Tests {
             assert(it == "2")
         }
 
-        main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h3"))
+        main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "h3"))
 
         // h0 <-- h1 <-- l2
         //            \- h2 <-- h3
@@ -960,7 +962,7 @@ class Tests {
         }
 
         main(arrayOf(H0, "host", "now", "${53*hour}"))
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h4", S1))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "h4", S1))
 
         // h0 <-- h1 <-- l2
         //            \- h2 <-- h3 <-- h4
@@ -974,7 +976,7 @@ class Tests {
             assert(it == "4") {it}
         }
 
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "utf8", "h5", S1))
+        main_(arrayOf(H0, "chain", "post", "/", "inline", "h5", S1))
 
         // h0 <-- h1 <-- l2
         //            \- h2 <-- h3 <-- h4 <-- h5
@@ -1000,15 +1002,15 @@ class Tests {
 
         main(arrayOf(H0, "host", "now", "0"))
 
-        /*val h1  =*/ main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h0"))
-        val h21 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h21"))
-        /*val h20 =*/ main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h20"))
+        /*val h1  =*/ main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "h0"))
+        val h21 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "h21"))
+        /*val h20 =*/ main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "h20"))
 
         // h0 -> h1 --> h21
         //          \-> h20
 
         // no double spend
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h30")).let {
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "h30")).let {
             //assert(it == "backs must be accepted")
         }
 
@@ -1016,7 +1018,7 @@ class Tests {
         //          \-> h20 -> h30
 
         main(arrayOf(H0, "host", "now", "${3*hour}"))
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "h40"))
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "h40"))
 
         // h0 -> h1 --> h20 -> h30 -> h40
         //          \-> h21
@@ -1029,7 +1031,7 @@ class Tests {
 
         main(arrayOf(H0, "host", "now", "${9*hour}"))
 
-        val h61 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h61"))
+        val h61 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "h61"))
 
         // h0 -> h1 --> h21 -----------------------> h61
         //          \-> h20 -> h30 -> l40 -> l50 /
@@ -1040,7 +1042,7 @@ class Tests {
         //          \-> h20 -> h30 -> l40 -> l50 /-> l60
 
         main(arrayOf(H0, "host", "now", "${34*hour}"))
-        /*val h7 =*/ main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "h7"))
+        /*val h7 =*/ main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "h7"))
 
         // h0 -> h1 --> h21 ---------------------\-> h61 --> h7
         //          \-> h20 -> h30 -> l40 -> l50 /-> l60 -/
@@ -1085,8 +1087,8 @@ class Tests {
         main(arrayOf(H0, "host", "now", "0"))
         main(arrayOf(H1, "host", "now", "0"))
 
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "0@h1"))
-        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "1@h2"))
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "0@h1"))
+        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "1@h2"))
         main_(arrayOf(H0, S0, "chain", "like", "/", "--why=0@l2", h2))
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
@@ -1132,7 +1134,7 @@ class Tests {
             assert(it.isEmpty())
         }
 
-        main_(arrayOf(H1, S1, "chain", "post", "/", "inline", "utf8", "1@h3"))
+        main_(arrayOf(H1, S1, "chain", "post", "/", "inline", "1@h3"))
 
         // HOST-0
         // h0 <- 0@h1 <- 1@h2 <- 0@l2 <- 0@l3-
@@ -1184,8 +1186,8 @@ class Tests {
 
         main(arrayOf(H0, "host", "now", "0"))
 
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "0@h1"))
-        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "1@h2"))
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "0@h1"))
+        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "1@h2"))
         main_(arrayOf(H0, S0, "chain", "like", "/", h2, "--why=0@l2"))
 
         // HOST-0
@@ -1199,7 +1201,7 @@ class Tests {
         main(arrayOf(H0, "host", "now", "${3*hour}"))
 
         // l4 dislikes h2: h2 should remain accepted b/c h2<-l3
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "0@h3"))
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "0@h3"))
         main_(arrayOf(H0, S0, "chain", "dislike", "/", h2, "--why=0@l3"))
 
         // HOST-0
@@ -1225,8 +1227,8 @@ class Tests {
 
         main(arrayOf(H0, "host", "now", "0"))
 
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "utf8", "0@h1"))
-        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "utf8", "1@h2"))
+        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "0@h1"))
+        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "1@h2"))
         main_(arrayOf(H0, S0, "chain", "like", "/", h2))
 
         // HOST-0
