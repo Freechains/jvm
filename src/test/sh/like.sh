@@ -24,8 +24,8 @@ freechains host start $FC/8400 &
 sleep 0.5
 freechains $H0 host now 0
 freechains $H0 chain join /
-b1=`freechains $H0 $SIG1 chain post / inline utf8 pub1.1`
-b2=`freechains $H0 $SIG0 chain post / inline utf8 pub0.2`
+b1=`freechains $H0 $SIG1 chain post / inline pub1.1`
+b2=`freechains $H0 $SIG0 chain post / inline pub0.2`
 
 v0=`freechains $H0 chain reps / $PUB0`
 diff <(echo $v0) <(echo "-1") || exit 1
@@ -50,7 +50,7 @@ diff <(echo $f1) <(echo "like author must have reputation") || exit 1
 
 freechains $H0 host now 90000000  # 1d
 
-b4=`freechains $H0 $SIG1 chain post / inline utf8 pub1.4`
+b4=`freechains $H0 $SIG1 chain post / inline pub1.4`
 l5=`freechains $H0 $SIG0 chain like / $b4`
 
 j5=`freechains $H0 chain get / $l5`

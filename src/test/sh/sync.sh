@@ -34,8 +34,8 @@ freechains $H1 chain join /
 freechains $H0 host now 0
 freechains $H1 host now 0
 
-freechains $H0 $S0 chain post / inline utf8 zero
-freechains $H0 $S1 chain post / inline utf8 xxxx
+freechains $H0 $S0 chain post / inline zero
+freechains $H0 $S1 chain post / inline xxxx
 freechains $H0 $S0 chain like / `freechains $H0 chain heads blocked /` --why="like xxxx"
 
 freechains $H0 chain send / localhost:8401
@@ -48,8 +48,8 @@ freechains $H1 host now 90000000
 
 echo ">>> LIKES"
 
-h1111=`freechains $H0 chain post / inline utf8 1111`
-haaaa=`freechains $H1 chain post / inline utf8 aaaa`
+h1111=`freechains $H0 chain post / inline 1111`
+haaaa=`freechains $H1 chain post / inline aaaa`
 
 #                         1111
 # h0 <- zero <-- lxxxx <-/

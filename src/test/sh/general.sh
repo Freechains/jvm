@@ -19,7 +19,7 @@ sleep 0.5
 freechains --host=localhost:8400 chain join / owner-only $PUB
 freechains --host=localhost:8400 host now 0
 g=`freechains --host=localhost:8400 chain genesis /`
-h=`freechains --host=localhost:8400 --sign=$PVT chain post / inline utf8 Hello_World`
+h=`freechains --host=localhost:8400 --sign=$PVT chain post / inline Hello_World`
 freechains --host=localhost:8400 chain get / "$h" > $FC/freechains-tests-get-1.out
 freechains --host=localhost:8400 chain get / 0_B5E21297B8EBEE0CFA0FA5AD30F21B8AE9AE9BBF25F2729989FE5A092B86B129 > $FC/freechains-tests-get-0.out
 hs=`freechains --host=localhost:8400 chain heads linked /`
@@ -31,10 +31,11 @@ diff -I 1_ $FC/freechains-tests-get-0.out out/freechains-tests-get-0.out || exit
 diff -I time -I hash $FC/freechains-tests-get-1.out out/freechains-tests-get-1.out || exit 1
 diff -I time -I hash $FC/freechains-tests-heads.out out/freechains-tests-get-1.out || exit 1
 
-h=`freechains --host=localhost:8400 --sign=$PVT chain post / file base64 /bin/cat`
-freechains --host=localhost:8400 chain get / "$h" > $FC/cat.blk
-jq ".pay" $FC/cat.blk | tr -d '"' | base64 --decode > $FC/cat
-diff $FC/cat /bin/cat || exit 1
+uuencode /bin/cat cat > /tmp/cat.uu
+h=`freechains --host=localhost:8400 --sign=$PVT chain post / file /tmp/cat.uu`
+echo $h
+freechains --host=localhost:8400 chain get / "$h" | jq -r .pay | uudecode -o /tmp/cat
+diff /tmp/cat /bin/cat || exit 1
 
 ###############################################################################
 echo "#### 2"
@@ -44,8 +45,8 @@ freechains host start $FC/8401 &
 sleep 0.5
 freechains --host=localhost:8401 host now 0
 freechains --host=localhost:8401 chain join / owner-only $PUB
-freechains --host=localhost:8400 chain --sign=$PVT post / inline utf8 111
-freechains --host=localhost:8400 chain --sign=$PVT post / inline utf8 222
+freechains --host=localhost:8400 chain --sign=$PVT post / inline 111
+freechains --host=localhost:8400 chain --sign=$PVT post / inline 222
 freechains --host=localhost:8400 chain send / localhost:8401
 
 diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
@@ -86,7 +87,7 @@ echo "#### 4"
 
 for i in $(seq 1 50)
 do
-  freechains --host=localhost:8400 --sign=$PVT chain post / inline utf8 $i
+  freechains --host=localhost:8400 --sign=$PVT chain post / inline $i
 done
 freechains --host=localhost:8400 chain send / localhost:8401 &
 P1=$!
