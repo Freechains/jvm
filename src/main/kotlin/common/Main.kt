@@ -24,7 +24,9 @@ Usage:
     freechains [options] chain post <chain> (file | inline | -) [<path_or_text>]
     freechains [options] chain (like | dislike) <chain> <hash>
     freechains [options] chain reps <chain> <hash_or_pub>
+    freechains [options] chain heads (all | linked | blocked) <chain>
     freechains [options] chain listen <chain>
+    freechains [options] chain recv <chain> <host:port>
     freechains [options] chain send <chain> <host:port>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
 
@@ -209,6 +211,12 @@ fun main_ (args: Array<String>) : String {
                 }
                 opts["send"] as Boolean -> {
                     writer.writeLineX("$PRE chain send")
+                    writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX(opts["<host:port>"] as String)
+                    return reader.readLineX()
+                }
+                opts["recv"] as Boolean -> {
+                    writer.writeLineX("$PRE chain recv")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<host:port>"] as String)
                     return reader.readLineX()

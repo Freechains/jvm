@@ -236,16 +236,42 @@ class Daemon (host : Host) {
                         }
                         "chain send" -> {
                             val host2 = reader.readLineX()
-
                             val (host,port) = host2.hostSplit()
-
                             val socket = Socket(host, port)
-                            val (nmin,nmax) = socket.chainSend(chain)
+                            val r = DataInputStream(socket.getInputStream()!!)
+                            val w = DataOutputStream(socket.getOutputStream()!!)
+                            w.writeLineX("$PRE chain _recv_")
+                            w.writeLineX(chain.name)
+                            val (nmin,nmax) = chainSend(r, w, chain)
                             System.err.println("chain send: $name ($nmin/$nmax)")
                             writer.writeLineX("$nmin / $nmax")
                         }
                         "chain recv" -> {
-                            val (nmin,nmax) = remote.chainRecv(chain)
+                            val host2 = reader.readLineX()
+                            val (host,port) = host2.hostSplit()
+                            val socket = Socket(host, port)
+                            val r = DataInputStream(socket.getInputStream()!!)
+                            val w = DataOutputStream(socket.getOutputStream()!!)
+                            w.writeLineX("$PRE chain _send_")
+                            w.writeLineX(chain.name)
+                            val (nmin,nmax) = chainRecv(r, w, chain)
+                            System.err.println("chain recv: $name ($nmin/$nmax)")
+                            writer.writeLineX("$nmin / $nmax")
+                        }
+                        "chain _send_" -> {
+                            val r = DataInputStream(remote.getInputStream()!!)
+                            val w = DataOutputStream(remote.getOutputStream()!!)
+                            val (nmin,nmax) = chainSend(r, w, chain)
+                            System.err.println("chain send: $name: ($nmin/$nmax)")
+                            thread {
+                                signal(name, nmin)
+                            }
+                            //writer.writeLineX(ret)
+                        }
+                        "chain _recv_" -> {
+                            val r = DataInputStream(remote.getInputStream()!!)
+                            val w = DataOutputStream(remote.getOutputStream()!!)
+                            val (nmin,nmax) = chainRecv(r, w, chain)
                             System.err.println("chain recv: $name: ($nmin/$nmax)")
                             thread {
                                 signal(name, nmin)
@@ -264,19 +290,13 @@ class Daemon (host : Host) {
     }
 }
 
-fun Socket.chainSend (chain: Chain) : Pair<Int,Int> {
-    val reader = DataInputStream(this.getInputStream()!!)
-    val writer = DataOutputStream(this.getOutputStream()!!)
-
+fun chainSend (reader: DataInputStream, writer: DataOutputStream, chain: Chain) : Pair<Int,Int> {
     // - receives most recent timestamp
     // - DFS in heads
     //   - asks if contains hash
     //   - aborts path if reaches timestamp+24h
     //   - pushes into toSend
     // - sends toSend
-
-    writer.writeLineX("$PRE chain recv")
-    writer.writeLineX(chain.name)
 
     val visited = HashSet<Hash>()
     var nmin    = 0
@@ -342,10 +362,7 @@ fun Socket.chainSend (chain: Chain) : Pair<Int,Int> {
     return Pair(nmin,nmax)
 }
 
-fun Socket.chainRecv (chain: Chain) : Pair<Int,Int> {
-    val reader = DataInputStream(this.getInputStream()!!)
-    val writer = DataOutputStream(this.getOutputStream()!!)
-
+fun chainRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) : Pair<Int,Int> {
     // - sends most recent timestamp
     // - answers if contains each node
     // - receives all

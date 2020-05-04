@@ -65,7 +65,7 @@ freechains host start $FC/8402 &
 sleep 0.5
 freechains --host=localhost:8402 host now 0
 freechains --host=localhost:8402 chain join / owner-only $PUB
-freechains --host=localhost:8400 chain send / localhost:8402 &
+freechains --host=localhost:8402 chain recv / localhost:8400 &
 P1=$!
 freechains --host=localhost:8401 chain send / localhost:8402 &
 P2=$!
@@ -89,7 +89,7 @@ for i in $(seq 1 50)
 do
   freechains --host=localhost:8400 --sign=$PVT chain post / inline $i
 done
-freechains --host=localhost:8400 chain send / localhost:8401 &
+freechains --host=localhost:8401 chain recv / localhost:8400 &
 P1=$!
 freechains --host=localhost:8400 chain send / localhost:8402 &
 P2=$!
@@ -134,7 +134,7 @@ done
 
 for i in $(seq 8411 8420)
 do
-  freechains --host=localhost:$i chain send / localhost:$(($i+10)) &
+  freechains --host=localhost:$(($i+10)) chain recv / localhost:$i &
 done
 sleep 60
 

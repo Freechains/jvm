@@ -50,7 +50,7 @@ h1=`freechains --host=localhost:8400 --crypt=$k0 chain post / inline Hello_World
 h2=`freechains --host=localhost:8400 --crypt=$k0 chain post / inline Bye_World`
 freechains --host=localhost:8400 chain send / localhost:8401
 freechains --host=localhost:8400 chain send / localhost:8402
-freechains --host=localhost:8400 chain send / localhost:8403
+freechains --host=localhost:8403 chain recv / localhost:8400
 
 # compare them
 diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1

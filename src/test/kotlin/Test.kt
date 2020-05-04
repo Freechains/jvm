@@ -24,7 +24,8 @@ import kotlin.concurrent.thread
  *                                reps             28-02    29-02    17-03   19-03    25-04   28-04
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 -> 1513 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
- *  - chain heads all
+ *  - freechains recv
+ *  - chain traverse (all|linked) -> passed heads
  *  - Simulation.kt
  *  - liferea, /home, docs
  *  - PROTO:
@@ -239,7 +240,7 @@ class Tests {
         thread { Daemon(h1).daemon() }
         thread { Daemon(h2).daemon() }
         Thread.sleep(100)
-        main(arrayOf(H1, "chain", "send", "/xxx", "localhost"))
+        main(arrayOf(H0, "chain", "recv", "/xxx", "localhost:8331"))
         Thread.sleep(100)
         main(arrayOf(H1, "host", "stop"))
         main(arrayOf("host", "stop"))
@@ -460,7 +461,7 @@ class Tests {
         // H0: g <- f0
         // H1: g <- f1
 
-        val r0 = main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+        val r0 = main_(arrayOf(H1, "chain", "recv", "/", "localhost:8330"))
         val r1 = main_(arrayOf(H1, "chain", "send", "/", "localhost:8330"))
         assert(r0 == r1 && r0 == "0 / 1")
 
@@ -589,7 +590,7 @@ class Tests {
 
         // only very old (H1/H2/L3)
         main_(arrayOf(H1, "host", "now", "0"))
-        val n2 = main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331"))
+        val n2 = main_(arrayOf(H1, "chain", "recv", "/xxx", "localhost:8330"))
         assert(n2 == "4 / 7") { n2 }
         main_(arrayOf(H1, "chain", "heads", "linked", "/xxx")).let {
             assert(it.startsWith("3_"))
@@ -626,7 +627,7 @@ class Tests {
         //          \               /         \
         //           \- h22 <-------           l6 <- h7
 
-        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
+        main_(arrayOf(H0, "chain", "recv", "/xxx", "localhost:8331")).let {
             assert(it == "1 / 1")
         }
         main_(arrayOf(H1, "chain", "heads", "linked", "/xxx")).let {
@@ -752,7 +753,7 @@ class Tests {
         assert(!ps1.contains(h1) && !ps1.contains(h2) &&  ps1.contains(hx))
         assert(!rs1.contains(h1) && !rs1.contains(h2) && !rs1.contains(hx))
 
-        main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+        main_(arrayOf(H1, "chain", "recv", "/", "localhost:8330"))
 
         main_(arrayOf(H1, "chain", "post", "/", "inline", "h3",S1)).let {
             //assert(it == "backs must be accepted")
@@ -1090,7 +1091,7 @@ class Tests {
         val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "1@h2"))
         main_(arrayOf(H0, S0, "chain", "like", "/", "--why=0@l2", h2))
 
-        main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+        main_(arrayOf(H1, "chain", "recv", "/", "localhost:8330"))
 
         // HOST-0
         // h0 <- 0@h1 <- 1@h2 <- 0@l2
