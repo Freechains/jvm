@@ -19,12 +19,12 @@ Usage:
     freechains [options] host now <time>
     freechains [options] chain join <chain> [trusted] [ [owner-only] <pub> ]
     freechains [options] chain genesis <chain>
-    freechains [options] chain heads (all | linked | blocked) <chain>
+    freechains [options] chain heads <chain> (all | linked | blocked)
     freechains [options] chain get <chain> <hash>
     freechains [options] chain post <chain> (file | inline | -) [<path_or_text>]
     freechains [options] chain (like | dislike) <chain> <hash>
     freechains [options] chain reps <chain> <hash_or_pub>
-    freechains [options] chain heads (all | linked | blocked) <chain>
+    freechains [options] chain traverse <chain> (all | linked) { <hash> }
     freechains [options] chain listen <chain>
     freechains [options] chain recv <chain> <host:port>
     freechains [options] chain send <chain> <host:port>
@@ -200,6 +200,21 @@ fun main_ (args: Array<String>) : String {
 
                     val hash = reader.readLineX()
                     return hash
+                }
+                // freechains chain traverse <chain> (all | linked) { <hash> }
+                opts["traverse"] as Boolean -> {
+                    writer.writeLineX("$PRE chain traverse")
+                    writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX (
+                        when {
+                            opts["all"]     as Boolean -> "all"
+                            opts["linked"]  as Boolean -> "linked"
+                            opts["blocked"] as Boolean -> "blocked"
+                            else -> error("bug found")
+                        }
+                    )
+                    val ret = reader.readLineX()
+                    return ret
                 }
                 opts["listen"] as Boolean -> {
                     writer.writeLineX("$PRE chain listen")

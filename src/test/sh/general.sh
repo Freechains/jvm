@@ -22,7 +22,7 @@ g=`freechains --host=localhost:8400 chain genesis /`
 h=`freechains --host=localhost:8400 --sign=$PVT chain post / inline Hello_World`
 freechains --host=localhost:8400 chain get / "$h" > $FC/freechains-tests-get-1.out
 freechains --host=localhost:8400 chain get / 0_B5E21297B8EBEE0CFA0FA5AD30F21B8AE9AE9BBF25F2729989FE5A092B86B129 > $FC/freechains-tests-get-0.out
-hs=`freechains --host=localhost:8400 chain heads linked /`
+hs=`freechains --host=localhost:8400 chain heads / linked`
 freechains --host=localhost:8400 chain get / "$g" > $FC/freechains-tests-gen.out
 freechains --host=localhost:8400 chain get / "$hs" > $FC/freechains-tests-heads.out
 
@@ -89,7 +89,7 @@ for i in $(seq 1 50)
 do
   freechains --host=localhost:8400 --sign=$PVT chain post / inline $i
 done
-freechains --host=localhost:8401 chain recv / localhost:8400 &
+freechains --host=localhost:8400 chain send / localhost:8401 &
 P1=$!
 freechains --host=localhost:8400 chain send / localhost:8402 &
 P2=$!

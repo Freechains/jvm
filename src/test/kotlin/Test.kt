@@ -21,8 +21,8 @@ import kotlin.concurrent.thread
 
 /*
  *  TODO:
- *                                reps             28-02    29-02    17-03   19-03    25-04   28-04
- *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 -> 1513 LOC
+ *                                reps             28-02    29-02    17-03   19-03    25-04   28-04   04-05
+ *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 -> 1513 -> 1555 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
  *  - freechains recv
  *  - chain traverse (all|linked) -> passed heads
@@ -261,14 +261,14 @@ class Tests {
         main(arrayOf("chain", "join", "/xxx"))
 
         assert(main_(arrayOf("chain", "genesis", "/xxx")).startsWith("0_"))
-        assert(main_(arrayOf("chain", "heads", "linked", "/xxx")).startsWith("0_"))
+        assert(main_(arrayOf("chain", "heads", "/xxx", "linked")).startsWith("0_"))
 
         main_(arrayOf("chain", "post", "/xxx", "inline", "aaa", S0))
-        assert(main_(arrayOf("chain", "heads", "linked", "/xxx")).startsWith("1_"))
-        main_(arrayOf("chain", "heads", "blocked", "/xxx")).let {
+        assert(main_(arrayOf("chain", "heads", "/xxx", "linked")).startsWith("1_"))
+        main_(arrayOf("chain", "heads", "/xxx", "blocked")).let {
             assert(it.isEmpty())
         }
-        main_(arrayOf("chain", "heads", "linked", "/xxx")).let { list ->
+        main_(arrayOf("chain", "heads", "/xxx", "linked")).let { list ->
             list.split(' ').toTypedArray().let {
                 assert(it.size == 1)
                 assert(it[0].startsWith("1_"))
@@ -279,8 +279,8 @@ class Tests {
 
         // h0 -> h1 -> h2
 
-        assert(main_(arrayOf("chain", "heads", "linked",  "/xxx")).startsWith("2_"))
-        assert(main_(arrayOf("chain", "heads", "blocked", "/xxx")).isEmpty())
+        assert(main_(arrayOf("chain", "heads", "/xxx", "linked")).startsWith("2_"))
+        assert(main_(arrayOf("chain", "heads", "/xxx", "blocked")).isEmpty())
 
         //main(arrayOf("chain", "post", "/xxx", "file", "base64", "/bin/cat"))
         main(arrayOf("host", "stop"))
@@ -500,7 +500,7 @@ class Tests {
         // h0 -> h11 -> h21
         //          \-> h22
 
-        main_(arrayOf("chain", "heads", "linked",  "/xxx")).let { str ->
+        main_(arrayOf("chain", "heads", "/xxx", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
             }
@@ -512,7 +512,7 @@ class Tests {
         // h0 -> h11 -> h21 -> l3
         //          \-> h22 /
 
-        main_(arrayOf("chain", "heads", "linked",  "/xxx")).let { str ->
+        main_(arrayOf("chain", "heads", "/xxx", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 assert(it[0].startsWith("3_") || it[1].startsWith("3_"))
@@ -528,7 +528,7 @@ class Tests {
 
         main_(arrayOf(H0, "host", "now", (1*day+4*hour).toString()))
 
-        assert(main_(arrayOf("chain", "heads", "linked", "/xxx")).startsWith("4_"))
+        assert(main_(arrayOf("chain", "heads", "/xxx", "linked")).startsWith("4_"))
         assert("29" == main_(arrayOf("chain", "reps", "/xxx", PUB0)))
         assert( "2" == main_(arrayOf("chain", "reps", "/xxx", PUB1)))
 
@@ -549,7 +549,7 @@ class Tests {
             assert(it == "3")
         }
 
-        main_(arrayOf(H0, "chain", "heads", "linked", "/xxx")).let { str ->
+        main_(arrayOf(H0, "chain", "heads", "/xxx", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
             }
@@ -581,7 +581,7 @@ class Tests {
         val n1 = main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331"))
         assert(n1 == "0 / 7")
 
-        main_(arrayOf(H0, "chain", "heads", "linked", "/xxx")).let { str ->
+        main_(arrayOf(H0, "chain", "heads", "/xxx", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 it.forEach { assert(it.contains("6_")) }
@@ -592,7 +592,7 @@ class Tests {
         main_(arrayOf(H1, "host", "now", "0"))
         val n2 = main_(arrayOf(H1, "chain", "recv", "/xxx", "localhost:8330"))
         assert(n2 == "4 / 7") { n2 }
-        main_(arrayOf(H1, "chain", "heads", "linked", "/xxx")).let {
+        main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let {
             assert(it.startsWith("3_"))
         }
 
@@ -612,7 +612,7 @@ class Tests {
         main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331")).let {
             assert(it == "3 / 3")
         }
-        main_(arrayOf(H1, "chain", "heads", "linked", "/xxx")).let {
+        main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let {
             assert(it.startsWith("6_"))
         }
 
@@ -630,7 +630,7 @@ class Tests {
         main_(arrayOf(H0, "chain", "recv", "/xxx", "localhost:8331")).let {
             assert(it == "1 / 1")
         }
-        main_(arrayOf(H1, "chain", "heads", "linked", "/xxx")).let {
+        main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let {
             assert(it.startsWith("7_"))
         }
 
@@ -640,7 +640,7 @@ class Tests {
         //          \               /         \        /
         //           \- h22 <-------           l6 <- h7
 
-        main_(arrayOf(H1, "chain", "heads", "linked", "/xxx")).let { str ->
+        main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 it.forEach {
@@ -657,7 +657,7 @@ class Tests {
         main_(arrayOf(H0, "host", "now", "${1*day + 7*hour}"))
         main_(arrayOf(H1, "host", "now", "${1*day + 7*hour}"))
 
-        main_(arrayOf(H0, "chain", "heads", "linked", "/xxx")).let { str ->
+        main_(arrayOf(H0, "chain", "heads", "/xxx", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 it.forEach {
@@ -665,7 +665,7 @@ class Tests {
                 }
             }
         }
-        main_(arrayOf(H1, "chain", "heads", "linked", "/xxx")).let { str ->
+        main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 it.forEach {
@@ -685,7 +685,7 @@ class Tests {
             assert(it.equals("0 / 0"))
         }
 
-        main_(arrayOf(H1, "chain", "heads", "blocked", "/xxx")).let {
+        main_(arrayOf(H1, "chain", "heads", "/xxx", "blocked")).let {
             assert(it.startsWith("9_"))
         }
 
@@ -748,8 +748,8 @@ class Tests {
 
         // h1 <- h2 (a) <- hx (r)
 
-        val ps1 = main_(arrayOf(H0, "chain", "heads", "linked",  "/"))
-        val rs1 = main_(arrayOf(H0, "chain", "heads", "blocked", "/"))
+        val ps1 = main_(arrayOf(H0, "chain", "heads", "/", "linked"))
+        val rs1 = main_(arrayOf(H0, "chain", "heads", "/", "blocked"))
         assert(!ps1.contains(h1) && !ps1.contains(h2) &&  ps1.contains(hx))
         assert(!rs1.contains(h1) && !rs1.contains(h2) && !rs1.contains(hx))
 
@@ -823,10 +823,10 @@ class Tests {
         // h0 -> h1 -> h21
         //          -> h22
 
-        main_(arrayOf(H0, "chain", "heads", "linked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let {
             assert(it.startsWith("1_")) { it }
         }
-        main_(arrayOf(H0, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
             assert(it.startsWith("2_")) { it }
         }
 
@@ -835,7 +835,7 @@ class Tests {
         // h0 -> h1 -> h21 -> l2
         //          -> h22
 
-        main_(arrayOf(H0, "chain", "heads", "linked", "/")).let { str ->
+        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 it.forEach {
@@ -849,12 +849,12 @@ class Tests {
         // h0 -> h1 -> h21 -> l2 -> l3
         //          -> h22
 
-        main_(arrayOf(H0, "chain", "heads", "linked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let {
             it.split(' ').let {
                 assert(it.size == 1)
             }
         }
-        assert(main_(arrayOf("chain", "heads", "blocked", "/")).isEmpty())
+        assert(main_(arrayOf("chain", "heads", "/", "blocked")).isEmpty())
 
         main_(arrayOf(H0, "chain", "send", "/", "localhost:8331")).let {
             assert(it.contains("5 / 5"))
@@ -864,8 +864,8 @@ class Tests {
         // all accepted
         main_(arrayOf(H1, "host", "now", "${3*hour}"))
 
-        assert(main_(arrayOf(H1, "chain", "heads", "blocked", "/")).isEmpty())
-        main_(arrayOf(H1, "chain", "heads", "linked", "/")).let { str ->
+        assert(main_(arrayOf(H1, "chain", "heads", "/", "blocked")).isEmpty())
+        main_(arrayOf(H1, "chain", "heads", "/", "linked")).let { str ->
             assert(str.startsWith("4_"))
             str.split(' ').let {
                 assert(it.size == 1)
@@ -878,13 +878,13 @@ class Tests {
         // h0 -> h1 -> h21 -> l2 -> l3 -> l4
         //          -> h22
 
-        main_(arrayOf(H0, "chain", "heads", "linked", "/")).let { str ->
+        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
             }
             assert(str.contains("5_"))
         }
-        main_(arrayOf(H0, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
             assert(it.isEmpty())
         }
 
@@ -893,7 +893,7 @@ class Tests {
         // h0 -> h1 -> h21 -> l2 -> l3 -> l4 -> h43
         //          -> h22
 
-        main_(arrayOf(H0, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
             assert(it.startsWith("6_"))
         }
 
@@ -911,10 +911,10 @@ class Tests {
         // h0 -> h1 -> h21 -> l2 -> l3 -> lx -> ly
         //          -> h22
 
-        main_(arrayOf(H1, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H1, "chain", "heads", "/", "blocked")).let {
             assert(it.isEmpty())
         }
-        main_(arrayOf(H1, "chain", "heads", "linked", "/")).let {
+        main_(arrayOf(H1, "chain", "heads", "/", "linked")).let {
             assert(it.startsWith("6_"))
         }
     }
@@ -1053,16 +1053,16 @@ class Tests {
         // h0 -> h1 --> h21 -----------------------> h61 --> h7
         //          \-> h20 -> h30 -> l40 -> l50 /-> l60 -/-> l-
 
-        main_(arrayOf(H0, "chain", "heads", "linked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let {
             assert(!it.contains("2_"))
         }
-        main_(arrayOf(H0, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
             assert(it.isEmpty())
         }
 
         main(arrayOf(H0, "host", "now", "${40*hour}"))
 
-        main_(arrayOf(H0, "chain", "heads", "linked", "/")).let { str ->
+        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1) { it.size }
                 it.forEach {
@@ -1108,29 +1108,29 @@ class Tests {
         main(arrayOf(H0, "host", "now", "${5*hour}"))
         main(arrayOf(H1, "host", "now", "${5*hour}"))
 
-        main_(arrayOf(H0, "chain", "heads", "linked", "/")).let { str ->
+        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1) { it.size }
                 it.forEach { v -> assert(v.startsWith("4_")) }
             }
         }
-        main_(arrayOf(H0, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
             assert(it.isEmpty())
         }
 
-        main_(arrayOf(H1, "chain", "heads", "linked", "/")).let { str ->
+        main_(arrayOf(H1, "chain", "heads", "/", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1) { it.size }
                 it.forEach { v -> assert(v.startsWith("3_")) }
             }
         }
-        main_(arrayOf(H1, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H1, "chain", "heads", "/", "blocked")).let {
             assert(it.isEmpty())
         }
         main(arrayOf(H0, "host", "now", "${25*hour}"))
         main(arrayOf(H1, "host", "now", "${25*hour}"))
 
-        main_(arrayOf(H0, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
             assert(it.isEmpty())
         }
 
@@ -1142,7 +1142,7 @@ class Tests {
         // HOST-1
         // h0 <- 0@h1 <- 1@h2 <- 0@l2 <- 1@h3
 
-        main_(arrayOf(H1, "chain", "heads", "linked", "/")).let { str ->
+        main_(arrayOf(H1, "chain", "heads", "/", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1) { it.size }
                 it.forEach { v -> assert(v.startsWith("4_")) }
@@ -1167,10 +1167,10 @@ class Tests {
         // h0 <- 0@h1 <- 0@l2 |
         //            <- 1@h2 | <- 1@h3
 
-        main_(arrayOf(H0, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
             assert(it.isEmpty())
         }
-        main_(arrayOf(H1, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H1, "chain", "heads", "/", "blocked")).let {
             assert(it.isEmpty())
         }
     }
@@ -1194,7 +1194,7 @@ class Tests {
         // h0 <- 0@h1 <-- 0@l2
         //            <- 1@h2
 
-        main_(arrayOf(H0, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
             assert(it.isEmpty())
         }
 
@@ -1208,10 +1208,10 @@ class Tests {
         // h0 <- 0@h1 <-- 0@l2 \ 0@h3 -- 0@l3
         //            <- 1@h2  /
 
-        main_(arrayOf(H0, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
             assert(it.isEmpty())
         }
-        main_(arrayOf(H0, "chain", "heads", "linked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let {
             assert(it.startsWith("5_"))
         }
     }
@@ -1235,7 +1235,7 @@ class Tests {
         // h0 <- 0@h1 <-- 0@l2
         //            <- 1@h2
 
-        main_(arrayOf(H0, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
             assert(it.isEmpty())
         }
 
@@ -1248,10 +1248,10 @@ class Tests {
         // h0 <- 0@h1 <-- 0@l2 <-- 0@h3 <- 0@l4
         //            <- 1@h2 <-/
 
-        main_(arrayOf(H0, "chain", "heads", "blocked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
             assert(it.isEmpty())
         }
-        main_(arrayOf(H0, "chain", "heads", "linked", "/")).let {
+        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let {
             assert(it.startsWith("4_"))
         }
     }

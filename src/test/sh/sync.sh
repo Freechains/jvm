@@ -36,7 +36,7 @@ freechains $H1 host now 0
 
 freechains $H0 $S0 chain post / inline zero
 freechains $H0 $S1 chain post / inline xxxx
-freechains $H0 $S0 chain like / `freechains $H0 chain heads blocked /` --why="like xxxx"
+freechains $H0 $S0 chain like / `freechains $H0 chain heads / blocked` --why="like xxxx"
 
 freechains $H0 chain send / localhost:8401
 
