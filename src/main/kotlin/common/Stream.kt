@@ -27,19 +27,6 @@ fun DataInputStream.readLineX () : String {
     return ret.toByteArray().toString(Charsets.UTF_8)
 }
 
-fun DataInputStream.readLinesX () : String {
-    var ret = ""
-    while (true) {
-        val line = this.readLineX()
-        if (line == "") {
-            break
-        } else {
-            ret += line + "\n"
-        }
-    }
-    return ret.dropLast(1)  // remove leading \n
-}
-
 fun DataOutputStream.writeLineX (v: String) {
     this.writeBytes(v)
     this.writeByte('\n'.toInt())

@@ -63,7 +63,6 @@ class Daemon (host : Host) {
     private fun handle (remote: Socket) {
         val reader = DataInputStream(remote.getInputStream()!!)
         val writer = DataOutputStream(remote.getOutputStream()!!)
-        var shouldClose = true
         val ln = reader.readLineX()
         val (v1,v2,v3,cmd) =
             Regex("FC v(\\d+)\\.(\\d+)\\.(\\d+) (.*)").find(ln)!!.destructured
@@ -135,7 +134,6 @@ class Daemon (host : Host) {
                     }
                     listenLists[name]!!.add(writer)
                 }
-                shouldClose = false
             }
             else -> {
                 assert(cmd.startsWith("chain"))
@@ -208,7 +206,6 @@ class Daemon (host : Host) {
                             val lkn     = reader.readLineX().toInt()
                             val lkr  = reader.readLineX()
                             val len     = reader.readLineX().toInt()
-                            //println("LEN=$len")
                             val pay  = reader.readNBytes(len).toString(Charsets.UTF_8)
                             reader.readLineX()
                             assert(pay.length <= S128_pay) { "post is too large" }
@@ -298,9 +295,6 @@ class Daemon (host : Host) {
                 }
             }
         }
-        if (shouldClose) {
-            remote.close()
-        }
     }
 }
 
@@ -362,15 +356,17 @@ fun chainSend (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
                 else           -> blk1
             }
             //println("[send] $hash")
-            writer.writeBytes(blk2.toJson())          // 6
-            writer.writeLineX("\n")
+            val json = blk2.toJson()
+            writer.writeLineX(json.length.toString()) // 6
+            writer.writeBytes(blk2.toJson())
+            writer.writeLineX("")
         }
         val nin2 = reader.readLineX().toInt()    // 7: how many blocks again
         assert(nin >= nin2)
         nmin += nin2
         nmax += nin
     }
-    val nout2 = reader.readLineX().toInt()        // 8: how many heads again
+    val nout2 = reader.readLineX().toInt()       // 8: how many heads again
     assert(nout == nout2)
 
     return Pair(nmin,nmax)
@@ -409,7 +405,9 @@ fun chainRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
 
         xxx@for (j in 1..nin) {
             try {
-                val blk = reader.readLinesX().jsonToBlock() // 6
+                val len = reader.readLineX().toInt() // 6
+                val blk = reader.readNBytes(len).toString(Charsets.UTF_8).jsonToBlock()
+                reader.readLineX()
                 assert(blk.pay.length <= S128_pay) { "post is too large" }
                 assert(chain.getHeads(State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
 
