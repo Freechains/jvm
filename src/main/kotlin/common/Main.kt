@@ -152,7 +152,8 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<hash>"] as Hash)
                     writer.writeLineX(opts["--crypt"] as String? ?: "")
-                    val json = reader.readBytes().toString(Charsets.UTF_8)
+                    val len = reader.readLineX().toInt()
+                    val json = reader.readNBytes(len).toString(Charsets.UTF_8)
                     if (json.isEmpty()) {
                         System.err.println("not found")
                     }

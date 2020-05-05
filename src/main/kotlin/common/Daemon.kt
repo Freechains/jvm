@@ -167,8 +167,9 @@ class Daemon (host : Host) {
                                     //println("TRY ${it.hash} -> ${downto.contains(it.hash)}")
                                     !downto.contains(it.hash)
                                 }
-                                .map{it.hash}
-                            val ret = all.joinToString("")
+                                .map {it.hash}
+                                .reversed()
+                            val ret = all.joinToString(" ")
                             writer.writeLineX(ret)
                             System.err.println("chain traverse: $ret")
                         }
@@ -181,6 +182,7 @@ class Daemon (host : Host) {
                             val json   = blk.toJson()
 
                             assert(json.length <= Int.MAX_VALUE)
+                            writer.writeLineX(json.length.toString())
                             writer.writeBytes(json)
                             //writer.writeLineX("\n")
                             System.err.println("chain get: $hash")
@@ -207,7 +209,7 @@ class Daemon (host : Host) {
                             val lkr  = reader.readLineX()
                             val len     = reader.readLineX().toInt()
                             //println("LEN=$len")
-                            var pay  = reader.readNBytes(len).toString(Charsets.UTF_8)
+                            val pay  = reader.readNBytes(len).toString(Charsets.UTF_8)
                             reader.readLineX()
                             assert(pay.length <= S128_pay) { "post is too large" }
 
@@ -297,7 +299,6 @@ class Daemon (host : Host) {
             }
         }
         if (shouldClose) {
-            Thread.sleep(1000)
             remote.close()
         }
     }
@@ -415,8 +416,9 @@ fun chainRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
                 //println("[recv] ${blk.hash}")
                 chain.blockChain(blk)
                 if (blk.pay == "") {
-                    if (blk.immut.pay.hash == "".calcHash()) {
+                    if (blk.immut.pay.hash != "".calcHash()) {
                         // payload is really an empty string
+                        ;
                     } else {
                         hiddens.add(blk)
                     }
