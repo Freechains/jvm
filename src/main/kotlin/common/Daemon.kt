@@ -167,6 +167,7 @@ class Daemon (host : Host) {
                                 }
                                 .map {it.hash}
                                 .reversed()
+                            //println("H=$heads // D=$downto")
                             val ret = all.joinToString(" ")
                             writer.writeLineX(ret)
                             System.err.println("chain traverse: $ret")
@@ -353,7 +354,7 @@ fun chainSend (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
             blk1.fronts.clear()
             val blk2 = when (chain.blockState(blk1, getNow())) {
                 State.HIDDEN -> blk1.copy(pay = "")   // don't send actual payload if hidden
-                else           -> blk1
+                else         -> blk1
             }
             //println("[send] $hash")
             val json = blk2.toJson()
@@ -411,7 +412,7 @@ fun chainRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
                 assert(blk.pay.length <= S128_pay) { "post is too large" }
                 assert(chain.getHeads(State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
 
-                //println("[recv] ${blk.hash}")
+                //println("[recv] ${blk.hash} // len=$len // ${blk.pay.length}")
                 chain.blockChain(blk)
                 if (blk.pay == "") {
                     if (blk.immut.pay.hash != "".calcHash()) {
