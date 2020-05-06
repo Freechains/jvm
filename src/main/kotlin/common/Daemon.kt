@@ -186,6 +186,12 @@ class Daemon (host : Host) {
                             //writer.writeLineX("\n")
                             System.err.println("chain get: $hash")
                         }
+                        "chain remove" -> {
+                            val hash = reader.readLineX()
+                            chain.blockRemove(hash)
+                            writer.writeLineX("true")
+                            System.err.println("chain remove: $hash")
+                        }
                         "chain reps" -> {
                             val ref = reader.readLineX()
 

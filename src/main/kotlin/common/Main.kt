@@ -24,6 +24,7 @@ Usage:
     freechains [options] chain post <chain> (file | inline | -) [<path_or_text>]
     freechains [options] chain (like | dislike) <chain> <hash>
     freechains [options] chain reps <chain> <hash_or_pub>
+    freechains [options] chain remove <chain> <hash>
     freechains [options] chain traverse <chain> (all | linked) <heads>...
     freechains [options] chain listen <chain>
     freechains [options] chain recv <chain> <host:port>
@@ -158,6 +159,14 @@ fun main_ (args: Array<String>) : String {
                         System.err.println("not found")
                     }
                     return json
+                }
+
+                opts["remove"] as Boolean -> {
+                    writer.writeLineX("$PRE chain remove")
+                    writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX(opts["<hash>"] as Hash)
+                    assert(reader.readLineX() == "true")
+                    return "true"
                 }
 
                 opts["like"]    as Boolean ||

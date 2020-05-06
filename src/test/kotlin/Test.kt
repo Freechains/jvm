@@ -24,6 +24,7 @@ import kotlin.concurrent.thread
  *                                reps             28-02    29-02    17-03   19-03    25-04   28-04   04-05
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 -> 1513 -> 1555 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
+ *  - command to reject block
  *  - Simulation.kt
  *  - liferea, /home, docs
  *  - PROTO:
@@ -1272,6 +1273,57 @@ class Tests {
         }
         main_(arrayOf(H0, "chain", "heads", "/", "linked")).let {
             assert(it.startsWith("4_"))
+        }
+    }
+
+    @Test
+    fun m18_remove () {
+        a_reset()
+
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M18/"))
+        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M18/")) }
+        Thread.sleep(100)
+        main(arrayOf(H0, "chain", "join", "/"))
+
+        main(arrayOf(H0, "host", "now", "0"))
+
+        val h1 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "0@h1"))
+        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "1@h2"))
+
+        // h0 <- 0@h1 <- 1@h2
+
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+            assert(it.startsWith("2_"))
+        }
+        main_(arrayOf("chain", "heads", "/", "all")).let { list ->
+            list.split(' ').toTypedArray().let {
+                assert(it.size == 1)
+                assert(it[0].startsWith("2_"))
+            }
+        }
+
+        var ok = false
+        try {
+            main_(arrayOf(H0, "chain", "remove", "/", h1))   // fail assert
+        } catch (e: Throwable) {
+            ok = true
+        }
+        assert(ok)
+
+        main_(arrayOf(H0, "chain", "remove", "/", h2)).let {
+            assert(it == "true")
+        }
+
+        // h0 <- 0@h1
+
+        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+            assert(it.isEmpty())
+        }
+        main_(arrayOf("chain", "heads", "/", "all")).let { list ->
+            list.split(' ').toTypedArray().let {
+                assert(it.size == 1)
+                assert(it[0].startsWith("1_"))
+            }
         }
     }
 }

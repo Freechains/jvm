@@ -207,3 +207,13 @@ fun Chain.blockAssert (blk: Block) {
         }
     }
 }
+
+// REMOVE
+
+fun Chain.blockRemove (hash: Hash) {
+    val blk = this.fsLoadBlock(hash,null)
+    assert(this.blockState(blk, getNow()) == State.BLOCKED) { "can only remove blocked block" }
+    this.heads.remove(hash)
+    this.heads += blk.immut.backs
+    this.fsSave()
+}
