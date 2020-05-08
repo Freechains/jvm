@@ -17,6 +17,7 @@ Usage:
     freechains host start <dir>
     freechains [options] host stop
     freechains [options] host now <time>
+    freechains [options] crypto create (shared | pubpvt) <passphrase>
     freechains [options] chain join <chain> [trusted] [ [owner-only] <pub> ]
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain> (all | linked | blocked)
@@ -25,11 +26,10 @@ Usage:
     freechains [options] chain (like | dislike) <chain> <hash>
     freechains [options] chain reps <chain> <hash_or_pub>
     freechains [options] chain remove <chain> <hash>
-    freechains [options] chain traverse <chain> (all | linked) <heads>...
+    freechains [options] chain traverse <chain> (all | linked) <hashes>...
     freechains [options] chain listen <chain>
     freechains [options] chain recv <chain> <host:port>
     freechains [options] chain send <chain> <host:port>
-    freechains [options] crypto create (shared | pubpvt) <passphrase>
 
 Options:
     --help                 [none]           displays this help
@@ -37,13 +37,13 @@ Options:
     --host=<addr:port>     [all]            sets address and port to connect [default: localhost:8330]
     --sign=<pvtkey>        [post|like]      signs post with given private key
     --crypt=<key>          [get|post]       (de|en)crypts post with given shared or private key
-    --why=<text>           [like]           explains reason for the like
+    --why=<text>           [like|dislike]   explains reason for the like
 
 More Information:
 
     http://www.freechains.org/
 
-    Please report bugs at <http://github.com/Freechains/kotlin>.
+    Please report bugs at <http://github.com/Freechains/jvm>.
 """
 
 fun main (args: Array<String>) {
@@ -223,7 +223,7 @@ fun main_ (args: Array<String>) : String {
                             else -> error("bug found")
                         }
                     )
-                    writer.writeLineX((opts["<heads>"] as ArrayList<String>).joinToString(" "))
+                    writer.writeLineX((opts["<hashes>"] as ArrayList<String>).joinToString(" "))
                     val ret = reader.readLineX()
                     return ret
                 }

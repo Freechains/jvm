@@ -157,11 +157,11 @@ class Daemon (host : Host) {
                         }
                         "chain traverse" -> {
                             val state = reader.readLineX().toState()
-                            val heads = chain.getHeads(state)
+                            val hashes = chain.getHeads(state)
                             val downto = reader.readLineX().split(" ")
                             //println("H=$heads // D=$downto")
                             val all = chain
-                                .bfsBacks(heads,false) {
+                                .bfsBacks(hashes,false) {
                                     //println("TRY ${it.hash} -> ${downto.contains(it.hash)}")
                                     !downto.contains(it.hash)
                                 }
