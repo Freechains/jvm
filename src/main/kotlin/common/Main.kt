@@ -28,8 +28,7 @@ Usage:
     freechains [options] chain remove <chain> <hash>
     freechains [options] chain traverse <chain> (all | linked) <hashes>...
     freechains [options] chain listen <chain>
-    freechains [options] chain recv <chain> <host:port>
-    freechains [options] chain send <chain> <host:port>
+    freechains [options] chain (send | recv) <chain> <host:port>
 
 Options:
     --help                 [none]           displays this help

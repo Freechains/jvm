@@ -67,6 +67,12 @@ class Daemon (host : Host) {
         val (v1,v2,v3,cmd) =
             Regex("FC v(\\d+)\\.(\\d+)\\.(\\d+) (.*)").find(ln)!!.destructured
         assert(MAJOR==v1.toInt() && MINOR>=v2.toInt()) { "incompatible versions" }
+
+        if (remote.inetAddress!!.toString().equals("127.0.0.1")) {
+            println("addr = ${remote.inetAddress!!}")
+            assert(cmd=="chain send" || cmd=="chain send") { "invalid remote address" }
+        }
+
         when (cmd) {
             "host stop" -> {
                 writer.writeLineX("true")
