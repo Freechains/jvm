@@ -68,9 +68,11 @@ class Daemon (host : Host) {
             Regex("FC v(\\d+)\\.(\\d+)\\.(\\d+) (.*)").find(ln)!!.destructured
         assert(MAJOR==v1.toInt() && MINOR>=v2.toInt()) { "incompatible versions" }
 
+        //println("addr = ${remote.inetAddress!!}")
         if (!remote.inetAddress!!.toString().equals("/127.0.0.1")) {
-            println("addr = ${remote.inetAddress!!}")
-            assert(cmd=="chain _send_" || cmd=="chain _recv_") { "invalid remote address" }
+            //println("no = ${remote.inetAddress!!}")
+            assert(cmd.equals("chain _send_") || cmd.equals("chain _recv_")) { "invalid remote address" }
+            //println("ok = ${remote.inetAddress!!}")
         }
 
         when (cmd) {
