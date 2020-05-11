@@ -27,6 +27,7 @@ class Daemon (host : Host) {
         while (true) {
             try {
                 val remote = server.accept()
+                remote.soTimeout = 5000
                 System.err.println("remote connect: $local <- ${remote.inetAddress.hostAddress}")
                 thread {
                     try {
@@ -264,7 +265,7 @@ class Daemon (host : Host) {
                         "chain send" -> {
                             val host2 = reader.readLineX()
                             val (host,port) = host2.hostSplit()
-                            val socket = Socket(host, port)
+                            val socket = Socket_5s(host, port)
                             val r = DataInputStream(socket.getInputStream()!!)
                             val w = DataOutputStream(socket.getOutputStream()!!)
                             w.writeLineX("$PRE chain _recv_")
@@ -276,7 +277,7 @@ class Daemon (host : Host) {
                         "chain recv" -> {
                             val host2 = reader.readLineX()
                             val (host,port) = host2.hostSplit()
-                            val socket = Socket(host, port)
+                            val socket = Socket_5s(host, port)
                             val r = DataInputStream(socket.getInputStream()!!)
                             val w = DataOutputStream(socket.getOutputStream()!!)
                             w.writeLineX("$PRE chain _send_")

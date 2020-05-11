@@ -81,7 +81,7 @@ fun main_ (args: Array<String>) : String {
                 }
                 opts["stop"] as Boolean -> {
                     val (host, port) = optHost()
-                    val socket = Socket(host, port)
+                    val socket = Socket_5s(host, port)
                     val writer = DataOutputStream(socket.getOutputStream()!!)
                     val reader = DataInputStream(socket.getInputStream()!!)
                     writer.writeLineX("$PRE host stop")
@@ -91,7 +91,7 @@ fun main_ (args: Array<String>) : String {
                 }
                 opts["now"] as Boolean -> {
                     val (host, port) = optHost()
-                    val socket = Socket(host, port)
+                    val socket = Socket_5s(host, port)
                     val writer = DataOutputStream(socket.getOutputStream()!!)
                     val reader = DataInputStream(socket.getInputStream()!!)
                     val now= opts["<time>"] as String
@@ -104,7 +104,7 @@ fun main_ (args: Array<String>) : String {
             }
         opts["chain"] as Boolean -> {
             val (host, port) = optHost()
-            val socket = Socket(host, port)
+            val socket = Socket_5s(host, port)
             val writer = DataOutputStream(socket.getOutputStream()!!)
             val reader = DataInputStream(socket.getInputStream()!!)
             when {
@@ -251,7 +251,7 @@ fun main_ (args: Array<String>) : String {
         }
         opts["crypto"] as Boolean -> {
             val (host, port) = optHost()
-            val socket = Socket(host, port)
+            val socket = Socket_5s(host, port)
             val writer = DataOutputStream(socket.getOutputStream()!!)
             val reader = DataInputStream(socket.getInputStream()!!)
             when {

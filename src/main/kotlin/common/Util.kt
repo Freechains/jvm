@@ -1,10 +1,11 @@
 package org.freechains.common
 
+import java.net.Socket
 import java.time.Instant
 
 const val MAJOR    = 0
 const val MINOR    = 3
-const val REVISION = 6
+const val REVISION = 7
 const val VERSION  = "v$MAJOR.$MINOR.$REVISION"
 const val PRE      = "FC $VERSION"
 
@@ -42,4 +43,10 @@ fun getNow () : Long {
 
 fun String.nowToTime () : Long {
     return if (this == "now") getNow() else this.toLong()
+}
+
+fun Socket_5s (host: String, port: Int) : Socket {
+    val s = Socket(host,port)
+    s.soTimeout = 5000
+    return s
 }
