@@ -43,7 +43,7 @@ fun Chain.blockState (blk: Block, now: Long) : State {
 
         // changeable
         (pos==0 && ath<unit)        -> State.BLOCKED        // no likes && noob author
-        (neg>=LK5_dislikes && 2*neg>=pos) -> State.HIDDEN   // too much dislikes
+        (neg>=LK5_dislikes && LK2_factor*neg>=pos) -> State.HIDDEN   // too much dislikes
         else                        -> State.ACCEPTED
     }
 }

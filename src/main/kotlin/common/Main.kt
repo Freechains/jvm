@@ -31,12 +31,12 @@ Usage:
     freechains [options] chain (send | recv) <chain> <host:port>
 
 Options:
-    --help                 [none]           displays this help
-    --version              [none]           displays version information
-    --host=<addr:port>     [all]            sets address and port to connect [default: localhost:8330]
-    --sign=<pvtkey>        [post|like]      signs post with given private key
-    --crypt=<key>          [get|post]       (de|en)crypts post with given shared or private key
-    --why=<text>           [like|dislike]   explains reason for the like
+    --help              [none]            displays this help
+    --version           [none]            displays version information
+    --host=<addr:port>  [all]             sets address and port to connect [default: localhost:8330]
+    --sign=<pvtkey>     [post|(dis)like]  signs post with given private key
+    --crypt=<key>       [get|post]        (de|en)crypts post with given shared or private key
+    --why=<text>        [(dis)like]       explains reason for the like
 
 More Information:
 

@@ -22,6 +22,7 @@ const val T1D_reps    = 1*day           // account to reputation posts older tha
 
 const val LK30_max     = 30
 const val LK5_dislikes = 5
+const val LK2_factor   = 2
 
 const val S128_pay = 128000             // 128 KBytes maximum size of payload
 
