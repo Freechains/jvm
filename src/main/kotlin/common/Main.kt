@@ -112,7 +112,7 @@ fun main_ (args: Array<String>) : String {
                 opts["join"] as Boolean -> {
                     writer.writeLineX("$PRE chain join")
                     writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(if (opts["trusted"] is String) "true" else "false")
+                    writer.writeLineX((opts["trusted"] as Boolean).toString())
                     if (opts["<pub>"] != null) {
                         writer.writeLineX((opts["owner-only"] as Boolean? ?: false).toString())
                         writer.writeLineX(opts["<pub>"] as String)
