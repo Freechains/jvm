@@ -63,6 +63,7 @@ import kotlin.concurrent.thread
  *    - blk/hash variations for all functions (avoid extra blockLoads)
  *  - IDEAS:
  *    - chain for restauration of state in other host holding all necessary commands
+ *  - Aether client
  *  - commands with auth. ip port time to avoid reuse
  *  - RX Kotlin
  *  - pipes / filtros

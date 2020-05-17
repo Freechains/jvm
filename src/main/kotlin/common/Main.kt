@@ -104,7 +104,7 @@ fun main_ (args: Array<String>) : String {
             }
         opts["chain"] as Boolean -> {
             val (host, port) = optHost()
-            val socket = Socket_5s(host, port)
+            val socket = if (opts["listen"] as Boolean) Socket(host,port) else Socket_5s(host, port)
             val writer = DataOutputStream(socket.getOutputStream()!!)
             val reader = DataInputStream(socket.getInputStream()!!)
             when {

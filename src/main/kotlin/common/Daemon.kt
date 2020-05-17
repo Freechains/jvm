@@ -136,6 +136,7 @@ class Daemon (host : Host) {
                 System.err.println("chain join: $name (${chain.hash})")
             }
             "chain listen" -> {
+                remote.soTimeout = 0
                 val name= reader.readLineX().nameCheck()
                 synchronized (listenLists) {
                     if (! listenLists.containsKey(name)) {
