@@ -453,7 +453,7 @@ class Tests {
         assert(pay == "aaa")
 
         main(arrayOf("chain", "send", "/xxx", "localhost:8331"))
-        val json2 = main_(arrayOf(H1, "chain", "get", "/xxx", hash))
+        val json2 = main_(arrayOf(H1, "chain", "get", "/xxx", "block", hash))
         val blk2 = json2.jsonToBlock()
         assert(blk2.immut.pay.crypt)
 

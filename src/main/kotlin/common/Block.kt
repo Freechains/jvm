@@ -68,6 +68,7 @@ data class Block (
     val sign    : Signature?
 ) {
     var fronts  : MutableList<Hash> = mutableListOf() // front links (next blocks)
+    val local   : Long = getNow()
 }
 
 fun Immut.toJson (): String {

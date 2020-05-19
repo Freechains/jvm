@@ -202,5 +202,5 @@ fun Chain.fsSaveBlock (blk: Block) {
 }
 
 fun Chain.fsSavePay (hash: Hash, pay: String) {
-    File(this.root + this.name + "/blocks/" + hash + ".blk").writeText(pay + "\n")
+    File(this.root + this.name + "/blocks/" + hash + ".pay").writeText(pay)
 }

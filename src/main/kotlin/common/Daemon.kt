@@ -183,8 +183,8 @@ class Daemon (host : Host) {
                             System.err.println("chain traverse: $ret")
                         }
                         "chain get" -> {
-                            val hash = reader.readLineX()
                             val b_p  = reader.readLineX()
+                            val hash = reader.readLineX()
                             val crypt= reader.readLineX()
 
                             val ret = when (b_p) {
@@ -378,7 +378,7 @@ fun chainSend (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
                 State.HIDDEN -> ""
                 else         -> chain.fsLoadPay(hash,null)
             }
-            writer.writeLineX(pay.length.toString()) // 6
+            writer.writeLineX(pay.length.toString())
             writer.writeBytes(pay)
             writer.writeLineX("")
         }
@@ -428,10 +428,10 @@ fun chainRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
             try {
                 val len1 = reader.readLineX().toInt() // 6
                 val blk = reader.readNBytes(len1).toString(Charsets.UTF_8).jsonToBlock()
-                reader.readLineX()
                 val len2 = reader.readLineX().toInt()
                 assert(len2 <= S128_pay) { "post is too large" }
                 val pay = reader.readNBytes(len2).toString(Charsets.UTF_8)
+                reader.readLineX()
                 assert(chain.getHeads(State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
 
                 //println("[recv] ${blk.hash} // len=$len // ${blk.pay.length}")

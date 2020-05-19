@@ -46,6 +46,7 @@ fun Host.joinChain (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
         null
     )
     chain.fsSaveBlock(genesis)
+    chain.fsSavePay(genesis.hash, "")
     return file.readText().fromJsonToChain()
 }
 
