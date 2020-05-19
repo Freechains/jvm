@@ -9,8 +9,8 @@ const val REVISION = 7
 const val VERSION  = "v$MAJOR.$MINOR.$REVISION"
 const val PRE      = "FC $VERSION"
 
-const val seg  = 1000.toLong()
-const val min  = 60*seg
+const val sec  = 1000.toLong()
+const val min  = 60*sec
 const val hour = 60*min
 const val day  = 24*hour
 

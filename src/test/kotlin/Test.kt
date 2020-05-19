@@ -26,7 +26,7 @@ import kotlin.concurrent.thread
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
  *  - remove pay from block // allow binary
  *  - site to track: last access, chains heads
- *  - Simulation.kt
+ *  - Simulation.kt in Kotlin
  *  - liferea, /home, docs
  *  - PROTO:
  *    - autor fork: merge largest instead of reject
