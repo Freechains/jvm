@@ -87,7 +87,7 @@ fun Chain.getHeads (want: State) : List<Hash> {
     val now = getNow()
 
     fun aux (hash: Hash) : List<Hash> {
-        val blk = this.fsLoadBlock(hash,null)
+        val blk = this.fsLoadBlock(hash)
         val state = this.blockState(blk,now)
         return when (want) {
             State.ALL     -> listOf(hash)
@@ -124,10 +124,10 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
 }
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
-    val gen = this.fsLoadBlock(this.getGenesis(),null).fronts.let {
+    val gen = this.fsLoadBlock(this.getGenesis()).fronts.let {
         when {
             it.isEmpty() -> 0
-            this.fsLoadBlock(it.first(),null).isFrom((pub)) -> LK30_max
+            this.fsLoadBlock(it.first()).isFrom((pub)) -> LK30_max
             else         -> 0
         }
     }
@@ -152,7 +152,7 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
     val recv = this.bfsBacksAll(heads)                     // all pointing from heads to genesis
         .filter { it.immut.like != null }                       // which are likes
         .filter {                                               // and are to me
-            this.fsLoadBlock(it.immut.like!!.hash,null).let {
+            this.fsLoadBlock(it.immut.like!!.hash).let {
                 (it.sign!=null && it.sign.pub==pub)
             }
         }
@@ -179,19 +179,17 @@ internal fun Chain.fsSave () {
     File(this.root + this.name + "/" + "chain").writeText(this.toJson())
 }
 
-fun Chain.fsLoadBlock (hash: Hash, crypt: HKey?) : Block {
-    val blk = File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
+fun Chain.fsLoadBlock (hash: Hash) : Block {
+    return File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
+}
+
+fun Chain.fsLoadPay (hash: Hash, crypt: HKey?) : String {
+    val blk = this.fsLoadBlock(hash)
+    val pay = File(this.root + this.name + "/blocks/" + hash + ".pay").readBytes().toString(Charsets.UTF_8)
     if (crypt==null || !blk.immut.pay.crypt) {
-        return blk
+        return pay
     }
-    return blk.copy (
-        immut = blk.immut.copy (
-            pay = blk.immut.pay.copy (
-                crypt = false
-            )
-        ),
-        pay = blk.pay.decrypt(crypt)
-    )
+    return pay.decrypt(crypt)
 }
 
 fun Chain.fsExistsBlock (hash: Hash) : Boolean {
@@ -201,4 +199,8 @@ fun Chain.fsExistsBlock (hash: Hash) : Boolean {
 
 fun Chain.fsSaveBlock (blk: Block) {
     File(this.root + this.name + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
+}
+
+fun Chain.fsSavePay (hash: Hash, pay: String) {
+    File(this.root + this.name + "/blocks/" + hash + ".blk").writeText(pay + "\n")
 }

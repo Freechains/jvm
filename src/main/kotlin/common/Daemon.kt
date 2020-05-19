@@ -184,15 +184,17 @@ class Daemon (host : Host) {
                         }
                         "chain get" -> {
                             val hash = reader.readLineX()
+                            val b_p  = reader.readLineX()
                             val crypt= reader.readLineX()
 
-                            val crypt2= if (crypt == "") null else crypt
-                            val blk    = chain.fsLoadBlock(hash, crypt2)
-                            val json   = blk.toJson()
+                            val ret = when (b_p) {
+                                "block"   -> chain.fsLoadBlock(hash).toJson()
+                                "payload" -> chain.fsLoadPay(hash, if (crypt == "") null else crypt)
+                                else -> error("impossible case")
+                            }
 
-                            assert(json.length <= Int.MAX_VALUE)
-                            writer.writeLineX(json.length.toString())
-                            writer.writeBytes(json)
+                            writer.writeLineX(ret.length.toString())
+                            writer.writeBytes(ret)
                             //writer.writeLineX("\n")
                             System.err.println("chain get: $hash")
                         }
@@ -345,7 +347,7 @@ fun chainSend (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
             }
             visited.add(hash)
 
-            val blk = chain.fsLoadBlock(hash, null)
+            val blk = chain.fsLoadBlock(hash)
 
             writer.writeLineX(hash)                            // 2: asks if contains hash
             val state = reader.readLineX().toState()   // 3: receives yes or no
@@ -366,16 +368,18 @@ fun chainSend (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
         val nin = toSend.size
         val sorted = toSend.sortedWith(compareBy{it.toHeight()})
         for (hash in sorted) {
-            val blk1 = chain.fsLoadBlock(hash, null)
-            blk1.fronts.clear()
-            val blk2 = when (chain.blockState(blk1, getNow())) {
-                State.HIDDEN -> blk1.copy(pay = "")   // don't send actual payload if hidden
-                else         -> blk1
-            }
+            val out = chain.fsLoadBlock(hash)
+            out.fronts.clear()
             //println("[send] $hash")
-            val json = blk2.toJson()
+            val json = out.toJson()
             writer.writeLineX(json.length.toString()) // 6
-            writer.writeBytes(blk2.toJson())
+            writer.writeBytes(json)
+            val pay = when (chain.blockState(out, getNow())) {
+                State.HIDDEN -> ""
+                else         -> chain.fsLoadPay(hash,null)
+            }
+            writer.writeLineX(pay.length.toString()) // 6
+            writer.writeBytes(pay)
             writer.writeLineX("")
         }
         val nin2 = reader.readLineX().toInt()    // 7: how many blocks again
@@ -422,15 +426,17 @@ fun chainRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
 
         xxx@for (j in 1..nin) {
             try {
-                val len = reader.readLineX().toInt() // 6
-                val blk = reader.readNBytes(len).toString(Charsets.UTF_8).jsonToBlock()
+                val len1 = reader.readLineX().toInt() // 6
+                val blk = reader.readNBytes(len1).toString(Charsets.UTF_8).jsonToBlock()
                 reader.readLineX()
-                assert(blk.pay.length <= S128_pay) { "post is too large" }
+                val len2 = reader.readLineX().toInt()
+                assert(len2 <= S128_pay) { "post is too large" }
+                val pay = reader.readNBytes(len2).toString(Charsets.UTF_8)
                 assert(chain.getHeads(State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
 
                 //println("[recv] ${blk.hash} // len=$len // ${blk.pay.length}")
-                chain.blockChain(blk)
-                if (blk.pay == "") {
+                chain.blockChain(blk,pay)
+                if (pay == "") {
                     if (blk.immut.pay.hash != "".calcHash()) {
                         // payload is really an empty string
                         ;

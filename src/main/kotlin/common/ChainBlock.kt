@@ -15,7 +15,7 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 fun Chain.hashState (hash: Hash, now: Long) : State {
     return when {
         ! this.fsExistsBlock(hash) -> State.MISSING
-        else -> this.blockState(this.fsLoadBlock(hash,null), now)
+        else -> this.blockState(this.fsLoadBlock(hash), now)
     }
 }
 
@@ -79,7 +79,7 @@ fun Chain.blockNew (imm_: Immut, pay_: String, sign: HKey?, crypt: HKey?) : Bloc
     val imm = imm_.copy (
         time = max (
             getNow(),
-            1 + backs.map { this.fsLoadBlock(it, null).immut.time }.max()!!
+            1 + backs.map { this.fsLoadBlock(it).immut.time }.max()!!
         ),
         pay = imm_.pay.copy (
             crypt = (crypt != null),
@@ -104,18 +104,19 @@ fun Chain.blockNew (imm_: Immut, pay_: String, sign: HKey?, crypt: HKey?) : Bloc
             Signature(sig_hash, sign.pvtToPub())
         }
 
-    val new = Block(imm, hash, pay, signature)
-    this.blockChain(new)
+    val new = Block(imm, hash, signature)
+    this.blockChain(new,pay)
     return new
 }
 
-fun Chain.blockChain (blk: Block) {
+fun Chain.blockChain (blk: Block, pay: String) {
     this.blockAssert(blk)
     this.fsSaveBlock(blk)
+    this.fsSavePay(blk.hash, pay)
 
     // addBlockAsFrontOfBacks
     for (bk in blk.immut.backs) {
-        this.fsLoadBlock(bk, null).let {
+        this.fsLoadBlock(bk).let {
             assert(!it.fronts.contains(blk.hash)) { "bug found: " + it.hash + " -> " + blk.hash }
             it.fronts.add(blk.hash)
             it.fronts.sort()            // TODO: for external tests in FS (sync.sh)
@@ -132,7 +133,7 @@ fun Chain.backsAssert (blk: Block) {
     for (bk in blk.immut.backs) {
         //println("$it <- ${blk.hash}")
         assert(this.fsExistsBlock(bk)) { "back must exist" }
-        this.fsLoadBlock(bk,null).let { bbk ->
+        this.fsLoadBlock(bk).let { bbk ->
             assert(bbk.immut.time <= blk.immut.time) { "back must be older"}
             when {
                 (this.blockState(bbk,blk.immut.time) != State.BLOCKED) -> true
@@ -194,7 +195,7 @@ fun Chain.blockAssert (blk: Block) {
         // may receive out of order // may point to rejected post
         //assert(this.fsExistsBlock(imm.like.hash)) { "like must have valid target" }
         if (this.fsExistsBlock(imm.like.hash)) {
-            this.fsLoadBlock(imm.like.hash,null).let {
+            this.fsLoadBlock(imm.like.hash).let {
                 assert(!it.isFrom(blk.sign!!.pub)) { "like must not target itself" }
             }
         }
@@ -211,7 +212,7 @@ fun Chain.blockAssert (blk: Block) {
 // REMOVE
 
 fun Chain.blockRemove (hash: Hash) {
-    val blk = this.fsLoadBlock(hash,null)
+    val blk = this.fsLoadBlock(hash)
     assert(this.blockState(blk, getNow()) == State.BLOCKED) { "can only remove blocked block" }
     this.heads.remove(hash)
     this.heads += blk.immut.backs

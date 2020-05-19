@@ -24,6 +24,7 @@ import kotlin.concurrent.thread
  *                                reps             28-02    29-02    17-03   19-03    25-04   28-04   04-05
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 -> 1513 -> 1555 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
+ *  - remove pay from block // allow binary
  *  - site to track: last access, chains heads
  *  - Simulation.kt
  *  - liferea, /home, docs
@@ -153,7 +154,7 @@ class Tests {
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
         val blk = c2.blockNew(HC, "", null, null)
-        val blk2 = c2.fsLoadBlock(blk.hash, null)
+        val blk2 = c2.fsLoadBlock(blk.hash)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
 
         assert(c2.bfsFrontsIsFromTo(blk.hash,blk.hash))
@@ -403,8 +404,8 @@ class Tests {
         //println(c1.root)
         val n1 = c1.blockNew(HC, "aaa", null, SHA0)
         //println(n1.hash)
-        val n2 = c1.fsLoadBlock(n1.hash, SHA0)
-        assert(n2.pay == "aaa")
+        val n2 = c1.fsLoadPay(n1.hash, SHA0)
+        assert(n2 == "aaa")
         //Thread.sleep(500)
     }
 
@@ -448,9 +449,8 @@ class Tests {
         main(arrayOf(H1, "chain", "join", "/xxx", PUB0))
         val hash = main_(arrayOf("chain", "post", "/xxx", "inline", "aaa", S0, "--crypt=$PVT0"))
 
-        val json = main_(arrayOf("chain", "get", "/xxx", hash, "--crypt=$PVT0"))
-        val blk = json.jsonToBlock()
-        assert(blk.pay == "aaa")
+        val pay = main_(arrayOf("chain", "get", "/xxx", "payload", hash, "--crypt=$PVT0"))
+        assert(pay == "aaa")
 
         main(arrayOf("chain", "send", "/xxx", "localhost:8331"))
         val json2 = main_(arrayOf(H1, "chain", "get", "/xxx", hash))
@@ -458,9 +458,8 @@ class Tests {
         assert(blk2.immut.pay.crypt)
 
         val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "bbbb", S1))
-        val j2 = main_(arrayOf("chain", "get", "/xxx", h2))
-        val b2 = j2.jsonToBlock()
-        assert(b2.pay == "bbbb")
+        val pay2 = main_(arrayOf("chain", "get", "/xxx", "payload", h2))
+        assert(pay2 == "bbbb")
     }
 
     @Test
@@ -710,9 +709,7 @@ class Tests {
             assert(it.startsWith("9_"))
         }
 
-        main_(arrayOf(H1, "chain", "get", "/xxx", h8))
-            .jsonToBlock()
-            .pay
+        main_(arrayOf(H1, "chain", "get", "/xxx", "payload", h8))
             .let {
                 assert(it == "no sig")
             }

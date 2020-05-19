@@ -21,7 +21,7 @@ Usage:
     freechains [options] chain join <chain> [trusted] [ [owner-only] <pub> ]
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain> (all | linked | blocked)
-    freechains [options] chain get <chain> <hash>
+    freechains [options] chain get <chain> (block | payload) <hash>
     freechains [options] chain post <chain> (file | inline | -) [<path_or_text>]
     freechains [options] chain (like | dislike) <chain> <hash>
     freechains [options] chain reps <chain> <hash_or_pub>
@@ -150,6 +150,13 @@ fun main_ (args: Array<String>) : String {
                 opts["get"] as Boolean -> {
                     writer.writeLineX("$PRE chain get")
                     writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX (
+                        when {
+                            opts["block"]    as Boolean -> "block"
+                            opts["payload"]  as Boolean -> "payload"
+                            else -> error("bug found")
+                        }
+                    )
                     writer.writeLineX(opts["<hash>"] as Hash)
                     writer.writeLineX(opts["--crypt"] as String? ?: "")
                     val len = reader.readLineX().toInt()

@@ -40,7 +40,7 @@ fun Chain.bfsBacksAuthor (heads: List<Hash>, pub: String) : List<Block> {
             } else {
                 fun f (blk: Block) : List<Block> {
                     return listOf(blk) + blk.immut.prev.let {
-                        if (it == null) emptyList() else f(this.fsLoadBlock(it,null))
+                        if (it == null) emptyList() else f(this.fsLoadBlock(it))
                     }
                 }
                 f(blk)
@@ -82,7 +82,7 @@ internal fun Chain.bfs (starts: List<Hash>, inc: Boolean, dir: BfsDir, ok: (Bloc
         } else {
             TreeSet<Block>(compareByDescending { it.immut.time })       // TODO: val cmp = ...
         }
-    pending.addAll(starts.map { this.fsLoadBlock(it,null) })
+    pending.addAll(starts.map { this.fsLoadBlock(it) })
 
     val visited = starts.toMutableSet()
 
@@ -97,7 +97,7 @@ internal fun Chain.bfs (starts: List<Hash>, inc: Boolean, dir: BfsDir, ok: (Bloc
         }
 
         val list = if (dir == BfsDir.FRONTS) blk.fronts else blk.immut.backs.toList()
-        pending.addAll(list.minus(visited).map { this.fsLoadBlock(it,null) })
+        pending.addAll(list.minus(visited).map { this.fsLoadBlock(it) })
         visited.addAll(list)
         ret.add(blk)
     }

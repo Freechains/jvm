@@ -43,7 +43,6 @@ fun Host.joinChain (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
             emptyArray()
         ),
         chain.getGenesis(),
-        "",
         null
     )
     chain.fsSaveBlock(genesis)
