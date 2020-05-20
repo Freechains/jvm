@@ -159,6 +159,29 @@ class Simulation {
     }
 
     @Test
+    fun xxx () {
+        stop_delete()
+        main(arrayOf("host", "create", "/tmp/freechains/sim/xxx/", "8400"))
+        thread {
+            main(arrayOf("host", "start", "/tmp/freechains/sim/xxx/"))
+        }
+        Thread.sleep(2*sec)
+        main(arrayOf(8400.toHost(), "chain", "join", "/", "trusted"))
+
+        while (true) {
+            var LEN = 10000000
+            while (LEN > 0) {
+                val len = min(127500, LEN)
+                println(">>> len = $len / $LEN")
+                LEN -= len
+                val txt = "${"x".repeat(len)}"
+                main_(arrayOf(8400.toHost(), "chain", "post", "/", "inline", txt))
+            }
+            Thread.sleep(1000)
+        }
+    }
+
+    @Test
     fun sim_insta () {
         val CHAIN = "/insta"
         val TOTAL  = 10*min   // simulation time
@@ -202,18 +225,23 @@ class Simulation {
             val LENGTH = Pair(5*1000*1000, 2*1000*1000)
 
             while (running()) {
-                val dt = normal(PERIOD).toLong()
-                println(">>> DT = $dt")
-                Thread.sleep(dt)
-
+                Thread.sleep(normal(PERIOD).toLong())
                 val h = 8400 + HOSTS[(0..1).random()]
                 var LEN = normal(LENGTH)
                 println(">>> H = $h")
                 while (LEN > 0) {
                     val len = min(127500, LEN)
-                    LEN = LEN - len
+                    //println(">>> len = $len / $LEN")
+                    LEN -= len
                     val txt = "#$i - @$h: ${"x".repeat(len)}"
-                    main_(arrayOf(h.toHost(), "chain", "post", CHAIN, "inline", txt))
+                    while (true) {
+                        try {
+                            main_(arrayOf(h.toHost(), "chain", "post", CHAIN, "inline", txt))
+                        } catch (t: Throwable) {
+                            continue
+                        }
+                        break
+                    }
                 }
             }
             println("AUTHOR: period=$PERIOD, len=$LENGTH")
@@ -224,7 +252,6 @@ class Simulation {
 
             while (running()) {
                 Thread.sleep(normal(PERIOD).toLong())
-
                 val h = 8400 + (0 until N).random()
                 val txt = "#$i - @$h: ${"x".repeat(normal(LENGTH))}"
                 println(">>> h = $h")
