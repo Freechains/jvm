@@ -59,7 +59,7 @@ fun Chain.blockNew (imm_: Immut, pay_: String, sign: HKey?, crypt: HKey?) : Bloc
     val backs = this.getHeads(State.LINKED)
         .let { backs ->
             backs.plus (
-                // must point to liked block
+                // must point to liked blocked block
                 when {
                     (imm_.like == null) -> emptyArray()
                     backs.any {
@@ -124,8 +124,7 @@ fun Chain.blockChain (blk: Block, pay: String) {
         }
     }
 
-    this.heads.add(blk.hash)
-    blk.immut.backs.forEach { this.heads.remove(it) }
+    this.setHeads(this.heads.toList() + blk.hash)
     this.fsSave()
 }
 
@@ -215,6 +214,6 @@ fun Chain.blockRemove (hash: Hash) {
     val blk = this.fsLoadBlock(hash)
     assert(this.blockState(blk, getNow()) == State.BLOCKED) { "can only remove blocked block" }
     this.heads.remove(hash)
-    this.heads += blk.immut.backs
+    this.setHeads(this.heads.toList() + blk.immut.backs)
     this.fsSave()
 }

@@ -35,7 +35,7 @@ val TODO = mutableListOf<MutableList<Int>>()
 
 class Simulation {
     init {
-        for (i in 0..N) {
+        for (i in 0 until N) {
             VS.add (
                 ES.map {
                     when {
@@ -60,7 +60,7 @@ class Simulation {
     }
 
     fun create_start () {
-        for (i in 0..N) {
+        for (i in 0 until N) {
             val h = 8400 + i
             main(arrayOf("host", "create", "/tmp/freechains/sim/$h/", "$h"))
             thread {
@@ -70,14 +70,14 @@ class Simulation {
     }
 
     fun join (chain: String) {
-        for (i in 0..N) {
+        for (i in 0 until N) {
             val h = 8400 + i
             main(arrayOf(h.toHost(), "chain", "join", chain, "trusted"))
         }
     }
 
     fun listen (chain: String, f: (Int)->Unit) {
-        for (i in 0..N) {
+        for (i in 0 until N) {
             val h = 8400 + i
             thread {
                 val socket = Socket("localhost", h)
@@ -184,27 +184,27 @@ class Simulation {
         var now: Long
         var i = 0
 
-        fun check () : Boolean {
-            var ok = false
+        fun running () : Boolean {
+            var still = true
             synchronized (this) {
                 now = getNow()
                 if (now >= start+TOTAL) {
-                    ok = true
+                    still = false
                 }
                 i += 1
             }
-            return ok
+            return still
         }
 
-        var ok = 0
-
-        thread {
+        val t1 = thread {
             val HOSTS = arrayOf(11,14)
             val PERIOD = Pair(5*_hour.toInt(), 2*_hour.toInt())
             val LENGTH = Pair(5*1000*1000, 2*1000*1000)
 
-            while (check()) {
-                Thread.sleep(normal(PERIOD).toLong())
+            while (running()) {
+                val dt = normal(PERIOD).toLong()
+                println(">>> DT = $dt")
+                Thread.sleep(dt)
 
                 val h = 8400 + HOSTS[(0..1).random()]
                 var LEN = normal(LENGTH)
@@ -216,17 +216,13 @@ class Simulation {
                     main_(arrayOf(h.toHost(), "chain", "post", CHAIN, "inline", txt))
                 }
             }
-            synchronized (this) {
-                ok += 1
-            }
-            println("AUTHOR: n=$N, total=$TOTAL, period=$PERIOD)")
-            println("        len=$LENGTH, latency=$LATENCY")
+            println("AUTHOR: period=$PERIOD, len=$LENGTH")
         }
-        thread {
+        val t2 = thread {
             val PERIOD = Pair(5*_min.toInt(), 3*_min.toInt())
             val LENGTH = Pair(50, 20)
 
-            while (check()) {
+            while (running()) {
                 Thread.sleep(normal(PERIOD).toLong())
 
                 val h = 8400 + (0 until N).random()
@@ -235,14 +231,10 @@ class Simulation {
                 main_(arrayOf(h.toHost(), "chain", "post", CHAIN, "inline", txt))
 
             }
-            synchronized (this) {
-                ok += 1
-            }
-            println("VIEWER: n=$N, total=$TOTAL, period=$PERIOD)")
-            println("        len=$LENGTH, latency=$LATENCY")
+            println("VIEWER: period=$PERIOD, len=$LENGTH")
         }
-        while (ok < 2) {
-            Thread.sleep(10*sec)
-        }
+        t1.join()
+        t2.join()
+        println("PARAMS: n=$N, total=$TOTAL, latency=$LATENCY, _day=$_day")
     }
 }

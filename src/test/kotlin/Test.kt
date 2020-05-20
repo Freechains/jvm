@@ -24,7 +24,8 @@ import kotlin.concurrent.thread
  *                                reps             28-02    29-02    17-03   19-03    25-04   28-04   04-05
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 -> 1513 -> 1555 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
- *  - height DT between max/min
+ *  - height DT between max/min heads
+ *  - two simulation at the same time
  *  - remove pay from block // allow binary
  *  - site to track: last access, chains heads
  *  - Simulation.kt in Kotlin
@@ -194,6 +195,18 @@ class Tests {
 
         main(arrayOf("host", "stop"))
         Thread.sleep(100)
+    }
+
+    @Test
+    fun xxx() {
+        val host = Host_load("/data/tmp/freechains/chat-22/8417/")
+        val chain = host.loadChain("/chat")
+        val x = chain.bfsFrontsIsFromTo (
+            "18_8C965D6BB7ECA22912D3088687FB8A6FB5853121104A901716BD49FD9BF4D403",
+            "26_F49DA3806198B432FB26C28987AD6972FD163D60EA3A5C3ED1C1F362039D6458"
+        )
+        val y = chain.getHeads(State.ALL)
+        println(y)
     }
 
     @Test

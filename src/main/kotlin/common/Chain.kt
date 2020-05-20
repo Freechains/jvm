@@ -83,6 +83,11 @@ fun Immut.toHash () : Hash {
 
 // HEADS
 
+fun Chain.setHeads (news: List<Hash>) {
+    this.heads.clear()
+    this.heads.addAll(this.bfsCleanHeads(news))
+}
+
 fun Chain.getHeads (want: State) : List<Hash> {
     val now = getNow()
 
