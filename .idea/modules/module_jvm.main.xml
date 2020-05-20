@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="module_jvm.main" default="compile.module.jvm.main">
+  <dirname property="module.jvm.main.basedir" file="${ant.file.module_jvm.main}"/>
+  
+  <property name="module.jdk.home.jvm.main" value="${project.jdk.home}"/>
+  <property name="module.jdk.bin.jvm.main" value="${project.jdk.bin}"/>
+  <property name="module.jdk.classpath.jvm.main" value="${project.jdk.classpath}"/>
+  
+  <property name="compiler.args.jvm.main" value="-encoding UTF-8 -source 11 -target 11 ${compiler.args}"/>
+  
+  <property name="jvm.main.output.dir" value="${module.jvm.main.basedir}/../../build/classes/java/main"/>
+  <property name="jvm.main.testoutput.dir" value="${module.jvm.main.basedir}/../../build/classes/java/main"/>
+  
+  <path id="jvm.main.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="jvm.main.module.production.classpath">
+    <path refid="${module.jdk.classpath.jvm.main}"/>
+    <path refid="library.gradle:_co.libly:resource-loader:1.3.5.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.14.0.classpath"/>
+    <path refid="library.gradle:_com.offbytwo:docopt:0.6.0.20150202.classpath"/>
+    <path refid="library.gradle:_com.goterl.lazycode:lazysodium-java:4.2.5.classpath"/>
+    <path refid="library.gradle:_net.java.dev.jna:jna:5.5.0.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib-common:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains:annotations:13.0.classpath"/>
+  </path>
+  
+  <path id="jvm.main.runtime.production.module.classpath">
+    <pathelement location="${jvm.main.output.dir}"/>
+    <path refid="library.gradle:_co.libly:resource-loader:1.3.5.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.14.0.classpath"/>
+    <path refid="library.gradle:_com.offbytwo:docopt:0.6.0.20150202.classpath"/>
+    <path refid="library.gradle:_com.goterl.lazycode:lazysodium-java:4.2.5.classpath"/>
+    <path refid="library.gradle:_net.java.dev.jna:jna:5.5.0.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib-common:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains:annotations:13.0.classpath"/>
+  </path>
+  
+  <path id="jvm.main.module.classpath">
+    <path refid="${module.jdk.classpath.jvm.main}"/>
+    <pathelement location="${jvm.main.output.dir}"/>
+    <path refid="library.gradle:_co.libly:resource-loader:1.3.5.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.14.0.classpath"/>
+    <path refid="library.gradle:_com.offbytwo:docopt:0.6.0.20150202.classpath"/>
+    <path refid="library.gradle:_com.goterl.lazycode:lazysodium-java:4.2.5.classpath"/>
+    <path refid="library.gradle:_net.java.dev.jna:jna:5.5.0.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib-common:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains:annotations:13.0.classpath"/>
+  </path>
+  
+  <path id="jvm.main.runtime.module.classpath">
+    <pathelement location="${jvm.main.output.dir}"/>
+    <path refid="library.gradle:_co.libly:resource-loader:1.3.5.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.14.0.classpath"/>
+    <path refid="library.gradle:_com.offbytwo:docopt:0.6.0.20150202.classpath"/>
+    <path refid="library.gradle:_com.goterl.lazycode:lazysodium-java:4.2.5.classpath"/>
+    <path refid="library.gradle:_net.java.dev.jna:jna:5.5.0.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains.kotlin:kotlin-stdlib-common:1.3.61.classpath"/>
+    <path refid="library.gradle:_org.jetbrains:annotations:13.0.classpath"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.jvm.main">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.jvm.main">
+    <patternset refid="excluded.from.module.jvm.main"/>
+  </patternset>
+  
+  <path id="jvm.main.module.sourcepath">
+    <dirset dir="${module.jvm.main.basedir}/../../src/main">
+      <include name="java"/>
+      <include name="kotlin"/>
+      <include name="resources"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.jvm.main" depends="compile.module.jvm.main.production,compile.module.jvm.main.tests" description="Compile module jvm.main"/>
+  
+  <target name="compile.module.jvm.main.production" depends="register.custom.compilers" description="Compile module jvm.main; production classes">
+    <mkdir dir="${jvm.main.output.dir}"/>
+    <javac2 destdir="${jvm.main.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.jvm.main}/javac">
+      <compilerarg line="${compiler.args.jvm.main}"/>
+      <bootclasspath refid="jvm.main.module.bootclasspath"/>
+      <classpath refid="jvm.main.module.production.classpath"/>
+      <src refid="jvm.main.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.jvm.main"/>
+    </javac2>
+    
+    <copy todir="${jvm.main.output.dir}">
+      <fileset dir="${module.jvm.main.basedir}/../../src/main/java">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+      <fileset dir="${module.jvm.main.basedir}/../../src/main/kotlin">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+      <fileset dir="${module.jvm.main.basedir}/../../src/main/resources">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.jvm.main.tests" depends="register.custom.compilers,compile.module.jvm.main.production" description="compile module jvm.main; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.jvm.main" description="cleanup module">
+    <delete dir="${jvm.main.output.dir}"/>
+    <delete dir="${jvm.main.testoutput.dir}"/>
+  </target>
+</project>

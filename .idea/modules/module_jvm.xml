@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="module_jvm" default="compile.module.jvm">
+  <dirname property="module.jvm.basedir" file="${ant.file.module_jvm}"/>
+  
+  <property name="module.jdk.home.jvm" value="${project.jdk.home}"/>
+  <property name="module.jdk.bin.jvm" value="${project.jdk.bin}"/>
+  <property name="module.jdk.classpath.jvm" value="${project.jdk.classpath}"/>
+  
+  <property name="compiler.args.jvm" value="-encoding UTF-8 -source 11 -target 11 ${compiler.args}"/>
+  
+  <property name="jvm.output.dir" value="undefined"/>
+  <property name="jvm.testoutput.dir" value="undefined"/>
+  
+  <path id="jvm.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="jvm.module.production.classpath">
+    <path refid="${module.jdk.classpath.jvm}"/>
+  </path>
+  
+  <path id="jvm.runtime.production.module.classpath"/>
+  
+  <path id="jvm.module.classpath">
+    <path refid="${module.jdk.classpath.jvm}"/>
+  </path>
+  
+  <path id="jvm.runtime.module.classpath"/>
+  
+  
+  <patternset id="excluded.from.module.jvm">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.jvm">
+    <patternset refid="excluded.from.module.jvm"/>
+  </patternset>
+  
+  
+  <target name="compile.module.jvm" depends="compile.module.jvm.production,compile.module.jvm.tests" description="Compile module jvm"/>
+  
+  <target name="compile.module.jvm.production" depends="register.custom.compilers" description="Compile module jvm; production classes"/>
+  
+  <target name="compile.module.jvm.tests" depends="register.custom.compilers,compile.module.jvm.production" description="compile module jvm; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.jvm" description="cleanup module">
+    <delete dir="${jvm.output.dir}"/>
+    <delete dir="${jvm.testoutput.dir}"/>
+  </target>
+</project>
