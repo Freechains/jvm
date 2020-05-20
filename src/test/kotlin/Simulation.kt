@@ -126,8 +126,7 @@ class Simulation {
         }
     }
 
-    @Test
-    fun sim_chat () {
+    fun _sim_chat () {
         val CHAIN = "/chat"
         val TOTAL  = 10*min   // simulation time
         val PERIOD = Pair(20*sec.toInt(), 15*sec.toInt())   // period between two messages
@@ -136,9 +135,6 @@ class Simulation {
         val LEN_50 = Pair(50,10)      // message length
         val LEN_05 = Pair(5,2)        // message length
 
-        stop_delete()
-        create_start()
-        Thread.sleep(2*sec)
         join(CHAIN)
         listen(CHAIN, { i ->  handle(i,CHAIN, LATENCY)})
         Thread.sleep(2*sec)
@@ -158,7 +154,7 @@ class Simulation {
                 else -> "x".repeat(normal(LEN_05))
             }
             println(">>> h = $h")
-            main_(arrayOf(h.toHost(), "chain", "post", CHAIN, "inline", txt))
+            post(h, CHAIN, txt)
 
             now = getNow()
             i += 1
@@ -169,15 +165,11 @@ class Simulation {
         println("        m50=$LEN_50, m05=$LEN_05, latency=$LATENCY")
     }
 
-    @Test
-    fun sim_insta () {
+    fun _sim_insta () {
         val CHAIN = "/insta"
         val TOTAL  = 10*min   // simulation time
         val LATENCY= Pair(250*ms.toInt(), 50*ms.toInt())   // network latency (start time)
 
-        stop_delete()
-        create_start()
-        Thread.sleep(2*sec)
         join(CHAIN)
         listen(CHAIN, { i ->  handle(i,CHAIN, LATENCY)})
         Thread.sleep(2*sec)
@@ -248,9 +240,29 @@ class Simulation {
     }
 
     @Test
+    fun sim_chat () {
+        stop_delete()
+        create_start()
+        Thread.sleep(2*sec)
+        _sim_chat()
+    }
+
+    @Test
+    fun sim_insta () {
+        stop_delete()
+        create_start()
+        Thread.sleep(2 * sec)
+        _sim_insta()
+    }
+
+    @Test
     fun sim_both () {
-        val t1 = thread { sim_chat()  }
-        val t2 = thread { sim_insta() }
+        stop_delete()
+        create_start()
+        Thread.sleep(2 * sec)
+
+        val t1 = thread { _sim_chat()  }
+        val t2 = thread { _sim_insta() }
         t1.join()
         t2.join()
     }
