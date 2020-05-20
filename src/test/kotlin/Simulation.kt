@@ -96,6 +96,17 @@ class Simulation {
         }
     }
 
+    fun post (h: Int, chain: String, txt: String) {
+        while (true) {
+            try {
+                main_(arrayOf(h.toHost(), "chain", "post", chain, "inline", txt))
+            } catch (t: Throwable) {
+                continue
+            }
+            break
+        }
+    }
+
     fun handle (i: Int, chain: String, latency: Pair<Int,Int>) {
         var doing : List<Int>
         synchronized (TODO[i]) {
@@ -119,7 +130,6 @@ class Simulation {
     fun sim_chat () {
         val CHAIN = "/chat"
         val TOTAL  = 10*min   // simulation time
-        val INIT   = 20*sec   // wait time after 1st message
         val PERIOD = Pair(20*sec.toInt(), 15*sec.toInt())   // period between two messages
         val LATENCY= Pair(250*ms.toInt(), 50*ms.toInt())   // network latency (start time)
 
@@ -134,7 +144,7 @@ class Simulation {
         Thread.sleep(2*sec)
 
         main_(arrayOf(8400.toHost(), "chain", "post", CHAIN, "inline", "first message"))
-        Thread.sleep(INIT)
+        Thread.sleep(20*sec)
 
         val start = getNow()
         var now = getNow()
@@ -154,6 +164,7 @@ class Simulation {
             i += 1
         }
 
+        Thread.sleep(1*min)
         println("PARAMS: n=$N, total=$TOTAL, period=$PERIOD)")
         println("        m50=$LEN_50, m05=$LEN_05, latency=$LATENCY")
     }
@@ -185,7 +196,6 @@ class Simulation {
     fun sim_insta () {
         val CHAIN = "/insta"
         val TOTAL  = 10*min   // simulation time
-        val INIT   = 20*sec   // wait time after 1st message
         val LATENCY= Pair(250*ms.toInt(), 50*ms.toInt())   // network latency (start time)
 
         stop_delete()
@@ -196,7 +206,7 @@ class Simulation {
         Thread.sleep(2*sec)
 
         main_(arrayOf(8400.toHost(), "chain", "post", CHAIN, "inline", "first message"))
-        Thread.sleep(INIT)
+        Thread.sleep(20*sec)
 
         val _day  = 10*min
         val _hour = _day  / 24
@@ -234,14 +244,7 @@ class Simulation {
                     //println(">>> len = $len / $LEN")
                     LEN -= len
                     val txt = "#$i - @$h: ${"x".repeat(len)}"
-                    while (true) {
-                        try {
-                            main_(arrayOf(h.toHost(), "chain", "post", CHAIN, "inline", txt))
-                        } catch (t: Throwable) {
-                            continue
-                        }
-                        break
-                    }
+                    post(h, CHAIN, txt)
                 }
             }
             println("AUTHOR: period=$PERIOD, len=$LENGTH")
@@ -255,13 +258,13 @@ class Simulation {
                 val h = 8400 + (0 until N).random()
                 val txt = "#$i - @$h: ${"x".repeat(normal(LENGTH))}"
                 println(">>> h = $h")
-                main_(arrayOf(h.toHost(), "chain", "post", CHAIN, "inline", txt))
-
+                post(h, CHAIN, txt)
             }
             println("VIEWER: period=$PERIOD, len=$LENGTH")
         }
-        t1.join()
+        //t1.join()
         t2.join()
+        Thread.sleep(1*min)
         println("PARAMS: n=$N, total=$TOTAL, latency=$LATENCY, _day=$_day")
     }
 }
