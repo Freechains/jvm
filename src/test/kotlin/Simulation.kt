@@ -170,29 +170,6 @@ class Simulation {
     }
 
     @Test
-    fun xxx () {
-        stop_delete()
-        main(arrayOf("host", "create", "/tmp/freechains/sim/xxx/", "8400"))
-        thread {
-            main(arrayOf("host", "start", "/tmp/freechains/sim/xxx/"))
-        }
-        Thread.sleep(2*sec)
-        main(arrayOf(8400.toHost(), "chain", "join", "/", "trusted"))
-
-        while (true) {
-            var LEN = 10000000
-            while (LEN > 0) {
-                val len = min(127500, LEN)
-                println(">>> len = $len / $LEN")
-                LEN -= len
-                val txt = "${"x".repeat(len)}"
-                main_(arrayOf(8400.toHost(), "chain", "post", "/", "inline", txt))
-            }
-            Thread.sleep(1000)
-        }
-    }
-
-    @Test
     fun sim_insta () {
         val CHAIN = "/insta"
         val TOTAL  = 10*min   // simulation time
@@ -208,7 +185,7 @@ class Simulation {
         main_(arrayOf(8400.toHost(), "chain", "post", CHAIN, "inline", "first message"))
         Thread.sleep(20*sec)
 
-        val _day  = 10*min
+        val _day  = 1*hour
         val _hour = _day  / 24
         val _min  = _hour / 60
         val _sec  = _min  / 60
@@ -234,8 +211,8 @@ class Simulation {
             val PERIOD = Pair(5*_hour.toInt(), 2*_hour.toInt())
             val LENGTH = Pair(5*1000*1000, 2*1000*1000)
 
+            Thread.sleep(normal(PERIOD).toLong())
             while (running()) {
-                Thread.sleep(normal(PERIOD).toLong())
                 val h = 8400 + HOSTS[(0..1).random()]
                 var LEN = normal(LENGTH)
                 println(">>> H = $h")
@@ -246,6 +223,7 @@ class Simulation {
                     val txt = "#$i - @$h: ${"x".repeat(len)}"
                     post(h, CHAIN, txt)
                 }
+                Thread.sleep(normal(PERIOD).toLong())
             }
             println("AUTHOR: period=$PERIOD, len=$LENGTH")
         }
@@ -253,18 +231,27 @@ class Simulation {
             val PERIOD = Pair(5*_min.toInt(), 3*_min.toInt())
             val LENGTH = Pair(50, 20)
 
+            Thread.sleep(normal(PERIOD).toLong())
             while (running()) {
-                Thread.sleep(normal(PERIOD).toLong())
                 val h = 8400 + (0 until N).random()
                 val txt = "#$i - @$h: ${"x".repeat(normal(LENGTH))}"
                 println(">>> h = $h")
                 post(h, CHAIN, txt)
+                Thread.sleep(normal(PERIOD).toLong())
             }
             println("VIEWER: period=$PERIOD, len=$LENGTH")
         }
-        //t1.join()
+        t1.join()
         t2.join()
         Thread.sleep(1*min)
         println("PARAMS: n=$N, total=$TOTAL, latency=$LATENCY, _day=$_day")
+    }
+
+    @Test
+    fun sim_both () {
+        val t1 = thread { sim_chat()  }
+        val t2 = thread { sim_insta() }
+        t1.join()
+        t2.join()
     }
 }
