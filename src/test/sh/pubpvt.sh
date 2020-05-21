@@ -51,9 +51,9 @@ h=`freechains --host=localhost:8400 --sign=$PVT --crypt=$PVT chain post / inline
 freechains --host=localhost:8400 chain send / localhost:8401  # FAIL
 freechains --host=localhost:8400 chain send / localhost:8402  # SUCCESS
 
-freechains --host=localhost:8400 --crypt=$PVT chain get / $h > $FC/dec.blk
-diff <(jq ".pay" $FC/dec.blk) <(echo '"Hello_World"') || exit 1
-freechains --host=localhost:8402 chain get / $h > $FC/enc.blk
+freechains --host=localhost:8400 --crypt=$PVT chain get / payload $h > $FC/dec.pay
+diff $FC/dec.pay <(echo 'Hello_World') || exit 1
+freechains --host=localhost:8402 chain get / block $h > $FC/enc.blk
 diff <(jq ".immut.pay.crypt" $FC/enc.blk) <(echo 'true') || exit 1
 
 # stop hosts

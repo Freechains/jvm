@@ -20,11 +20,11 @@ freechains --host=localhost:8400 chain join / owner-only $PUB
 freechains --host=localhost:8400 host now 0
 g=`freechains --host=localhost:8400 chain genesis /`
 h=`freechains --host=localhost:8400 --sign=$PVT chain post / inline Hello_World`
-freechains --host=localhost:8400 chain get / "$h" > $FC/freechains-tests-get-1.out
-freechains --host=localhost:8400 chain get / 0_B5E21297B8EBEE0CFA0FA5AD30F21B8AE9AE9BBF25F2729989FE5A092B86B129 > $FC/freechains-tests-get-0.out
+freechains --host=localhost:8400 chain get / block "$h" > $FC/freechains-tests-get-1.out
+freechains --host=localhost:8400 chain get / block 0_B5E21297B8EBEE0CFA0FA5AD30F21B8AE9AE9BBF25F2729989FE5A092B86B129 > $FC/freechains-tests-get-0.out
 hs=`freechains --host=localhost:8400 chain heads / linked`
-freechains --host=localhost:8400 chain get / "$g" > $FC/freechains-tests-gen.out
-freechains --host=localhost:8400 chain get / "$hs" > $FC/freechains-tests-heads.out
+freechains --host=localhost:8400 chain get / block "$g" > $FC/freechains-tests-gen.out
+freechains --host=localhost:8400 chain get / block "$hs" > $FC/freechains-tests-heads.out
 
 diff -I 1_ $FC/freechains-tests-gen.out   out/freechains-tests-get-0.out || exit 1
 diff -I 1_ $FC/freechains-tests-get-0.out out/freechains-tests-get-0.out || exit 1
@@ -34,7 +34,7 @@ diff -I time -I hash $FC/freechains-tests-heads.out out/freechains-tests-get-1.o
 uuencode /bin/cat cat > /tmp/cat.uu
 h=`freechains --host=localhost:8400 --sign=$PVT chain post / file /tmp/cat.uu`
 echo $h
-freechains --host=localhost:8400 chain get / "$h" | jq -r .pay | uudecode -o /tmp/cat
+freechains --host=localhost:8400 chain get / payload "$h" | uudecode -o /tmp/cat
 diff /tmp/cat /bin/cat || exit 1
 
 ###############################################################################
@@ -51,7 +51,7 @@ freechains --host=localhost:8400 chain send / localhost:8401
 
 diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 ret=`ls $FC/8400/chains/blocks/ | wc`
-if [ "$ret" != "      5       5     355" ]; then
+if [ "$ret" != "     10      10     710" ]; then
   echo "$ret"
   exit 1
 fi
@@ -74,7 +74,7 @@ wait $P1 $P2
 
 diff $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
 ret=`ls $FC/8401/chains/blocks/ | wc`
-if [ "$ret" != "      5       5     355" ]; then
+if [ "$ret" != "     10      10     710" ]; then
   echo "$ret"
   exit 1
 fi
@@ -89,16 +89,15 @@ for i in $(seq 1 50)
 do
   freechains --host=localhost:8400 --sign=$PVT chain post / inline $i
 done
-freechains --host=localhost:8400 chain send / localhost:8401 &
-P1=$!
-freechains --host=localhost:8400 chain send / localhost:8402 &
-P2=$!
-wait $P1 $P2
+freechains --host=localhost:8400 chain send / localhost:8401
+freechains --host=localhost:8400 chain send / localhost:8401
+freechains --host=localhost:8400 chain send / localhost:8402
+freechains --host=localhost:8400 chain send / localhost:8402
 
 diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 diff $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
 ret=`ls $FC/8401/chains/blocks/ | wc`
-if [ "$ret" != "     55      55    3950" ]; then
+if [ "$ret" != "    110     110    7900" ]; then
   echo "$ret"
   exit 1
 fi

@@ -53,7 +53,7 @@ freechains $H0 host now 90000000  # 1d
 b4=`freechains $H0 $SIG1 chain post / inline pub1.4`
 l5=`freechains $H0 $SIG0 chain like / $b4`
 
-j5=`freechains $H0 chain get / $l5`
+j5=`freechains $H0 chain get / block $l5`
 d31=`jq ".immut.like.hash" <(echo $j5)`
 d32="\"$b4\""
 diff <(echo $d31) <(echo $d32) || exit 1
@@ -61,7 +61,7 @@ diff <(echo $d31) <(echo $d32) || exit 1
 freechains $H0 host now 98000000  # 1d1h
 
 l5x=`freechains $H0 $SIG0 chain dislike / "$b4" --why="hated it"`
-j5x=`freechains $H0 chain get / $l5x`
+j5x=`freechains $H0 chain get / block $l5x`
 
 d5x=`jq ".immut.like" <(echo $j5x)`
 diff <(echo $d5x) <(echo "{ \"n\": -1, \"hash\": \"$b4\" }") || exit 1

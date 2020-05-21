@@ -64,6 +64,7 @@ import kotlin.concurrent.thread
  *    - blockAssert: verify symmetric auth
  *    - sends in parallel
  *    - blk/hash variations for all functions (avoid extra blockLoads)
+ *    - when too many blocks, no reader returns soon, so reader timeout
  *  - IDEAS:
  *    - chain for restauration of state in other host holding all necessary commands
  *  - Aether client
