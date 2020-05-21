@@ -330,7 +330,7 @@ fun chainSend (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
     var nmax    = 0
 
     // for each local head
-    val heads = chain.getHeads(State.LINKED)
+    val heads = chain.getHeads(State.ALL)
     val nout = heads.size
     writer.writeLineX(nout.toString())                              // 1
     for (head in heads) {

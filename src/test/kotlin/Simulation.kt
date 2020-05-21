@@ -19,8 +19,6 @@ fun normal (v: Pair<Int,Int>) : Int {
     return max(1, v.first + (v.second*r).toInt())
 }
 
-
-
 val ES = arrayOf (
     Pair(0,1), Pair(1,2), Pair(2,3), Pair(3,4), Pair(4,5), Pair(5,6), Pair(6,7), Pair(7,8), Pair(8,9),
     Pair(1,10), Pair(10,11), Pair(11,1),
@@ -111,9 +109,9 @@ class Simulation {
             try {
                 main_(arrayOf(h.toHost(), "chain", "post", chain, "inline", txt))
             } catch (e: Throwable) {
-                println("erererererere")
+                //println("erererererere")
                 //System.err.println(e.message ?: e.toString())
-                //error("OK")
+                println("-=-=-=- ERROR 1 @$h -=-=-=-")
                 continue
             }
             break
@@ -131,7 +129,15 @@ class Simulation {
             val peers = doing.shuffled()
             for (p in peers) {
                 Thread.sleep(normal(LATENCY).toLong())
-                main_(arrayOf(h.toHost(), "chain", "send", chain, "localhost:${8400+p}"))
+                while (true) {
+                    try {
+                        main_(arrayOf(h.toHost(), "chain", "send", chain, "localhost:${8400 + p}"))
+                    } catch (e: Throwable) {
+                        println("-=-=-=- ERROR 2 @$h -=-=-=-")
+                        continue
+                    }
+                    break
+                }
                 synchronized (TODO[i]) {
                     TODO[i].add(p)
                 }
