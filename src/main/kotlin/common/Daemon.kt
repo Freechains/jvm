@@ -274,7 +274,7 @@ class Daemon (host : Host) {
                             w.writeLineX("$PRE chain _recv_")
                             w.writeLineX(chain.name)
                             val (nmin,nmax) = chainSend(r, w, chain)
-                            System.err.println("chain send: $name ($nmin/$nmax)")
+                            System.err.println("chain send: $name: ($nmin/$nmax)")
                             writer.writeLineX("$nmin / $nmax")
                         }
                         "chain recv" -> {
@@ -286,7 +286,7 @@ class Daemon (host : Host) {
                             w.writeLineX("$PRE chain _send_")
                             w.writeLineX(chain.name)
                             val (nmin,nmax) = chainRecv(r, w, chain)
-                            System.err.println("chain recv: $name ($nmin/$nmax)")
+                            System.err.println("chain recv: $name: ($nmin/$nmax)")
                             writer.writeLineX("$nmin / $nmax")
                         }
                         "chain _send_" -> {

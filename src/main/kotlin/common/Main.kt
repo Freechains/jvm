@@ -54,9 +54,7 @@ fun main_ (args: Array<String>) : String {
     val opts = Docopt(doc).withVersion("freechains $VERSION").parse(args.toMutableList())
 
     Thread.setDefaultUncaughtExceptionHandler { _: Thread?, e: Throwable? ->
-        System.err.println(
-            e!!.message ?: e.toString()
-        )
+        System.err.println(e!!.message ?: e.toString())
         //System.err.println(e.stackTrace.contentToString())
     }
 

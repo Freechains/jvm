@@ -64,6 +64,12 @@ class Simulation {
     }
 
     fun create_start () {
+        thread {
+            while (true) {
+                Thread.sleep(30*sec)
+                println("====================")
+            }
+        }
         for (i in 0 until N) {
             val h = 8400 + i
             main(arrayOf("host", "create", "/tmp/freechains/sim/$h/", "$h"))
@@ -104,7 +110,10 @@ class Simulation {
         while (true) {
             try {
                 main_(arrayOf(h.toHost(), "chain", "post", chain, "inline", txt))
-            } catch (t: Throwable) {
+            } catch (e: Throwable) {
+                println("erererererere")
+                //System.err.println(e.message ?: e.toString())
+                //error("OK")
                 continue
             }
             break
@@ -132,7 +141,7 @@ class Simulation {
 
     fun _sim_chat () {
         val CHAIN = "/chat"
-        val PERIOD = Pair(30*sec.toInt(), 15*sec.toInt())   // period between two messages
+        val PERIOD = Pair(20*sec.toInt(), 15*sec.toInt())   // period between two messages
 
         val LEN_50 = Pair(50,10)      // message length
         val LEN_05 = Pair(5,2)        // message length
@@ -261,12 +270,6 @@ class Simulation {
         create_start()
         Thread.sleep(2*sec)
 
-        thread {
-            while (true) {
-                Thread.sleep(30*sec)
-                println("====================")
-            }
-        }
         val t1 = thread { _sim_chat()  }
         Thread.sleep(30*sec)
         val t2 = thread { _sim_insta() }
