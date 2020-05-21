@@ -716,7 +716,7 @@ class Tests {
         //           \- h22 <-------           l6 <- h7
 
         main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
-            assert(it.equals("0 / 0"))
+            assert(it.equals("1 / 1"))
         }
 
         main_(arrayOf(H1, "chain", "heads", "/xxx", "blocked")).let {
@@ -736,7 +736,7 @@ class Tests {
         //           \- h22 <-------           l6 <- h7 <- h8
 
         main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
-            assert (it == "2 / 2")
+            assert (it == "1 / 1")
         }
         main_(arrayOf(H1, "chain", "reps", "/xxx", PUB0)).let {
             assert(it == "25")
