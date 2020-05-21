@@ -33,6 +33,10 @@ const val N = 21
 val VS = mutableListOf<List<Int>>()
 val TODO = mutableListOf<MutableList<Int>>()
 
+const val WAIT  = 1*min
+const val TOTAL = 10*min   // simulation time
+val LATENCY = Pair(50*ms.toInt(), 50*ms.toInt())   // network latency (start time)
+
 class Simulation {
     init {
         for (i in 0 until N) {
@@ -107,7 +111,7 @@ class Simulation {
         }
     }
 
-    fun handle (i: Int, chain: String, latency: Pair<Int,Int>) {
+    fun handle (i: Int, chain: String) {
         var doing : List<Int>
         synchronized (TODO[i]) {
             doing = TODO[i].toList()
@@ -117,7 +121,7 @@ class Simulation {
             val h = 8400 + i
             val peers = doing.shuffled()
             for (p in peers) {
-                Thread.sleep(normal(latency).toLong())
+                Thread.sleep(normal(LATENCY).toLong())
                 main_(arrayOf(h.toHost(), "chain", "send", chain, "localhost:${8400+p}"))
                 synchronized (TODO[i]) {
                     TODO[i].add(p)
@@ -128,19 +132,17 @@ class Simulation {
 
     fun _sim_chat () {
         val CHAIN = "/chat"
-        val TOTAL  = 10*min   // simulation time
-        val PERIOD = Pair(20*sec.toInt(), 15*sec.toInt())   // period between two messages
-        val LATENCY= Pair(250*ms.toInt(), 50*ms.toInt())   // network latency (start time)
+        val PERIOD = Pair(30*sec.toInt(), 15*sec.toInt())   // period between two messages
 
         val LEN_50 = Pair(50,10)      // message length
         val LEN_05 = Pair(5,2)        // message length
 
         join(CHAIN)
-        listen(CHAIN, { i ->  handle(i,CHAIN, LATENCY)})
+        listen(CHAIN, { i ->  handle(i,CHAIN)})
         Thread.sleep(2*sec)
 
         main_(arrayOf(8400.toHost(), "chain", "post", CHAIN, "inline", "first message"))
-        Thread.sleep(20*sec)
+        Thread.sleep(WAIT)
 
         val start = getNow()
         var now = getNow()
@@ -160,22 +162,20 @@ class Simulation {
             i += 1
         }
 
-        Thread.sleep(1*min)
-        println("PARAMS: n=$N, total=$TOTAL, period=$PERIOD)")
+        Thread.sleep(WAIT)
+        println("PARAMS: n=$N, wait=$WAIT, total=$TOTAL, period=$PERIOD)")
         println("        m50=$LEN_50, m05=$LEN_05, latency=$LATENCY")
     }
 
     fun _sim_insta () {
         val CHAIN = "/insta"
-        val TOTAL  = 10*min   // simulation time
-        val LATENCY= Pair(250*ms.toInt(), 50*ms.toInt())   // network latency (start time)
 
         join(CHAIN)
-        listen(CHAIN, { i ->  handle(i,CHAIN, LATENCY)})
+        listen(CHAIN, { i ->  handle(i,CHAIN)})
         Thread.sleep(2*sec)
 
         main_(arrayOf(8400.toHost(), "chain", "post", CHAIN, "inline", "first message"))
-        Thread.sleep(20*sec)
+        Thread.sleep(WAIT)
 
         val _day  = 1*hour
         val _hour = _day  / 24
@@ -200,8 +200,8 @@ class Simulation {
 
         val t1 = thread {
             val HOSTS = arrayOf(11,14)
-            val PERIOD = Pair(5*_hour.toInt(), 2*_hour.toInt())
-            val LENGTH = Pair(5*1000*1000, 2*1000*1000)
+            val PERIOD = Pair(6*_hour.toInt(), 1*_hour.toInt())
+            val LENGTH = Pair(2*1000*1000, 2*1000*1000)
 
             Thread.sleep(normal(PERIOD).toLong())
             while (running()) {
@@ -220,7 +220,7 @@ class Simulation {
             println("AUTHOR: period=$PERIOD, len=$LENGTH")
         }
         val t2 = thread {
-            val PERIOD = Pair(5*_min.toInt(), 3*_min.toInt())
+            val PERIOD = Pair(10*_min.toInt(), 3*_min.toInt())
             val LENGTH = Pair(50, 20)
 
             Thread.sleep(normal(PERIOD).toLong())
@@ -235,8 +235,8 @@ class Simulation {
         }
         t1.join()
         t2.join()
-        Thread.sleep(1*min)
-        println("PARAMS: n=$N, total=$TOTAL, latency=$LATENCY, _day=$_day")
+        Thread.sleep(WAIT)
+        println("PARAMS: n=$N, wait=$WAIT, total=$TOTAL, latency=$LATENCY, _day=$_day")
     }
 
     @Test
@@ -251,7 +251,7 @@ class Simulation {
     fun sim_insta () {
         stop_delete()
         create_start()
-        Thread.sleep(2 * sec)
+        Thread.sleep(2*sec)
         _sim_insta()
     }
 
@@ -259,9 +259,16 @@ class Simulation {
     fun sim_both () {
         stop_delete()
         create_start()
-        Thread.sleep(2 * sec)
+        Thread.sleep(2*sec)
 
+        thread {
+            while (true) {
+                Thread.sleep(30*sec)
+                println("====================")
+            }
+        }
         val t1 = thread { _sim_chat()  }
+        Thread.sleep(30*sec)
         val t2 = thread { _sim_insta() }
         t1.join()
         t2.join()
