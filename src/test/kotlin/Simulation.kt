@@ -32,7 +32,7 @@ val VS = mutableListOf<List<Int>>()
 val TODO = mutableListOf<MutableList<Int>>()
 
 const val WAIT  = 1*min
-const val TOTAL = 10*min   // simulation time
+const val TOTAL = 8*hour   // simulation time
 val LATENCY = Pair(50*ms.toInt(), 50*ms.toInt())   // network latency (start time)
 
 class Simulation {
@@ -112,6 +112,7 @@ class Simulation {
                 //println("erererererere")
                 //System.err.println(e.message ?: e.toString())
                 println("-=-=-=- ERROR 1 @$h -=-=-=-")
+                Thread.sleep(normal(Pair(2000*ms.toInt(),1000*ms.toInt())).toLong())
                 continue
             }
             break
@@ -134,7 +135,8 @@ class Simulation {
                         main_(arrayOf(h.toHost(), "chain", "send", chain, "localhost:${8400 + p}"))
                     } catch (e: Throwable) {
                         println("-=-=-=- ERROR 2 @$h -=-=-=-")
-                        continue
+                        //Thread.sleep(normal(Pair(2000*ms.toInt(),1000*ms.toInt())).toLong())
+                        //continue
                     }
                     break
                 }
@@ -215,8 +217,8 @@ class Simulation {
 
         val t1 = thread {
             val HOSTS = arrayOf(11,14)
-            val PERIOD = Pair(6*_hour.toInt(), 1*_hour.toInt())
-            val LENGTH = Pair(2*1000*1000, 2*1000*1000)
+            val PERIOD = Pair(5*_hour.toInt(), 1*_hour.toInt())
+            val LENGTH = Pair(5*1000*1000, 2*1000*1000)
 
             Thread.sleep(normal(PERIOD).toLong())
             while (running()) {
@@ -230,12 +232,17 @@ class Simulation {
                     val txt = "#$i - @$h: ${"x".repeat(len)}"
                     post(h, CHAIN, txt)
                 }
-                Thread.sleep(normal(PERIOD).toLong())
+                for (s in 1..normal(PERIOD) step 1*min.toInt()) {
+                    if (!running()) {
+                        break
+                    }
+                    Thread.sleep(s.toLong())
+                }
             }
             println("AUTHOR: period=$PERIOD, len=$LENGTH")
         }
         val t2 = thread {
-            val PERIOD = Pair(10*_min.toInt(), 3*_min.toInt())
+            val PERIOD = Pair(6*_min.toInt(), 2*_min.toInt())
             val LENGTH = Pair(50, 20)
 
             Thread.sleep(normal(PERIOD).toLong())
@@ -277,7 +284,7 @@ class Simulation {
         Thread.sleep(2*sec)
 
         val t1 = thread { _sim_chat()  }
-        Thread.sleep(30*sec)
+        Thread.sleep(WAIT)
         val t2 = thread { _sim_insta() }
         t1.join()
         t2.join()
