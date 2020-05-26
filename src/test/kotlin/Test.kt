@@ -25,6 +25,7 @@ import kotlin.concurrent.thread
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 -> 1513 -> 1555 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
  *  - show IPs in connections
+ *  - test 50 random very slow chains each node
  *  - two simulation at the same time
  *  - allow binary pay
  *  - site to track: last access, chains heads
@@ -201,7 +202,7 @@ class Tests {
     fun xxx() {
         val host = Host_load("/data/tmp/freechains/chat-22/8417/")
         val chain = host.loadChain("/chat")
-        val x = chain.bfsFrontsIsFromTo (
+        /*val x =*/ chain.bfsFrontsIsFromTo (
             "18_8C965D6BB7ECA22912D3088687FB8A6FB5853121104A901716BD49FD9BF4D403",
             "26_F49DA3806198B432FB26C28987AD6972FD163D60EA3A5C3ED1C1F362039D6458"
         )

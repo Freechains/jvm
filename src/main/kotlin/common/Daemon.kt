@@ -65,7 +65,7 @@ class Daemon (host : Host) {
         val reader = DataInputStream(remote.getInputStream()!!)
         val writer = DataOutputStream(remote.getOutputStream()!!)
         val ln = reader.readLineX()
-        val (v1,v2,v3,cmd) =
+        val (v1,v2,_,cmd) =
             Regex("FC v(\\d+)\\.(\\d+)\\.(\\d+) (.*)").find(ln)!!.destructured
         assert(MAJOR==v1.toInt() && MINOR>=v2.toInt()) { "incompatible versions" }
 
@@ -293,7 +293,7 @@ class Daemon (host : Host) {
                             val r = DataInputStream(remote.getInputStream()!!)
                             val w = DataOutputStream(remote.getOutputStream()!!)
                             val (nmin,nmax) = chainSend(r, w, chain)
-                            System.err.println("chain send: $name: ($nmin/$nmax)")
+                            System.err.println("chain _send_: $name: ($nmin/$nmax)")
                             thread {
                                 signal(name, nmin)
                             }
@@ -303,7 +303,7 @@ class Daemon (host : Host) {
                             val r = DataInputStream(remote.getInputStream()!!)
                             val w = DataOutputStream(remote.getOutputStream()!!)
                             val (nmin,nmax) = chainRecv(r, w, chain)
-                            System.err.println("chain recv: $name: ($nmin/$nmax)")
+                            System.err.println("chain _recv_: $name: ($nmin/$nmax)")
                             thread {
                                 signal(name, nmin)
                             }
@@ -370,7 +370,6 @@ fun chainSend (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
         for (hash in sorted) {
             val out = chain.fsLoadBlock(hash)
             out.fronts.clear()
-            //println("[send] $hash")
             val json = out.toJson()
             writer.writeLineX(json.length.toString()) // 6
             writer.writeBytes(json)
@@ -436,15 +435,11 @@ fun chainRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
 
                 //println("[recv] ${blk.hash} // len=$len // ${blk.pay.length}")
                 chain.blockChain(blk,pay)
-                if (pay == "") {
-                    if (blk.immut.pay.hash != "".calcHash()) {
-                        // payload is really an empty string
-                        ;
-                    } else {
-                        hiddens.add(blk)
-                    }
-                }
-                nmin++
+                if (pay=="" && blk.immut.pay.hash!="".calcHash()) {
+                    hiddens.add(blk)
+                } // else: payload is really an empty string
+
+            nmin++
                 nin2++
             } catch (e: Throwable) {
                 System.err.println(e.message)
@@ -456,7 +451,7 @@ fun chainRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
     writer.writeLineX(nout.toString())                // 8
 
     for (blk in hiddens) {
-        assert(chain.blockState(blk, getNow()) == State.HIDDEN)
+        assert(chain.blockState(blk, getNow()) == State.HIDDEN) { "bug found: expected hidden state"}
     }
 
     return Pair(nmin,nmax)
