@@ -32,7 +32,7 @@ val VS = mutableListOf<List<Int>>()
 val TODO = mutableListOf<MutableList<Int>>()
 
 const val WAIT  = 1*min
-const val TOTAL = 8*hour   // simulation time
+const val TOTAL = 12*hour   // simulation time
 val LATENCY = Pair(50*ms.toInt(), 50*ms.toInt())   // network latency (start time)
 
 class Simulation {
@@ -197,7 +197,7 @@ class Simulation {
         val _day  = 1*hour
         val _hour = _day  / 24
         val _min  = _hour / 60
-        val _sec  = _min  / 60
+        //val _sec  = _min  / 60
 
         val start = getNow()
         var now: Long

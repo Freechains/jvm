@@ -76,6 +76,7 @@ class Daemon (host : Host) {
             //println("ok = ${remote.inetAddress!!}")
         }
 
+        //println("[handle] $cmd")
         when (cmd) {
             "host stop" -> {
                 writer.writeLineX("true")
@@ -433,7 +434,7 @@ fun chainRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
                 reader.readLineX()
                 assert(chain.getHeads(State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
 
-                //println("[recv] ${blk.hash} // len=$len // ${blk.pay.length}")
+                //println("[recv] ${blk.hash} // len=$len2 // ${pay.length}")
                 chain.blockChain(blk,pay)
                 if (pay=="" && blk.immut.pay.hash!="".calcHash()) {
                     hiddens.add(blk)

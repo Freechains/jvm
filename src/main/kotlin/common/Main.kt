@@ -74,6 +74,8 @@ fun main_ (args: Array<String>) : String {
                 opts["start"] as Boolean -> {
                     val dir = opts["<dir>"] as String
                     val host = Host_load(dir)
+                    System.out.println("Freechains $VERSION")
+                    System.out.println("Waiting for connections...")
                     Daemon(host).daemon()
                     return "true"
                 }
