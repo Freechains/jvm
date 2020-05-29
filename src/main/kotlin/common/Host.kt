@@ -67,12 +67,12 @@ fun String.hostSplit () : Pair<String,Int> {
 
 // CHAINS
 
-fun Host.loadChain (name: String) : Chain {
+fun Host.chainsLoad (name: String) : Chain {
     val file = File(this.root + "/chains/" + name + "/" + "chain")
     return file.readText().fromJsonToChain()
 }
 
-fun Host.joinChain (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
+fun Host.chainsJoin (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
     val chain = Chain(this.root+"/chains/", name, trusted, pub)
     val file = File(chain.root + chain.name + "/" + "chain")
     assert(!file.exists()) { "chain already exists: $chain"}
@@ -93,7 +93,7 @@ fun Host.joinChain (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
     return file.readText().fromJsonToChain()
 }
 
-fun Host.leaveChain (name: String) : Boolean {
+fun Host.chainsLeave (name: String) : Boolean {
     val file = File(this.root + "/chains/" + name + "/")
     return file.exists() && file.deleteRecursively()
 }

@@ -1,7 +1,5 @@
 package org.freechains.common
 
-import org.freechains.platform.*
-
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.ServerSocket
@@ -134,14 +132,14 @@ class Daemon (host : Host) {
                         ChainPub(oonly, pub)
                     }
                 val chain = synchronized (getLock()) {
-                    local.joinChain(name, trusted, pub)
+                    local.chainsJoin(name, trusted, pub)
                 }
                 writer.writeLineX(chain.hash)
                 System.err.println("chains join: $name (${chain.hash})")
             }
             "chains leave" -> {
                 val name= reader.readLineX().nameCheck()
-                val ret = local.leaveChain(name)
+                val ret = local.chainsLeave(name)
                 writer.writeLineX(ret.toString())
                 System.err.println("chains leave: $name -> $ret")
             }
@@ -160,7 +158,7 @@ class Daemon (host : Host) {
                 assert(cmd.startsWith("chain"))
                 val name  = reader.readLineX().nameCheck()
                 val chain = synchronized (getLock()) {
-                    local.loadChain(name)
+                    local.chainsLoad(name)
                 }
                 synchronized (getLock(chain)) {
                     when (cmd) {

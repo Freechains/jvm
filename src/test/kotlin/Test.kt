@@ -154,9 +154,9 @@ class Tests {
     fun b1_chain() {
         //a_reset()
         val h = Host_create("/tmp/freechains/tests/local/")
-        val c1 = h.joinChain("/uerj", false, null)
+        val c1 = h.chainsJoin("/uerj", false, null)
 
-        val c2 = h.loadChain(c1.name)
+        val c2 = h.chainsLoad(c1.name)
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
         val blk = c2.blockNew(HC, "", null, null)
@@ -169,7 +169,7 @@ class Tests {
     @Test
     fun c1_post() {
         val host = Host_load("/tmp/freechains/tests/local/")
-        val chain = host.joinChain("/", false, ChainPub(false,PUB0))
+        val chain = host.chainsJoin("/", false, ChainPub(false,PUB0))
         val n1 = chain.blockNew(H, "", PVT0, null)
         val n2 = chain.blockNew(H, "", PVT0, null)
         val n3 = chain.blockNew(H, "", null, null)
@@ -221,14 +221,14 @@ class Tests {
 
         // SOURCE
         val src = Host_create("/tmp/freechains/tests/src/")
-        val srcChain = src.joinChain("/d3", false, ChainPub(false,PUB1))
+        val srcChain = src.chainsJoin("/d3", false, ChainPub(false,PUB1))
         srcChain.blockNew(HC, "", PVT1, null)
         srcChain.blockNew(HC, "", PVT1, null)
         thread { Daemon(src).daemon() }
 
         // DESTINY
         val dst = Host_create("/tmp/freechains/tests/dst/", 8331)
-        dst.joinChain("/d3", false, null)
+        dst.chainsJoin("/d3", false, null)
         thread { Daemon(dst).daemon() }
         Thread.sleep(100)
 
@@ -248,12 +248,12 @@ class Tests {
         a_reset()
 
         val h1 = Host_create("/tmp/freechains/tests/h1/", PORT_8330)
-        val h1Chain = h1.joinChain("/xxx", false, ChainPub(false,PUB1))
+        val h1Chain = h1.chainsJoin("/xxx", false, ChainPub(false,PUB1))
         h1Chain.blockNew(H, "", PVT1, null)
         h1Chain.blockNew(H, "", PVT1, null)
 
         val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
-        val h2Chain = h2.joinChain("/xxx", false, null)
+        val h2Chain = h2.chainsJoin("/xxx", false, null)
         h2Chain.blockNew(H, "", PVT1, null)
         h2Chain.blockNew(H, "", PVT1, null)
 
@@ -431,16 +431,16 @@ class Tests {
         //a_reset()
         //main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
         val host = Host_load("/tmp/freechains/tests/M2/")
-        val c1 = host.joinChain("/sym", false, null)
+        val c1 = host.chainsJoin("/sym", false, null)
         c1.blockNew(HC, "", null, null)
-        val c2 = host.joinChain("/asy", false, ChainPub(false, PUB0))
+        val c2 = host.chainsJoin("/asy", false, ChainPub(false, PUB0))
         c2.blockNew(H, "", PVT0, PVT0)
     }
 
     @Test
     fun m04_crypto_encrypt() {
         val host = Host_load("/tmp/freechains/tests/M2/")
-        val c1 = host.loadChain("/sym")
+        val c1 = host.chainsLoad("/sym")
         //println(c1.root)
         val n1 = c1.blockNew(HC, "aaa", null, SHA0)
         //println(n1.hash)
