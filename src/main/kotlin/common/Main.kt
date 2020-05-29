@@ -1,5 +1,7 @@
 package org.freechains.common
 
+import org.freechains.platform.*
+
 import org.docopt.Docopt
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -18,7 +20,9 @@ Usage:
     freechains [options] host stop
     freechains [options] host now <time>
     freechains [options] crypto create (shared | pubpvt) <passphrase>
-    freechains [options] chain join <chain> [trusted] [ [owner-only] <pub> ]
+    freechains [options] chains join <chain> [trusted] [ [owner-only] <pub> ]
+    freechains [options] chains leave <chain>
+    freechains [options] chains list
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain> (all | linked | blocked)
     freechains [options] chain get <chain> (block | payload) <hash>
@@ -33,7 +37,7 @@ Usage:
 Options:
     --help              [none]            displays this help
     --version           [none]            displays version information
-    --host=<addr:port>  [all]             sets address and port to connect [default: localhost:8330]
+    --host=<addr:port>  [all]             sets address and port to connect [default: localhost:${PORT_8330}]
     --sign=<pvtkey>     [post|(dis)like]  signs post with given private key
     --crypt=<key>       [get|post]        (de|en)crypts post with given shared or private key
     --why=<text>        [(dis)like]       explains reason for the like
@@ -59,15 +63,17 @@ fun main_ (args: Array<String>) : String {
     }
 
     fun optHost(): Pair<String, Int> {
-        return ((opts["--host"] as String?) ?: "localhost:8330").hostSplit()
+        return ((opts["--host"] as String?) ?: "localhost:$PORT_8330").hostSplit()
     }
+
+    // host create/start do not connect to daemon
 
     when {
         opts["host"] as Boolean ->
             when {
                 opts["create"] as Boolean -> {
                     val dir = opts["<dir>"] as String
-                    val port = (opts["<port>"] as String?)?.toInt() ?: 8330
+                    val port = (opts["<port>"] as String?)?.toInt() ?: PORT_8330
                     val host = Host_create(dir, port)
                     return host.toString()
                 }
@@ -75,25 +81,30 @@ fun main_ (args: Array<String>) : String {
                     val dir = opts["<dir>"] as String
                     val host = Host_load(dir)
                     System.out.println("Freechains $VERSION")
-                    System.out.println("Waiting for connections...")
+                    System.out.println("Waiting for connections on port ${host.port}...")
                     Daemon(host).daemon()
                     return "true"
                 }
+            }
+    }
+
+    // all remaining connect to daemon
+
+    val (host, port) = optHost()
+    val socket = Socket_5s(host, port)
+    val writer = DataOutputStream(socket.getOutputStream()!!)
+    val reader = DataInputStream(socket.getInputStream()!!)
+
+    when {
+        opts["host"] as Boolean ->
+            when {
                 opts["stop"] as Boolean -> {
-                    val (host, port) = optHost()
-                    val socket = Socket_5s(host, port)
-                    val writer = DataOutputStream(socket.getOutputStream()!!)
-                    val reader = DataInputStream(socket.getInputStream()!!)
                     writer.writeLineX("$PRE host stop")
                     assert(reader.readLineX() == "true")
                     socket.close()
                     return "true"
                 }
                 opts["now"] as Boolean -> {
-                    val (host, port) = optHost()
-                    val socket = Socket_5s(host, port)
-                    val writer = DataOutputStream(socket.getOutputStream()!!)
-                    val reader = DataInputStream(socket.getInputStream()!!)
                     val now= opts["<time>"] as String
                     writer.writeLineX("$PRE host now")
                     writer.writeLineX(now)
@@ -102,15 +113,10 @@ fun main_ (args: Array<String>) : String {
                     return "true"
                 }
             }
-        opts["chain"] as Boolean -> {
-            val (host, port) = optHost()
-            val socket = if (opts["listen"] as Boolean) Socket(host,port) else Socket_5s(host, port)
-            val writer = DataOutputStream(socket.getOutputStream()!!)
-            val reader = DataInputStream(socket.getInputStream()!!)
+        opts["chains"] as Boolean -> {
             when {
-                //     freechains [options] chain join <chain> [ [owner-only] <pub> ]
                 opts["join"] as Boolean -> {
-                    writer.writeLineX("$PRE chain join")
+                    writer.writeLineX("$PRE chains join")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX((opts["trusted"] as Boolean).toString())
                     if (opts["<pub>"] != null) {
@@ -121,6 +127,10 @@ fun main_ (args: Array<String>) : String {
                     }
                     return reader.readLineX()
                 }
+            }
+        }
+        opts["chain"] as Boolean -> {
+            when {
                 opts["genesis"] as Boolean -> {
                     writer.writeLineX("$PRE chain genesis")
                     writer.writeLineX(opts["<chain>"] as String)
@@ -207,7 +217,7 @@ fun main_ (args: Array<String>) : String {
                     val pay = when {
                         opts["inline"] as Boolean -> (opts["<path_or_text>"] as String)
                         opts["file"]   as Boolean -> File(opts["<path_or_text>"] as String).readBytes().toString(Charsets.UTF_8)
-                        opts["-"]      as Boolean -> System.`in`.readAllBytes().toString(Charsets.UTF_8)
+                        opts["-"]      as Boolean -> DataInputStream(System.`in`).readAllBytes()!!.toString(Charsets.UTF_8)
                         else -> error("impossible case")
                     }
                     writer.writeLineX(pay.length.toString())
@@ -229,7 +239,9 @@ fun main_ (args: Array<String>) : String {
                             else -> error("bug found")
                         }
                     )
-                    writer.writeLineX((opts["<hashes>"] as ArrayList<String>).joinToString(" "))
+                    writer.writeLineX((opts["<hashes>"] as ArrayList<Any?>)
+                        .filterIsInstance<String>()
+                        .joinToString(" "))
                     val ret = reader.readLineX()
                     return ret
                 }
@@ -257,10 +269,6 @@ fun main_ (args: Array<String>) : String {
             socket.close()
         }
         opts["crypto"] as Boolean -> {
-            val (host, port) = optHost()
-            val socket = Socket_5s(host, port)
-            val writer = DataOutputStream(socket.getOutputStream()!!)
-            val reader = DataInputStream(socket.getInputStream()!!)
             when {
                 // freechains [options] crypto create (shared | pubpvt) <passphrase>
                 opts["create"] as Boolean -> {

@@ -24,12 +24,12 @@ echo "#### 1"
 freechains host create $FC/8400 8400
 freechains host start $FC/8400 &
 sleep 0.5
-freechains $H0 chain join /
+freechains $H0 chains join /
 
 freechains host create $FC/8401 8401
 freechains host start $FC/8401 &
 sleep 0.5
-freechains $H1 chain join /
+freechains $H1 chains join /
 
 freechains $H0 host now 0
 freechains $H1 host now 0

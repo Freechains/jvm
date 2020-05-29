@@ -23,7 +23,7 @@ freechains host create $FC/8400 8400
 freechains host start $FC/8400 &
 sleep 0.5
 freechains $H0 host now 0
-freechains $H0 chain join /
+freechains $H0 chains join /
 b1=`freechains $H0 $SIG1 chain post / inline pub1.1`
 b2=`freechains $H0 $SIG0 chain post / inline pub0.2`
 

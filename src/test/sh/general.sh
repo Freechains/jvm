@@ -16,7 +16,7 @@ echo "#### 1"
 freechains host create $FC/8400 8400
 freechains host start $FC/8400 &
 sleep 0.5
-freechains --host=localhost:8400 chain join / owner-only $PUB
+freechains --host=localhost:8400 chains join / owner-only $PUB
 freechains --host=localhost:8400 host now 0
 g=`freechains --host=localhost:8400 chain genesis /`
 h=`freechains --host=localhost:8400 --sign=$PVT chain post / inline Hello_World`
@@ -44,7 +44,7 @@ freechains host create $FC/8401 8401
 freechains host start $FC/8401 &
 sleep 0.5
 freechains --host=localhost:8401 host now 0
-freechains --host=localhost:8401 chain join / owner-only $PUB
+freechains --host=localhost:8401 chains join / owner-only $PUB
 echo 111 | freechains --host=localhost:8400 chain --sign=$PVT post / -
 freechains --host=localhost:8400 chain --sign=$PVT post / inline 222
 freechains --host=localhost:8400 chain send / localhost:8401
@@ -64,7 +64,7 @@ freechains host create $FC/8402 8402
 freechains host start $FC/8402 &
 sleep 0.5
 freechains --host=localhost:8402 host now 0
-freechains --host=localhost:8402 chain join / owner-only $PUB
+freechains --host=localhost:8402 chains join / owner-only $PUB
 freechains --host=localhost:8402 chain recv / localhost:8400 &
 P1=$!
 freechains --host=localhost:8401 chain send / localhost:8402 &
@@ -111,7 +111,7 @@ do
   freechains host start $FC/$i &
   sleep 0.5
   freechains --host=localhost:$i host now 0
-  freechains --host=localhost:$i chain join / owner-only $PUB
+  freechains --host=localhost:$i chains join / owner-only $PUB
 done
 
 echo "#### 5.1"

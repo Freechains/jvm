@@ -24,6 +24,8 @@ import kotlin.concurrent.thread
  *                                reps             28-02    29-02    17-03   19-03    25-04   28-04   04-05
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 -> 1513 -> 1555 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
+ *  - permission for client
+ *  - android app client para controlar host: registrar hosts, chains, users, etc, receber notificacoes
  *  - passar dir de instalacao p/ install
  *  - show IPs in connections
  *  - test 50 random very slow chains each node
@@ -89,7 +91,7 @@ const val PVT1 = "6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94AF0EDBE24
 const val PUB1 = "E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"
 const val SHA0 = "64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"
 
-const val H0 = "--host=localhost:8330"
+const val H0 = "--host=localhost:$PORT_8330"
 const val H1 = "--host=localhost:8331"
 const val S0 = "--sign=$PVT0"
 const val S1 = "--sign=$PVT1"
@@ -199,6 +201,7 @@ class Tests {
         Thread.sleep(100)
     }
 
+    /*
     @Test
     fun xxx() {
         val host = Host_load("/data/tmp/freechains/chat-22/8417/")
@@ -210,6 +213,7 @@ class Tests {
         val y = chain.getHeads(State.ALL)
         println(y)
     }
+     */
 
     @Test
     fun d3_proto() {
@@ -243,7 +247,7 @@ class Tests {
     fun f1_peers() {
         a_reset()
 
-        val h1 = Host_create("/tmp/freechains/tests/h1/", 8330)
+        val h1 = Host_create("/tmp/freechains/tests/h1/", PORT_8330)
         val h1Chain = h1.joinChain("/xxx", false, ChainPub(false,PUB1))
         h1Chain.blockNew(H, "", PVT1, null)
         h1Chain.blockNew(H, "", PVT1, null)
@@ -276,7 +280,7 @@ class Tests {
             main(arrayOf("host", "start", "/tmp/freechains/tests/M1/"))
         }
         Thread.sleep(100)
-        main(arrayOf("chain", "join", "/xxx"))
+        main(arrayOf("chains", "join", "/xxx"))
 
         assert(main_(arrayOf("chain", "genesis", "/xxx")).startsWith("0_"))
         assert(main_(arrayOf("chain", "heads", "/xxx", "linked")).startsWith("0_"))
@@ -316,7 +320,7 @@ class Tests {
             main(arrayOf("host", "start", "/tmp/freechains/tests/trav/"))
         }
         Thread.sleep(100)
-        main(arrayOf("chain", "join", "/"))
+        main(arrayOf("chains", "join", "/"))
         val gen = main_(arrayOf("chain", "genesis", "/"))
         main_(arrayOf("chain", "post", "/", "inline", "aaa", S0))
         main_(arrayOf("chain", "traverse", "/", "all", gen)).let {
@@ -435,7 +439,7 @@ class Tests {
         Thread.sleep(100)
         main(
             arrayOf (
-                "chain",
+                "chains",
                 "join",
                 "/xxx"
             )
@@ -443,7 +447,7 @@ class Tests {
         main(
             arrayOf (
                 H1,
-                "chain",
+                "chains",
                 "join",
                 "/xxx"
             )
@@ -461,8 +465,8 @@ class Tests {
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M60/")) }
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M61/")) }
         Thread.sleep(100)
-        main(arrayOf("chain", "join", "/xxx", PUB0))
-        main(arrayOf(H1, "chain", "join", "/xxx", PUB0))
+        main(arrayOf("chains", "join", "/xxx", PUB0))
+        main(arrayOf(H1, "chains", "join", "/xxx", PUB0))
         val hash = main_(arrayOf("chain", "post", "/xxx", "inline", "aaa", S0, "--crypt=$PVT0"))
 
         val pay = main_(arrayOf("chain", "get", "/xxx", "payload", hash, "--crypt=$PVT0"))
@@ -488,17 +492,17 @@ class Tests {
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M71/")) }
         Thread.sleep(100)
 
-        main_(arrayOf(H0, "chain", "join", "/"))
+        main_(arrayOf(H0, "chains", "join", "/"))
         main_(arrayOf(H0, "chain", "post", "/", "inline", "first-0", S0))
-        main_(arrayOf(H1, "chain", "join", "/"))
+        main_(arrayOf(H1, "chains", "join", "/"))
         main_(arrayOf(H1, "chain", "post", "/", "inline", "first-1", S1))
         Thread.sleep(100)
 
         // H0: g <- f0
         // H1: g <- f1
 
-        val r0 = main_(arrayOf(H1, "chain", "recv", "/", "localhost:8330"))
-        val r1 = main_(arrayOf(H1, "chain", "send", "/", "localhost:8330"))
+        val r0 = main_(arrayOf(H1, "chain", "recv", "/", "localhost:$PORT_8330"))
+        val r1 = main_(arrayOf(H1, "chain", "send", "/", "localhost:$PORT_8330"))
         assert(r0 == r1 && r0 == "0 / 1")
 
         val r00 = main_(arrayOf(H0, "chain", "reps", "/", PUB0))
@@ -525,7 +529,7 @@ class Tests {
         main(arrayOf("host", "create", "/tmp/freechains/tests/M80/"))
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M80/")) }
         Thread.sleep(100)
-        main(arrayOf("chain", "join", "/xxx", PUB0))
+        main(arrayOf("chains", "join", "/xxx", PUB0))
 
         main_(arrayOf(H0, "host", "now", "0"))
 
@@ -609,7 +613,7 @@ class Tests {
         main_(arrayOf("host", "create", "/tmp/freechains/tests/M81/", "8331"))
         thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M81/")) }
         Thread.sleep(100)
-        main_(arrayOf(H1, "chain", "join", "/xxx", PUB0))
+        main_(arrayOf(H1, "chains", "join", "/xxx", PUB0))
 
         // I'm in the future, old posts will be refused
         main_(arrayOf(H1, "host", "now", Instant.now().toEpochMilli().toString()))
@@ -626,7 +630,7 @@ class Tests {
 
         // only very old (H1/H2/L3)
         main_(arrayOf(H1, "host", "now", "0"))
-        val n2 = main_(arrayOf(H1, "chain", "recv", "/xxx", "localhost:8330"))
+        val n2 = main_(arrayOf(H1, "chain", "recv", "/xxx", "localhost:$PORT_8330"))
         assert(n2 == "4 / 7") { n2 }
         main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let {
             assert(it.startsWith("3_"))
@@ -685,7 +689,7 @@ class Tests {
             }
         }
 
-        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
+        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:$PORT_8330")).let {
             assert(it == "1 / 1")
         }
 
@@ -717,7 +721,7 @@ class Tests {
         //          \               /         \        /
         //           \- h22 <-------           l6 <- h7
 
-        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
+        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:$PORT_8330")).let {
             assert(it.equals("1 / 1"))
         }
 
@@ -737,7 +741,7 @@ class Tests {
         //          \               /         \    /         /
         //           \- h22 <-------           l6 <- h7 <- h8
 
-        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:8330")).let {
+        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:$PORT_8330")).let {
             assert (it == "1 / 1")
         }
         main_(arrayOf(H1, "chain", "reps", "/xxx", PUB0)).let {
@@ -771,8 +775,8 @@ class Tests {
         main(arrayOf("host", "create", "/tmp/freechains/tests/M101/", "8331"))
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M101/")) }
         Thread.sleep(100)
-        main(arrayOf(H0, "chain", "join", "/", PUB0))
-        main(arrayOf(H1, "chain", "join", "/", PUB0))
+        main(arrayOf(H0, "chains", "join", "/", PUB0))
+        main(arrayOf(H1, "chains", "join", "/", PUB0))
         main(arrayOf(H0, "host", "now", "0"))
         main(arrayOf(H1, "host", "now", "0"))
 
@@ -787,7 +791,7 @@ class Tests {
         assert(!ps1.contains(h1) && !ps1.contains(h2) &&  ps1.contains(hx))
         assert(!rs1.contains(h1) && !rs1.contains(h2) && !rs1.contains(hx))
 
-        main_(arrayOf(H1, "chain", "recv", "/", "localhost:8330"))
+        main_(arrayOf(H1, "chain", "recv", "/", "localhost:$PORT_8330"))
 
         main_(arrayOf(H1, "chain", "post", "/", "inline", "h3",S1)).let {
             //assert(it == "backs must be accepted")
@@ -821,8 +825,8 @@ class Tests {
         main(arrayOf("host", "create", "/tmp/freechains/tests/M101/", "8331"))
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M101/")) }
         Thread.sleep(100)
-        main(arrayOf(H0, "chain", "join", "/"))
-        main(arrayOf(H1, "chain", "join", "/"))
+        main(arrayOf(H0, "chains", "join", "/"))
+        main(arrayOf(H1, "chains", "join", "/"))
 
         main_(arrayOf(H0, "chain", "post", "/", "inline", "h1",S0))
         val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "h2"))
@@ -841,13 +845,13 @@ class Tests {
         main(arrayOf("host", "create", "/tmp/freechains/tests/M120/"))
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M120/")) }
         Thread.sleep(100)
-        main(arrayOf(H0, "chain", "join", "/"))
+        main(arrayOf(H0, "chains", "join", "/"))
         main(arrayOf(H0, "host", "now", "0"))
 
         main(arrayOf("host", "create", "/tmp/freechains/tests/M121/", "8331"))
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M121/")) }
         Thread.sleep(100)
-        main(arrayOf(H1, "chain", "join", "/"))
+        main(arrayOf(H1, "chains", "join", "/"))
         main(arrayOf(H1, "host", "now", "0"))
 
         main_(arrayOf(H0, "chain", "post", "/", "inline", "h1",S0))
@@ -937,7 +941,7 @@ class Tests {
         main_(arrayOf(H1,"chain","dislike","/",h22,S0))     // one is not enough
         main_(arrayOf(H1,"chain","dislike","/",h22,S0))     // one is not enough
         main_(arrayOf(H1, "host", "now", "${4*hour}"))
-        main_(arrayOf(H1, "chain", "send", "/", "localhost:8330"))  // errors when merging
+        main_(arrayOf(H1, "chain", "send", "/", "localhost:$PORT_8330"))  // errors when merging
 
         // l4 dislikes h22 (reject it)
         // TODO: check if h22 contents are empty
@@ -960,7 +964,7 @@ class Tests {
         main(arrayOf("host", "create", "/tmp/freechains/tests/M13/"))
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M13/")) }
         Thread.sleep(100)
-        main(arrayOf(H0, "chain", "join", "/"))
+        main(arrayOf(H0, "chains", "join", "/"))
 
         main(arrayOf(H0, "host", "now", "0"))
         main_(arrayOf(H0, "chain", "post", "/", "inline", "h1", S0))
@@ -1032,7 +1036,7 @@ class Tests {
         main(arrayOf("host", "create", "/tmp/freechains/tests/M140/"))
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M140/")) }
         Thread.sleep(100)
-        main(arrayOf("chain", "join", "/"))
+        main(arrayOf("chains", "join", "/"))
 
         main(arrayOf(H0, "host", "now", "0"))
 
@@ -1115,8 +1119,8 @@ class Tests {
         main(arrayOf("host", "create", "/tmp/freechains/tests/M151/", "8331"))
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M151/")) }
         Thread.sleep(100)
-        main(arrayOf(H0, "chain", "join", "/"))
-        main(arrayOf(H1, "chain", "join", "/"))
+        main(arrayOf(H0, "chains", "join", "/"))
+        main(arrayOf(H1, "chains", "join", "/"))
 
         main(arrayOf(H0, "host", "now", "0"))
         main(arrayOf(H1, "host", "now", "0"))
@@ -1125,7 +1129,7 @@ class Tests {
         val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "1@h2"))
         main_(arrayOf(H0, S0, "chain", "like", "/", "--why=0@l2", h2))
 
-        main_(arrayOf(H1, "chain", "recv", "/", "localhost:8330"))
+        main_(arrayOf(H1, "chain", "recv", "/", "localhost:$PORT_8330"))
 
         // HOST-0
         // h0 <- 0@h1 <- 1@h2 <- 0@l2
@@ -1185,7 +1189,7 @@ class Tests {
 
         // send H1 -> H0
         // ~1@h3 will be rejected b/c 1@h2 is rejected in H0~
-        main_(arrayOf(H1, "chain", "send", "/", "localhost:8330")).let {
+        main_(arrayOf(H1, "chain", "send", "/", "localhost:$PORT_8330")).let {
             assert(it.contains("1 / 1"))
         }
 
@@ -1216,7 +1220,7 @@ class Tests {
         main(arrayOf("host", "create", "/tmp/freechains/tests/M16/"))
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M16/")) }
         Thread.sleep(100)
-        main(arrayOf(H0, "chain", "join", "/"))
+        main(arrayOf(H0, "chains", "join", "/"))
 
         main(arrayOf(H0, "host", "now", "0"))
 
@@ -1257,7 +1261,7 @@ class Tests {
         main(arrayOf("host", "create", "/tmp/freechains/tests/M17/"))
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M17/")) }
         Thread.sleep(100)
-        main(arrayOf(H0, "chain", "join", "/"))
+        main(arrayOf(H0, "chains", "join", "/"))
 
         main(arrayOf(H0, "host", "now", "0"))
 
@@ -1297,7 +1301,7 @@ class Tests {
         main(arrayOf("host", "create", "/tmp/freechains/tests/M18/"))
         thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M18/")) }
         Thread.sleep(100)
-        main(arrayOf(H0, "chain", "join", "/"))
+        main(arrayOf(H0, "chains", "join", "/"))
 
         main(arrayOf(H0, "host", "now", "0"))
 

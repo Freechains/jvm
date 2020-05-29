@@ -14,19 +14,19 @@ sleep 0.5
 KEYS=`freechains --host=localhost:8400 crypto create pubpvt correct`
 PUB=`echo $KEYS | cut -d ' ' -f 1`
 PVT=`echo $KEYS | cut -d ' ' -f 2`
-freechains --host=localhost:8400 chain join / $PUB
+freechains --host=localhost:8400 chains join / $PUB
 
 # 8401 (no keys)
 freechains host create $FC/8401 8401
 freechains host start $FC/8401 &
 sleep 0.5
-freechains --host=localhost:8401 chain join /
+freechains --host=localhost:8401 chains join /
 
 # 8402 (public key only)
 freechains host create $FC/8402 8402
 freechains host start $FC/8402 &
 sleep 0.5
-freechains --host=localhost:8402 chain join / $PUB
+freechains --host=localhost:8402 chains join / $PUB
 
 # get genesis block of each host
 g0=`freechains --host=localhost:8400 chain genesis /`

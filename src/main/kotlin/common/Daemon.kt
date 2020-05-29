@@ -1,5 +1,7 @@
 package org.freechains.common
 
+import org.freechains.platform.*
+
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.ServerSocket
@@ -118,7 +120,7 @@ class Daemon (host : Host) {
                     }
                 }
             }
-            "chain join" -> {
+            "chains join" -> {
                 val name= reader.readLineX().nameCheck()
                 val trusted= reader.readLineX().toBoolean()
                 val type= reader.readLineX()
@@ -134,7 +136,7 @@ class Daemon (host : Host) {
                     local.joinChain(name, trusted, pub)
                 }
                 writer.writeLineX(chain.hash)
-                System.err.println("chain join: $name (${chain.hash})")
+                System.err.println("chains join: $name (${chain.hash})")
             }
             "chain listen" -> {
                 remote.soTimeout = 0

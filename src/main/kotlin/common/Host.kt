@@ -71,7 +71,7 @@ fun Host_exists (dir: String) : Boolean {
     return File(fsRoot + "/" + dir).exists()
 }
 
-fun Host_create (dir: String, port: Int = 8330) : Host {
+fun Host_create (dir: String, port: Int = PORT_8330) : Host {
     assert(dir.startsWith("/"))
     val root = fsRoot + dir
     val fs = File(root)
@@ -87,8 +87,8 @@ fun Host_create (dir: String, port: Int = 8330) : Host {
 fun String.hostSplit () : Pair<String,Int> {
     val lst = this.split(":")
     return when (lst.size) {
-        0 -> Pair("localhost", 8330)
-        1 -> Pair(lst[0], 8330)
+        0 -> Pair("localhost", PORT_8330)
+        1 -> Pair(lst[0], PORT_8330)
         else -> Pair(lst[0], lst[1].toInt())
     }
 }

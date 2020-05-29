@@ -80,7 +80,7 @@ class Simulation {
     fun join (chain: String) {
         for (i in 0 until N) {
             val h = 8400 + i
-            main(arrayOf(h.toHost(), "chain", "join", chain, "trusted"))
+            main(arrayOf(h.toHost(), "chains", "join", chain, "trusted"))
         }
     }
 

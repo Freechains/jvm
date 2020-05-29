@@ -9,6 +9,8 @@ const val REVISION = 1
 const val VERSION  = "v$MAJOR.$MINOR.$REVISION"
 const val PRE      = "FC $VERSION"
 
+const val PORT_8330 = 8330
+
 const val ms   = 1.toLong()
 const val sec  = 1000*ms
 const val min  = 60*sec
