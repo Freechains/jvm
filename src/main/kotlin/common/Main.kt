@@ -19,10 +19,13 @@ Usage:
     freechains host start <dir>
     freechains [options] host stop
     freechains [options] host now <time>
+    
     freechains [options] crypto create (shared | pubpvt) <passphrase>
+    
     freechains [options] chains join <chain> [trusted] [ [owner-only] <pub> ]
     freechains [options] chains leave <chain>
     freechains [options] chains list
+    
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain> (all | linked | blocked)
     freechains [options] chain get <chain> (block | payload) <hash>
@@ -125,6 +128,11 @@ fun main_ (args: Array<String>) : String {
                     } else {
                         writer.writeLineX("")
                     }
+                    return reader.readLineX()
+                }
+                opts["leave"] as Boolean -> {
+                    writer.writeLineX("$PRE chains leave")
+                    writer.writeLineX(opts["<chain>"] as String)
                     return reader.readLineX()
                 }
             }

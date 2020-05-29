@@ -120,6 +120,7 @@ class Daemon (host : Host) {
                     }
                 }
             }
+
             "chains join" -> {
                 val name= reader.readLineX().nameCheck()
                 val trusted= reader.readLineX().toBoolean()
@@ -138,6 +139,13 @@ class Daemon (host : Host) {
                 writer.writeLineX(chain.hash)
                 System.err.println("chains join: $name (${chain.hash})")
             }
+            "chains leave" -> {
+                val name= reader.readLineX().nameCheck()
+                val ret = local.leaveChain(name)
+                writer.writeLineX(ret.toString())
+                System.err.println("chains leave: $name -> $ret")
+            }
+
             "chain listen" -> {
                 remote.soTimeout = 0
                 val name= reader.readLineX().nameCheck()

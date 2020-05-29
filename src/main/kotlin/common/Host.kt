@@ -27,34 +27,6 @@ fun String.fromJsonToHost () : Host {
     return json.parse(Host.serializer(), this)
 }
 
-// CHAIN
-
-fun Host.joinChain (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
-    val chain = Chain(this.root+"/chains/", name, trusted, pub)
-    val file = File(chain.root + chain.name + "/" + "chain")
-    assert(!file.exists()) { "chain already exists: $chain"}
-    chain.fsSave()
-    val genesis = Block (
-        Immut (
-            0,
-            Payload( false, ""),
-            null,
-            null,
-            emptyArray()
-        ),
-        chain.getGenesis(),
-        null
-    )
-    chain.fsSaveBlock(genesis)
-    chain.fsSavePay(genesis.hash, "")
-    return file.readText().fromJsonToChain()
-}
-
-fun Host.loadChain (name: String) : Chain {
-    val file = File(this.root + "/chains/" + name + "/" + "chain")
-    return file.readText().fromJsonToChain()
-}
-
 // FILE SYSTEM
 
 fun Host.fsSave () {
@@ -92,3 +64,37 @@ fun String.hostSplit () : Pair<String,Int> {
         else -> Pair(lst[0], lst[1].toInt())
     }
 }
+
+// CHAINS
+
+fun Host.loadChain (name: String) : Chain {
+    val file = File(this.root + "/chains/" + name + "/" + "chain")
+    return file.readText().fromJsonToChain()
+}
+
+fun Host.joinChain (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
+    val chain = Chain(this.root+"/chains/", name, trusted, pub)
+    val file = File(chain.root + chain.name + "/" + "chain")
+    assert(!file.exists()) { "chain already exists: $chain"}
+    chain.fsSave()
+    val genesis = Block (
+        Immut (
+            0,
+            Payload( false, ""),
+            null,
+            null,
+            emptyArray()
+        ),
+        chain.getGenesis(),
+        null
+    )
+    chain.fsSaveBlock(genesis)
+    chain.fsSavePay(genesis.hash, "")
+    return file.readText().fromJsonToChain()
+}
+
+fun Host.leaveChain (name: String) : Boolean {
+    val file = File(this.root + "/chains/" + name + "/")
+    return file.exists() && file.deleteRecursively()
+}
+

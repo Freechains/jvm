@@ -272,6 +272,26 @@ class Tests {
     }
 
     @Test
+    fun m00_chains() {
+        a_reset()
+        main(arrayOf("host", "create", "/tmp/freechains/tests/M0/"))
+        //main(arrayOf("host", "stop"))
+        thread {
+            main(arrayOf("host", "start", "/tmp/freechains/tests/M0/"))
+        }
+        Thread.sleep(100)
+        main_(arrayOf("chains", "leave", "/xxx")).let {
+            assert(it == "false")
+        }
+        main_(arrayOf("chains", "join", "/xxx")).let {
+            assert(it.isNotEmpty())
+        }
+        main_(arrayOf("chains", "leave", "/xxx")).let {
+            assert(it == "true")
+        }
+    }
+
+    @Test
     fun m01_args() {
         a_reset()
         main(arrayOf("host", "create", "/tmp/freechains/tests/M1/"))
