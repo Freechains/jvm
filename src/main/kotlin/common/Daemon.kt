@@ -48,14 +48,25 @@ class Daemon (host : Host) {
     }
 
     private fun signal (chain: String, n: Int) {
-        val has = synchronized (listenLists) { listenLists.containsKey(chain) }
-        if (has) {
+        val has1 = synchronized (listenLists) { listenLists.containsKey(chain) }
+        if (has1) {
             val wrs = synchronized (listenLists) { listenLists[chain]!!.toList() }
             for (wr in wrs) {
                 try {
                     wr.writeLineX(n.toString())
                 } catch (e: Throwable) {
                     synchronized (listenLists) { listenLists[chain]!!.remove(wr) }
+                }
+            }
+        }
+        val has2 = synchronized (listenLists) { listenLists.containsKey("*") }
+        if (has2) {
+            val wrs = synchronized (listenLists) { listenLists["*"]!!.toList() }
+            for (wr in wrs) {
+                try {
+                    wr.writeLineX(n.toString())
+                } catch (e: Throwable) {
+                    synchronized (listenLists) { listenLists["*"]!!.remove(wr) }
                 }
             }
         }
@@ -142,6 +153,20 @@ class Daemon (host : Host) {
                 val ret = local.chainsLeave(name)
                 writer.writeLineX(ret.toString())
                 System.err.println("chains leave: $name -> $ret")
+            }
+            "chains list" -> {
+                val ret = local.chainsList().joinToString(" ")
+                writer.writeLineX(ret.toString())
+                System.err.println("chains list: $ret")
+            }
+            "chains listen" -> {
+                remote.soTimeout = 0
+                synchronized (listenLists) {
+                    if (! listenLists.containsKey("*")) {
+                        listenLists["*"] = mutableSetOf()
+                    }
+                    listenLists["*"]!!.add(writer)
+                }
             }
 
             "chain listen" -> {

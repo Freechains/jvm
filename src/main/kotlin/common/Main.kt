@@ -25,6 +25,7 @@ Usage:
     freechains [options] chains join <chain> [trusted] [ [owner-only] <pub> ]
     freechains [options] chains leave <chain>
     freechains [options] chains list
+    freechains [options] chains listen
     
     freechains [options] chain genesis <chain>
     freechains [options] chain heads <chain> (all | linked | blocked)
@@ -83,8 +84,8 @@ fun main_ (args: Array<String>) : String {
                 opts["start"] as Boolean -> {
                     val dir = opts["<dir>"] as String
                     val host = Host_load(dir)
-                    System.out.println("Freechains $VERSION")
-                    System.out.println("Waiting for connections on port ${host.port}...")
+                    output("Freechains $VERSION")
+                    output("Waiting for connections on port ${host.port}...")
                     Daemon(host).daemon()
                     return "true"
                 }
@@ -135,6 +136,17 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX(opts["<chain>"] as String)
                     return reader.readLineX()
                 }
+                opts["list"] as Boolean -> {
+                    writer.writeLineX("$PRE chains list")
+                    return reader.readLineX()
+                }
+                opts["listen"] as Boolean -> {
+                    writer.writeLineX("$PRE chains listen")
+                    while (true) {
+                        val n_name = reader.readLineX()
+                        output(n_name)
+                    }
+                }
             }
         }
         opts["chain"] as Boolean -> {
@@ -155,8 +167,7 @@ fun main_ (args: Array<String>) : String {
                             else -> error("bug found")
                         }
                     )
-                    val ret = reader.readLineX()
-                    return ret
+                    return reader.readLineX()
                 }
                 opts["reps"] as Boolean -> {
                     writer.writeLineX("$PRE chain reps")

@@ -68,13 +68,17 @@ fun String.hostSplit () : Pair<String,Int> {
 // CHAINS
 
 fun Host.chainsLoad (name: String) : Chain {
-    val file = File(this.root + "/chains/" + name + "/" + "chain")
+    name.nameCheck()
+    val name_ = name.replace('/','_')
+    val file = File(this.root + "/chains/" + name_ + "/" + "chain")
     return file.readText().fromJsonToChain()
 }
 
 fun Host.chainsJoin (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
+    name.nameCheck()
+    val name_ = name.replace('/','_')
     val chain = Chain(this.root+"/chains/", name, trusted, pub)
-    val file = File(chain.root + chain.name + "/" + "chain")
+    val file = File(chain.root + "/" + name_ + "/" + "chain")
     assert(!file.exists()) { "chain already exists: $chain"}
     chain.fsSave()
     val genesis = Block (
@@ -94,7 +98,15 @@ fun Host.chainsJoin (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
 }
 
 fun Host.chainsLeave (name: String) : Boolean {
-    val file = File(this.root + "/chains/" + name + "/")
+    name.nameCheck()
+    val name_ = name.replace('/','_')
+    val file = File(this.root + "/chains/" + name_ + "/")
     return file.exists() && file.deleteRecursively()
 }
 
+fun Host.chainsList () : List<String> {
+    val file = File(this.root + "/chains/")
+    return file.list()!!.map {
+        it.replace('_','/')
+    }
+}

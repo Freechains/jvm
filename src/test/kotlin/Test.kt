@@ -152,7 +152,7 @@ class Tests {
 
     @Test
     fun b1_chain() {
-        //a_reset()
+        a_reset()
         val h = Host_create("/tmp/freechains/tests/local/")
         val c1 = h.chainsJoin("/uerj", false, null)
 
@@ -285,6 +285,12 @@ class Tests {
         }
         main_(arrayOf("chains", "join", "/xxx")).let {
             assert(it.isNotEmpty())
+        }
+        main_(arrayOf("chains", "join", "/yyy")).let {
+            assert(it.isNotEmpty())
+        }
+        main_(arrayOf("chains", "list")).let {
+            assert(it == "/yyy /xxx")
         }
         main_(arrayOf("chains", "leave", "/xxx")).let {
             assert(it == "true")

@@ -29,13 +29,18 @@ data class Chain (
     val trusted : Boolean,
     val pub     : ChainPub?
 ) {
+    val path    : String = this.root + "/" + this.name.replace('/','_')
     val hash    : String = this.toHash()
     val heads   : ArrayList<Hash> = arrayListOf(this.getGenesis())
 }
 
 // TODO: change to contract/constructor assertion
 fun String.nameCheck () : String {
-    assert(this[0]=='/' && (this.length==1 || this.last()!='/')) { "invalid chain: $this"}
+    assert (
+        this.startsWith('/') &&
+        (this.length==1 || !this.endsWith('/')) &&
+        !this.contains('_')
+    ) { "invalid chain: $this"}
     return this
 }
 
@@ -177,20 +182,20 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
 // FILE SYSTEM
 
 internal fun Chain.fsSave () {
-    val dir = File(this.root + this.name + "/blocks/")
+    val dir = File(this.path + "/blocks/")
     if (!dir.exists()) {
         dir.mkdirs()
     }
-    File(this.root + this.name + "/" + "chain").writeText(this.toJson())
+    File(this.path + "/" + "chain").writeText(this.toJson())
 }
 
 fun Chain.fsLoadBlock (hash: Hash) : Block {
-    return File(this.root + this.name + "/blocks/" + hash + ".blk").readText().jsonToBlock()
+    return File(this.path + "/blocks/" + hash + ".blk").readText().jsonToBlock()
 }
 
 fun Chain.fsLoadPay (hash: Hash, crypt: HKey?) : String {
     val blk = this.fsLoadBlock(hash)
-    val pay = File(this.root + this.name + "/blocks/" + hash + ".pay").readBytes().toString(Charsets.UTF_8)
+    val pay = File(this.path + "/blocks/" + hash + ".pay").readBytes().toString(Charsets.UTF_8)
     if (crypt==null || !blk.immut.pay.crypt) {
         return pay
     }
@@ -199,13 +204,13 @@ fun Chain.fsLoadPay (hash: Hash, crypt: HKey?) : String {
 
 fun Chain.fsExistsBlock (hash: Hash) : Boolean {
     return (this.hash == hash) ||
-           File(this.root + this.name + "/blocks/" + hash + ".blk").exists()
+           File(this.path + "/blocks/" + hash + ".blk").exists()
 }
 
 fun Chain.fsSaveBlock (blk: Block) {
-    File(this.root + this.name + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
+    File(this.path + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
 
 fun Chain.fsSavePay (hash: Hash, pay: String) {
-    File(this.root + this.name + "/blocks/" + hash + ".pay").writeText(pay)
+    File(this.path + "/blocks/" + hash + ".pay").writeText(pay)
 }
