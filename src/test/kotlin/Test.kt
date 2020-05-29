@@ -14,7 +14,10 @@ import org.freechains.common.*
 import org.junit.jupiter.api.MethodOrderer.Alphanumeric
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestMethodOrder
+import java.io.DataInputStream
+import java.io.DataOutputStream
 import java.io.File
+import java.net.Socket
 import java.time.Instant
 import java.util.*
 import kotlin.concurrent.thread
@@ -356,6 +359,40 @@ class Tests {
         }
     }
 
+    @Test
+    fun m02_listen() {
+        a_reset()
+        main(arrayOf("host", "create", "/tmp/freechains/tests/listen/"))
+        thread {
+            main(arrayOf("host", "start", "/tmp/freechains/tests/listen/"))
+        }
+        Thread.sleep(100)
+        main(arrayOf("chains", "join", "/"))
+
+        val t1 = thread {
+            val socket = Socket("localhost", PORT_8330)
+            val writer = DataOutputStream(socket.getOutputStream()!!)
+            val reader = DataInputStream(socket.getInputStream()!!)
+            writer.writeLineX("$PRE chain listen")
+            writer.writeLineX("/")
+            val n = reader.readLineX().toInt()
+            assert(n == 1) { "error 1"}
+        }
+
+        val t2 = thread {
+            val socket = Socket("localhost", PORT_8330)
+            val writer = DataOutputStream(socket.getOutputStream()!!)
+            val reader = DataInputStream(socket.getInputStream()!!)
+            writer.writeLineX("$PRE chains listen")
+            val x = reader.readLineX()
+            assert(x == "1 /") { "error 2"}
+        }
+
+        Thread.sleep(100)
+        main_(arrayOf("chain", "post", "/", "inline", "aaa", S0))
+        t1.join()
+        t2.join()
+    }
     @Test
     fun m02_crypto() {
         //a_reset()

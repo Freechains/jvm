@@ -64,7 +64,7 @@ class Daemon (host : Host) {
             val wrs = synchronized (listenLists) { listenLists["*"]!!.toList() }
             for (wr in wrs) {
                 try {
-                    wr.writeLineX(n.toString())
+                    wr.writeLineX(n.toString() + " " + chain)
                 } catch (e: Throwable) {
                     synchronized (listenLists) { listenLists["*"]!!.remove(wr) }
                 }
