@@ -238,6 +238,9 @@ class Tests {
         main_(arrayOf("peer", "ping", "localhost:8331")).let {
             assert(it.toInt() < 50)
         }
+        main_(arrayOf("peer", "chains", "localhost:8331")).let {
+            assert(it == "/d3")
+        }
 
         main(arrayOf("peer", "send", "localhost:8331", "/d3"))
         Thread.sleep(100)

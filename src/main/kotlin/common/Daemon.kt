@@ -105,6 +105,11 @@ class Daemon (host : Host) {
                 writer.writeLineX("true")
                 System.err.println("peer ping")
             }
+            "peer chains" -> {
+                val ret = local.chainsList().joinToString(" ")
+                writer.writeLineX(ret)
+                System.err.println("peer chains: $ret")
+            }
             "crypto create" -> {
                 fun pwHash (pwd: ByteArray) : ByteArray {
                     val out  = ByteArray(32)                       // TODO: why?
@@ -161,7 +166,7 @@ class Daemon (host : Host) {
             }
             "chains list" -> {
                 val ret = local.chainsList().joinToString(" ")
-                writer.writeLineX(ret.toString())
+                writer.writeLineX(ret)
                 System.err.println("chains list: $ret")
             }
             "chains listen" -> {

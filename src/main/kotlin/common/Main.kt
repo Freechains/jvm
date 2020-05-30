@@ -38,6 +38,7 @@ Usage:
     freechains [options] chain listen <chain>
     
     freechains [options] peer ping <host:port>
+    freechains [options] peer chains <host:port>
     freechains [options] peer (send | recv) <host:port> <chain>
 
 Options:
@@ -119,6 +120,44 @@ fun main_ (args: Array<String>) : String {
                     return "true"
                 }
             }
+        opts["peer"] as Boolean -> {
+            when {
+                opts["ping"] as Boolean -> {
+                    val now = getNow()
+                    writer.writeLineX("$PRE peer ping")
+                    reader.readLineX()
+                    return (getNow() - now).toString()
+                }
+                opts["chains"] as Boolean -> {
+                    writer.writeLineX("$PRE peer chains")
+                    return reader.readLineX()
+                }
+                opts["send"] as Boolean -> {
+                    writer.writeLineX("$PRE peer send")
+                    writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX(opts["<host:port>"] as String)
+                    return reader.readLineX()
+                }
+                opts["recv"] as Boolean -> {
+                    writer.writeLineX("$PRE peer recv")
+                    writer.writeLineX(opts["<chain>"] as String)
+                    writer.writeLineX(opts["<host:port>"] as String)
+                    return reader.readLineX()
+                }
+            }
+        }
+        opts["crypto"] as Boolean -> {
+            when {
+                // freechains [options] crypto create (shared | pubpvt) <passphrase>
+                opts["create"] as Boolean -> {
+                    val isShared = opts["shared"] as Boolean
+                    writer.writeLineX("$PRE crypto create")
+                    writer.writeLineX(if (isShared) "shared" else "pubpvt")
+                    writer.writeLineX(opts["<passphrase>"] as String)
+                    return reader.readLineX()
+                }
+            }
+        }
         opts["chains"] as Boolean -> {
             when {
                 opts["join"] as Boolean -> {
@@ -275,40 +314,6 @@ fun main_ (args: Array<String>) : String {
                         val n = reader.readLineX()
                         output(n)
                     }
-                }
-            }
-        }
-        opts["peer"] as Boolean -> {
-            when {
-                opts["ping"] as Boolean -> {
-                    val now = getNow()
-                    writer.writeLineX("$PRE peer ping")
-                    reader.readLineX()
-                    return (getNow() - now).toString()
-                }
-                opts["send"] as Boolean -> {
-                    writer.writeLineX("$PRE peer send")
-                    writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(opts["<host:port>"] as String)
-                    return reader.readLineX()
-                }
-                opts["recv"] as Boolean -> {
-                    writer.writeLineX("$PRE peer recv")
-                    writer.writeLineX(opts["<chain>"] as String)
-                    writer.writeLineX(opts["<host:port>"] as String)
-                    return reader.readLineX()
-                }
-            }
-        }
-        opts["crypto"] as Boolean -> {
-            when {
-                // freechains [options] crypto create (shared | pubpvt) <passphrase>
-                opts["create"] as Boolean -> {
-                    val isShared = opts["shared"] as Boolean
-                    writer.writeLineX("$PRE crypto create")
-                    writer.writeLineX(if (isShared) "shared" else "pubpvt")
-                    writer.writeLineX(opts["<passphrase>"] as String)
-                    return reader.readLineX()
                 }
             }
         }
