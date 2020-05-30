@@ -36,7 +36,8 @@ Usage:
     freechains [options] chain remove <chain> <hash>
     freechains [options] chain traverse <chain> (all | linked) <hashes>...
     freechains [options] chain listen <chain>
-    freechains [options] chain (send | recv) <chain> <host:port>
+    
+    freechains [options] peer (send | recv) <host:port> <chain>
 
 Options:
     --help              [none]            displays this help
@@ -181,8 +182,8 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX (
                         when {
-                            opts["block"]    as Boolean -> "block"
-                            opts["payload"]  as Boolean -> "payload"
+                            opts["block"]   as Boolean -> "block"
+                            opts["payload"] as Boolean -> "payload"
                             else -> error("bug found")
                         }
                     )
@@ -258,9 +259,11 @@ fun main_ (args: Array<String>) : String {
                             else -> error("bug found")
                         }
                     )
-                    writer.writeLineX((opts["<hashes>"] as ArrayList<Any?>)
-                        .filterIsInstance<String>()
-                        .joinToString(" "))
+                    writer.writeLineX (
+                        (opts["<hashes>"] as ArrayList<Any?>)
+                            .filterIsInstance<String>()
+                            .joinToString(" ")
+                    )
                     val ret = reader.readLineX()
                     return ret
                 }
@@ -272,20 +275,23 @@ fun main_ (args: Array<String>) : String {
                         output(n)
                     }
                 }
+            }
+        }
+        opts["peer"] as Boolean -> {
+            when {
                 opts["send"] as Boolean -> {
-                    writer.writeLineX("$PRE chain send")
+                    writer.writeLineX("$PRE peer send")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<host:port>"] as String)
                     return reader.readLineX()
                 }
                 opts["recv"] as Boolean -> {
-                    writer.writeLineX("$PRE chain recv")
+                    writer.writeLineX("$PRE peer recv")
                     writer.writeLineX(opts["<chain>"] as String)
                     writer.writeLineX(opts["<host:port>"] as String)
                     return reader.readLineX()
                 }
             }
-            socket.close()
         }
         opts["crypto"] as Boolean -> {
             when {

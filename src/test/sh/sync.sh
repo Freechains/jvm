@@ -69,8 +69,8 @@ freechains $H1 $S1 chain like / $haaaa --why="like aaaa"
 freechains $H0 host now 98000000
 freechains $H1 host now 98000000
 
-freechains $H0 chain send / localhost:8401
-freechains $H1 chain send / localhost:8400
+freechains $H0 peer send localhost:8401 /
+freechains $H1 peer send localhost:8400 /
 
 diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 

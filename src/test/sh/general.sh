@@ -47,7 +47,7 @@ freechains --host=localhost:8401 host now 0
 freechains --host=localhost:8401 chains join / owner-only $PUB
 echo 111 | freechains --host=localhost:8400 chain --sign=$PVT post / -
 freechains --host=localhost:8400 chain --sign=$PVT post / inline 222
-freechains --host=localhost:8400 chain send / localhost:8401
+freechains --host=localhost:8400 peer send localhost:8401 /
 
 diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 ret=`ls $FC/8400/chains/blocks/ | wc`
@@ -67,7 +67,7 @@ freechains --host=localhost:8402 host now 0
 freechains --host=localhost:8402 chains join / owner-only $PUB
 freechains --host=localhost:8402 chain recv / localhost:8400 &
 P1=$!
-freechains --host=localhost:8401 chain send / localhost:8402 &
+freechains --host=localhost:8401 peer send localhost:8402 / &
 P2=$!
 wait $P1 $P2
 #sleep 10
@@ -89,10 +89,10 @@ for i in $(seq 1 50)
 do
   freechains --host=localhost:8400 --sign=$PVT chain post / inline $i
 done
-freechains --host=localhost:8400 chain send / localhost:8401
-freechains --host=localhost:8400 chain send / localhost:8401
-freechains --host=localhost:8400 chain send / localhost:8402
-freechains --host=localhost:8400 chain send / localhost:8402
+freechains --host=localhost:8400 peer send localhost:8401 /
+freechains --host=localhost:8400 peer send localhost:8401 /
+freechains --host=localhost:8400 peer send localhost:8402 /
+freechains --host=localhost:8400 peer send localhost:8402 /
 
 diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 diff $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
@@ -118,7 +118,7 @@ echo "#### 5.1"
 
 for i in $(seq 8411 8420)
 do
-  freechains --host=localhost:8400 chain send / localhost:$i &
+  freechains --host=localhost:8400 peer send localhost:$i / &
 done
 
 echo "#### 5.2"
@@ -141,8 +141,8 @@ echo "#### 5.3"
 
 for i in $(seq 8421 8425)
 do
-  freechains --host=localhost:$i chain send / localhost:$(($i+5)) &
-  freechains --host=localhost:$i chain send / localhost:$(($i+10)) &
+  freechains --host=localhost:$i peer send localhost:$(($i+5)) / &
+  freechains --host=localhost:$i peer send localhost:$(($i+10)) / &
 done
 sleep 20
 

@@ -84,7 +84,7 @@ class Daemon (host : Host) {
         //println("addr = ${remote.inetAddress!!}")
         if (!remote.inetAddress!!.toString().equals("/127.0.0.1")) {
             //println("no = ${remote.inetAddress!!}")
-            //assert(cmd.equals("chain _send_") || cmd.equals("chain _recv_")) { "invalid remote address" }
+            assert(cmd.equals("peer _send_") || cmd.equals("peer _recv_")) { "invalid remote address" }
             //println("ok = ${remote.inetAddress!!}")
         }
 
@@ -181,13 +181,16 @@ class Daemon (host : Host) {
                 }
             }
             else -> {
-                assert(cmd.startsWith("chain"))
+                assert(cmd.startsWith("chain") || cmd.startsWith("peer"))
                 val name  = reader.readLineX().nameCheck()
                 val chain = synchronized (getLock()) {
                     local.chainsLoad(name)
                 }
                 synchronized (getLock(chain)) {
                     when (cmd) {
+
+                        // CHAIN
+
                         "chain genesis" -> {
                             val hash  = chain.getGenesis()
                             writer.writeLineX(hash)
@@ -300,45 +303,48 @@ class Daemon (host : Host) {
                                 signal(name,1)
                             }
                         }
-                        "chain send" -> {
+
+                        // PEER
+
+                        "peer send" -> {
                             val host2 = reader.readLineX()
                             val (host,port) = host2.hostSplit()
                             val socket = Socket_5s(host, port)
                             val r = DataInputStream(socket.getInputStream()!!)
                             val w = DataOutputStream(socket.getOutputStream()!!)
-                            w.writeLineX("$PRE chain _recv_")
+                            w.writeLineX("$PRE peer _recv_")
                             w.writeLineX(chain.name)
-                            val (nmin,nmax) = chainSend(r, w, chain)
-                            System.err.println("chain send: $name: ($nmin/$nmax)")
+                            val (nmin,nmax) = peerSend(r, w, chain)
+                            System.err.println("peer send: $name: ($nmin/$nmax)")
                             writer.writeLineX("$nmin / $nmax")
                         }
-                        "chain recv" -> {
+                        "peer recv" -> {
                             val host2 = reader.readLineX()
                             val (host,port) = host2.hostSplit()
                             val socket = Socket_5s(host, port)
                             val r = DataInputStream(socket.getInputStream()!!)
                             val w = DataOutputStream(socket.getOutputStream()!!)
-                            w.writeLineX("$PRE chain _send_")
+                            w.writeLineX("$PRE peer _send_")
                             w.writeLineX(chain.name)
-                            val (nmin,nmax) = chainRecv(r, w, chain)
-                            System.err.println("chain recv: $name: ($nmin/$nmax)")
+                            val (nmin,nmax) = peerRecv(r, w, chain)
+                            System.err.println("peer recv: $name: ($nmin/$nmax)")
                             writer.writeLineX("$nmin / $nmax")
                         }
-                        "chain _send_" -> {
+                        "peer _send_" -> {
                             val r = DataInputStream(remote.getInputStream()!!)
                             val w = DataOutputStream(remote.getOutputStream()!!)
-                            val (nmin,nmax) = chainSend(r, w, chain)
-                            System.err.println("chain _send_: $name: ($nmin/$nmax)")
+                            val (nmin,nmax) = peerSend(r, w, chain)
+                            System.err.println("peer _send_: $name: ($nmin/$nmax)")
                             thread {
                                 signal(name, nmin)
                             }
                             //writer.writeLineX(ret)
                         }
-                        "chain _recv_" -> {
+                        "peer _recv_" -> {
                             val r = DataInputStream(remote.getInputStream()!!)
                             val w = DataOutputStream(remote.getOutputStream()!!)
-                            val (nmin,nmax) = chainRecv(r, w, chain)
-                            System.err.println("chain _recv_: $name: ($nmin/$nmax)")
+                            val (nmin,nmax) = peerRecv(r, w, chain)
+                            System.err.println("peer _recv_: $name: ($nmin/$nmax)")
                             thread {
                                 signal(name, nmin)
                             }
@@ -352,7 +358,7 @@ class Daemon (host : Host) {
     }
 }
 
-fun chainSend (reader: DataInputStream, writer: DataOutputStream, chain: Chain) : Pair<Int,Int> {
+fun peerSend (reader: DataInputStream, writer: DataOutputStream, chain: Chain) : Pair<Int,Int> {
     // - receives most recent timestamp
     // - DFS in heads
     //   - asks if contains hash
@@ -427,7 +433,7 @@ fun chainSend (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
     return Pair(nmin,nmax)
 }
 
-fun chainRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) : Pair<Int,Int> {
+fun peerRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) : Pair<Int,Int> {
     // - sends most recent timestamp
     // - answers if contains each node
     // - receives all

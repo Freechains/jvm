@@ -4,7 +4,6 @@
 #do
   ./general.sh || exit 1
   ./sync.sh    || exit 1
-  #./shared.sh  || exit 1
   ./pubpvt.sh  || exit 1
   ./like.sh    || exit 1
 #done

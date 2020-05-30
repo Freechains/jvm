@@ -235,7 +235,7 @@ class Tests {
         thread { Daemon(dst).daemon() }
         Thread.sleep(100)
 
-        main(arrayOf("chain", "send", "/d3", "localhost:8331"))
+        main(arrayOf("peer", "send", "localhost:8331", "/d3"))
         Thread.sleep(100)
 
         main(arrayOf(H1, "host", "stop"))
@@ -264,7 +264,7 @@ class Tests {
         thread { Daemon(h1).daemon() }
         thread { Daemon(h2).daemon() }
         Thread.sleep(100)
-        main(arrayOf(H0, "chain", "recv", "/xxx", "localhost:8331"))
+        main(arrayOf(H0, "peer", "recv", "localhost:8331", "/xxx"))
         Thread.sleep(100)
         main(arrayOf(H1, "host", "stop"))
         main(arrayOf("host", "stop"))
@@ -519,7 +519,7 @@ class Tests {
         )
 
         main(arrayOf("chain", "post", "/xxx", "inline", "aaa", "--crypt=$SHA0"))
-        main(arrayOf("chain", "send", "/xxx", "localhost:8331"))
+        main(arrayOf("peer", "send", "localhost:8331", "/xxx"))
     }
 
     @Test
@@ -537,7 +537,7 @@ class Tests {
         val pay = main_(arrayOf("chain", "get", "/xxx", "payload", hash, "--crypt=$PVT0"))
         assert(pay == "aaa")
 
-        main(arrayOf("chain", "send", "/xxx", "localhost:8331"))
+        main(arrayOf("peer", "send", "localhost:8331", "/xxx"))
         val json2 = main_(arrayOf(H1, "chain", "get", "/xxx", "block", hash))
         val blk2 = json2.jsonToBlock()
         assert(blk2.immut.pay.crypt)
@@ -566,8 +566,8 @@ class Tests {
         // H0: g <- f0
         // H1: g <- f1
 
-        val r0 = main_(arrayOf(H1, "chain", "recv", "/", "localhost:$PORT_8330"))
-        val r1 = main_(arrayOf(H1, "chain", "send", "/", "localhost:$PORT_8330"))
+        val r0 = main_(arrayOf(H1, "peer", "recv", "localhost:$PORT_8330", "/"))
+        val r1 = main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "/"))
         assert(r0 == r1 && r0 == "0 / 1")
 
         val r00 = main_(arrayOf(H0, "chain", "reps", "/", PUB0))
@@ -683,7 +683,7 @@ class Tests {
         // I'm in the future, old posts will be refused
         main_(arrayOf(H1, "host", "now", Instant.now().toEpochMilli().toString()))
 
-        val n1 = main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331"))
+        val n1 = main_(arrayOf(H0, "peer", "send", "localhost:8331", "/xxx"))
         assert(n1 == "0 / 7")
 
         main_(arrayOf(H0, "chain", "heads", "/xxx", "linked")).let { str ->
@@ -695,7 +695,7 @@ class Tests {
 
         // only very old (H1/H2/L3)
         main_(arrayOf(H1, "host", "now", "0"))
-        val n2 = main_(arrayOf(H1, "chain", "recv", "/xxx", "localhost:$PORT_8330"))
+        val n2 = main_(arrayOf(H1, "peer", "recv", "localhost:$PORT_8330", "/xxx"))
         assert(n2 == "4 / 7") { n2 }
         main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let {
             assert(it.startsWith("3_"))
@@ -707,14 +707,14 @@ class Tests {
 
         // still the same
         main_(arrayOf(H1, "host", "now", "${2*hour}"))
-        main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331")).let {
+        main_(arrayOf(H0, "peer", "send", "localhost:8331", "/xxx")).let {
             assert(it == "0 / 3")
         }
         assert("0" == main_(arrayOf("chain", "reps", "/xxx", PUB1)))
 
         // now ok
         main_(arrayOf(H1, "host", "now", "${1*day + 4*hour + 100}"))
-        main_(arrayOf(H0, "chain", "send", "/xxx", "localhost:8331")).let {
+        main_(arrayOf(H0, "peer", "send", "localhost:8331", "/xxx")).let {
             assert(it == "3 / 3")
         }
         main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let {
@@ -732,7 +732,7 @@ class Tests {
         //          \               /         \
         //           \- h22 <-------           l6 <- h7
 
-        main_(arrayOf(H0, "chain", "recv", "/xxx", "localhost:8331")).let {
+        main_(arrayOf(H0, "peer", "recv", "localhost:8331", "/xxx")).let {
             assert(it == "1 / 1")
         }
         main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let {
@@ -754,7 +754,7 @@ class Tests {
             }
         }
 
-        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:$PORT_8330")).let {
+        main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "/xxx")).let {
             assert(it == "1 / 1")
         }
 
@@ -786,7 +786,7 @@ class Tests {
         //          \               /         \        /
         //           \- h22 <-------           l6 <- h7
 
-        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:$PORT_8330")).let {
+        main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "/xxx")).let {
             assert(it.equals("1 / 1"))
         }
 
@@ -806,7 +806,7 @@ class Tests {
         //          \               /         \    /         /
         //           \- h22 <-------           l6 <- h7 <- h8
 
-        main_(arrayOf(H1, "chain", "send", "/xxx", "localhost:$PORT_8330")).let {
+        main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "/xxx")).let {
             assert (it == "1 / 1")
         }
         main_(arrayOf(H1, "chain", "reps", "/xxx", PUB0)).let {
@@ -856,7 +856,7 @@ class Tests {
         assert(!ps1.contains(h1) && !ps1.contains(h2) &&  ps1.contains(hx))
         assert(!rs1.contains(h1) && !rs1.contains(h2) && !rs1.contains(hx))
 
-        main_(arrayOf(H1, "chain", "recv", "/", "localhost:$PORT_8330"))
+        main_(arrayOf(H1, "peer", "recv", "localhost:$PORT_8330", "/"))
 
         main_(arrayOf(H1, "chain", "post", "/", "inline", "h3",S1)).let {
             //assert(it == "backs must be accepted")
@@ -873,7 +873,7 @@ class Tests {
         // h1 <- h2 (a) <- h3 <- h4
         //   \-- hx (a)
 
-        main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+        main_(arrayOf(H0, "peer", "send", "localhost:8331", "/"))
         main_(arrayOf(H1, "host", "now", "${6*hour}"))
 
         main_(arrayOf(H1, "chain", "post", "/", "inline", "h5")).let {
@@ -898,7 +898,7 @@ class Tests {
         main_(arrayOf(H0,"chain","like","/",h2,S0))
         main_(arrayOf(H0, "chain", "post", "/", "inline", "h3"))
 
-        main_(arrayOf(H0, "chain", "send", "/", "localhost:8331"))
+        main_(arrayOf(H0, "peer", "send", "localhost:8331", "/"))
 
         // this all to test an internal assertion
     }
@@ -959,7 +959,7 @@ class Tests {
         }
         assert(main_(arrayOf("chain", "heads", "/", "blocked")).isEmpty())
 
-        main_(arrayOf(H0, "chain", "send", "/", "localhost:8331")).let {
+        main_(arrayOf(H0, "peer", "send", "localhost:8331", "/")).let {
             assert(it.contains("5 / 5"))
         }
 
@@ -1006,7 +1006,7 @@ class Tests {
         main_(arrayOf(H1,"chain","dislike","/",h22,S0))     // one is not enough
         main_(arrayOf(H1,"chain","dislike","/",h22,S0))     // one is not enough
         main_(arrayOf(H1, "host", "now", "${4*hour}"))
-        main_(arrayOf(H1, "chain", "send", "/", "localhost:$PORT_8330"))  // errors when merging
+        main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "/"))  // errors when merging
 
         // l4 dislikes h22 (reject it)
         // TODO: check if h22 contents are empty
@@ -1194,7 +1194,7 @@ class Tests {
         val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "1@h2"))
         main_(arrayOf(H0, S0, "chain", "like", "/", "--why=0@l2", h2))
 
-        main_(arrayOf(H1, "chain", "recv", "/", "localhost:$PORT_8330"))
+        main_(arrayOf(H1, "peer", "recv", "localhost:$PORT_8330", "/"))
 
         // HOST-0
         // h0 <- 0@h1 <- 1@h2 <- 0@l2
@@ -1254,7 +1254,7 @@ class Tests {
 
         // send H1 -> H0
         // ~1@h3 will be rejected b/c 1@h2 is rejected in H0~
-        main_(arrayOf(H1, "chain", "send", "/", "localhost:$PORT_8330")).let {
+        main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "/")).let {
             assert(it.contains("1 / 1"))
         }
 
