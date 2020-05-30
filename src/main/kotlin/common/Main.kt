@@ -189,7 +189,7 @@ fun main_ (args: Array<String>) : String {
                     writer.writeLineX(opts["<hash>"] as Hash)
                     writer.writeLineX(opts["--crypt"] as String? ?: "")
                     val len = reader.readLineX().toInt()
-                    val json = reader.readNBytes(len).toString(Charsets.UTF_8)
+                    val json = reader.readNBytesX(len).toString(Charsets.UTF_8)
                     if (json.isEmpty()) {
                         System.err.println("not found")
                     }

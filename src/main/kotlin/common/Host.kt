@@ -106,7 +106,11 @@ fun Host.chainsLeave (name: String) : Boolean {
 
 fun Host.chainsList () : List<String> {
     val file = File(this.root + "/chains/")
-    return file.list()!!.map {
-        it.replace('_','/')
+    return file.list().let {
+        if (it == null) {
+            emptyList()
+        } else {
+            it.map { it.replace('_', '/') }
+        }
     }
 }

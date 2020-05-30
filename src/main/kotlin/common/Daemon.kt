@@ -1,4 +1,5 @@
 package org.freechains.common
+import org.freechains.platform.readNBytesX
 
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -83,7 +84,7 @@ class Daemon (host : Host) {
         //println("addr = ${remote.inetAddress!!}")
         if (!remote.inetAddress!!.toString().equals("/127.0.0.1")) {
             //println("no = ${remote.inetAddress!!}")
-            assert(cmd.equals("chain _send_") || cmd.equals("chain _recv_")) { "invalid remote address" }
+            //assert(cmd.equals("chain _send_") || cmd.equals("chain _recv_")) { "invalid remote address" }
             //println("ok = ${remote.inetAddress!!}")
         }
 
@@ -259,7 +260,7 @@ class Daemon (host : Host) {
                             val lkn     = reader.readLineX().toInt()
                             val lkr  = reader.readLineX()
                             val len     = reader.readLineX().toInt()
-                            val pay  = reader.readNBytes(len).toString(Charsets.UTF_8)
+                            val pay  = reader.readNBytesX(len).toString(Charsets.UTF_8)
                             reader.readLineX()
                             assert(pay.length <= S128_pay) { "post is too large" }
 
@@ -460,10 +461,10 @@ fun chainRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) 
         xxx@for (j in 1..nin) {
             try {
                 val len1 = reader.readLineX().toInt() // 6
-                val blk = reader.readNBytes(len1).toString(Charsets.UTF_8).jsonToBlock()
+                val blk = reader.readNBytesX(len1).toString(Charsets.UTF_8).jsonToBlock()
                 val len2 = reader.readLineX().toInt()
                 assert(len2 <= S128_pay) { "post is too large" }
-                val pay = reader.readNBytes(len2).toString(Charsets.UTF_8)
+                val pay = reader.readNBytesX(len2).toString(Charsets.UTF_8)
                 reader.readLineX()
                 assert(chain.getHeads(State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
 

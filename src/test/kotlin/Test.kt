@@ -283,6 +283,9 @@ class Tests {
             main(arrayOf("host", "start", "/tmp/freechains/tests/M0/"))
         }
         Thread.sleep(100)
+        main_(arrayOf("chains", "list")).let {
+            assert(it == "")
+        }
         main_(arrayOf("chains", "leave", "/xxx")).let {
             assert(it == "false")
         }
@@ -342,8 +345,8 @@ class Tests {
     }
 
     @Test
-    fun m02_trav() {
-        //a_reset()
+    fun m01_trav() {
+        a_reset()
         main(arrayOf("host", "create", "/tmp/freechains/tests/trav/"))
         thread {
             main(arrayOf("host", "start", "/tmp/freechains/tests/trav/"))
@@ -360,7 +363,7 @@ class Tests {
     }
 
     @Test
-    fun m02_listen() {
+    fun m01_listen() {
         a_reset()
         main(arrayOf("host", "create", "/tmp/freechains/tests/listen/"))
         thread {
@@ -395,7 +398,7 @@ class Tests {
     }
     @Test
     fun m02_crypto() {
-        //a_reset()
+        a_reset()
         main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
         thread {
             main(arrayOf("host", "start", "/tmp/freechains/tests/M2/"))
@@ -472,7 +475,6 @@ class Tests {
     @Test
     fun m03_crypto_post() {
         //a_reset()
-        //main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
         val host = Host_load("/tmp/freechains/tests/M2/")
         val c1 = host.chainsJoin("/sym", false, null)
         c1.blockNew(HC, "", null, null)
