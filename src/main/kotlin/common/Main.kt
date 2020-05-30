@@ -37,6 +37,7 @@ Usage:
     freechains [options] chain traverse <chain> (all | linked) <hashes>...
     freechains [options] chain listen <chain>
     
+    freechains [options] peer ping <host:port>
     freechains [options] peer (send | recv) <host:port> <chain>
 
 Options:
@@ -279,6 +280,12 @@ fun main_ (args: Array<String>) : String {
         }
         opts["peer"] as Boolean -> {
             when {
+                opts["ping"] as Boolean -> {
+                    val now = getNow()
+                    writer.writeLineX("$PRE peer ping")
+                    reader.readLineX()
+                    return (getNow() - now).toString()
+                }
                 opts["send"] as Boolean -> {
                     writer.writeLineX("$PRE peer send")
                     writer.writeLineX(opts["<chain>"] as String)

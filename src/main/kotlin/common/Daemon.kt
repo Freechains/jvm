@@ -101,6 +101,10 @@ class Daemon (host : Host) {
                 writer.writeLineX("true")
                 System.err.println("host now: $now")
             }
+            "peer ping" -> {
+                writer.writeLineX("true")
+                System.err.println("peer ping")
+            }
             "crypto create" -> {
                 fun pwHash (pwd: ByteArray) : ByteArray {
                     val out  = ByteArray(32)                       // TODO: why?
