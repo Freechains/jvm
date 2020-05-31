@@ -2,6 +2,7 @@ package org.freechains.common
 
 import org.docopt.Docopt
 import org.freechains.platform.readNBytesX
+import org.freechains.platform.readAllBytesX
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
@@ -270,7 +271,7 @@ fun main_ (args: Array<String>) : String {
                         val pay = when {
                             opts["inline"] as Boolean -> (opts["<path_or_text>"] as String)
                             opts["file"]   as Boolean -> File(opts["<path_or_text>"] as String).readBytes().toString(Charsets.UTF_8)
-                            opts["-"]      as Boolean -> DataInputStream(System.`in`).readAllBytes()!!.toString(Charsets.UTF_8)
+                            opts["-"]      as Boolean -> DataInputStream(System.`in`).readAllBytesX()!!.toString(Charsets.UTF_8)
                             else -> error("impossible case")
                         }
                         writer.writeLineX(pay.length.toString())
