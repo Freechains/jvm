@@ -73,293 +73,330 @@ class Daemon (host : Host) {
         }
     }
 
-    private fun handle (remote: Socket) {
-        val reader = DataInputStream(remote.getInputStream()!!)
-        val writer = DataOutputStream(remote.getOutputStream()!!)
+    private fun handle (client: Socket) {
+        val reader = DataInputStream(client.getInputStream()!!)
+        val writer = DataOutputStream(client.getOutputStream()!!)
         val ln = reader.readLineX()
-        val (v1,v2,_,cmd) =
-            Regex("FC v(\\d+)\\.(\\d+)\\.(\\d+) (.*)").find(ln)!!.destructured
+        val (v1,v2,_,cmd1,cmd2) =
+            Regex("FC v(\\d+)\\.(\\d+)\\.(\\d+) ([^ ]*) ([^ ]*)").find(ln)!!.destructured
         assert(MAJOR==v1.toInt() && MINOR>=v2.toInt()) { "incompatible versions" }
 
         //println("addr = ${remote.inetAddress!!}")
-        if (!remote.inetAddress!!.toString().equals("/127.0.0.1")) {
+        if (!client.inetAddress!!.toString().equals("/127.0.0.1")) {
             //println("no = ${remote.inetAddress!!}")
-            assert(cmd.equals("peer _send_") || cmd.equals("peer _recv_")) { "invalid remote address" }
+            assert (
+                cmd2.equals("_send_") || cmd2.equals("_recv_") ||
+                cmd2.equals("_ping_") || cmd2.equals("_chains_")
+            ) {
+                "invalid remote address"
+            }
             //println("ok = ${remote.inetAddress!!}")
         }
 
-        //println("[handle] $cmd")
-        when (cmd) {
-            "host stop" -> {
-                writer.writeLineX("true")
-                server.close()
-                System.err.println("host stop: $local")
-            }
-            "host now" -> {
-                val now= reader.readLineX().toLong()
-                setNow(now)
-                writer.writeLineX("true")
-                System.err.println("host now: $now")
-            }
-            "peer ping" -> {
-                writer.writeLineX("true")
-                System.err.println("peer ping")
-            }
-            "peer chains" -> {
-                val ret = local.chainsList().joinToString(" ")
-                writer.writeLineX(ret)
-                System.err.println("peer chains: $ret")
-            }
-            "crypto create" -> {
-                fun pwHash (pwd: ByteArray) : ByteArray {
-                    val out  = ByteArray(32)                       // TODO: why?
-                    val salt = ByteArray(PwHash.ARGON2ID_SALTBYTES)     // all zeros
-                    assert(lazySodium.cryptoPwHash(
-                        out,out.size, pwd,pwd.size, salt,
-                        PwHash.OPSLIMIT_INTERACTIVE, PwHash.MEMLIMIT_INTERACTIVE, PwHash.Alg.getDefault()
-                    ))
-                    return out
+        //println("[handle] $cmd1 // $cmd2")
+        when (cmd1) {
+            "host" -> when (cmd2) {
+                "stop" -> {
+                    writer.writeLineX("true")
+                    server.close()
+                    System.err.println("host stop: $local")
                 }
-
-                val type  = reader.readLineX()
-                val plain = reader.readLineX().toByteArray()
-                val pwh   = pwHash(plain)
-
-                when (type) {
-                    "shared" -> {
-                        writer.writeLineX(Key.fromBytes(pwh).asHexString)
+                "now" -> {
+                    val now= reader.readLineX().toLong()
+                    setNow(now)
+                    writer.writeLineX("true")
+                    System.err.println("host now: $now")
+                }
+            }
+            "peer" -> {
+                fun peer () : Pair<DataInputStream,DataOutputStream> {
+                    val h = reader.readLineX()
+                    val s = h.hostSplit().let {
+                        Socket_5s(it.first,it.second)
                     }
-                    "pubpvt" -> {
-                        val keys = lazySodium.cryptoSignSeedKeypair(pwh)
-                        //println("PUBPVT: ${keys.publicKey.asHexString} // ${keys.secretKey.asHexString}")
-                        writer.writeLineX(
-                            keys.publicKey.asHexString + ' ' +
-                            keys.secretKey.asHexString
-                        )
-                    }
+                    val r = DataInputStream(s.getInputStream()!!)
+                    val w = DataOutputStream(s.getOutputStream()!!)
+                    return Pair(r,w)
                 }
-            }
-
-            "chains join" -> {
-                val name= reader.readLineX().nameCheck()
-                val trusted= reader.readLineX().toBoolean()
-                val type= reader.readLineX()
-                val pub =
-                    if (type.isEmpty()) {
-                        null
-                    } else {
-                        val oonly= type.toBoolean()
-                        val pub= reader.readLineX()
-                        ChainPub(oonly, pub)
-                    }
-                val chain = synchronized (getLock()) {
-                    local.chainsJoin(name, trusted, pub)
-                }
-                writer.writeLineX(chain.hash)
-                System.err.println("chains join: $name (${chain.hash})")
-            }
-            "chains leave" -> {
-                val name= reader.readLineX().nameCheck()
-                val ret = local.chainsLeave(name)
-                writer.writeLineX(ret.toString())
-                System.err.println("chains leave: $name -> $ret")
-            }
-            "chains list" -> {
-                val ret = local.chainsList().joinToString(" ")
-                writer.writeLineX(ret)
-                System.err.println("chains list: $ret")
-            }
-            "chains listen" -> {
-                remote.soTimeout = 0
-                synchronized (listenLists) {
-                    if (! listenLists.containsKey("*")) {
-                        listenLists["*"] = mutableSetOf()
-                    }
-                    listenLists["*"]!!.add(writer)
-                }
-            }
-
-            "chain listen" -> {
-                remote.soTimeout = 0
-                val name= reader.readLineX().nameCheck()
-                synchronized (listenLists) {
-                    if (! listenLists.containsKey(name)) {
-                        listenLists[name] = mutableSetOf()
-                    }
-                    listenLists[name]!!.add(writer)
-                }
-            }
-            else -> {
-                assert(cmd.startsWith("chain") || cmd.startsWith("peer"))
-                val name  = reader.readLineX().nameCheck()
-                val chain = synchronized (getLock()) {
-                    local.chainsLoad(name)
-                }
-                synchronized (getLock(chain)) {
-                    when (cmd) {
-
-                        // CHAIN
-
-                        "chain genesis" -> {
-                            val hash  = chain.getGenesis()
-                            writer.writeLineX(hash)
-                            System.err.println("chain genesis: $hash")
+                when (cmd2) {
+                    "ping" -> {
+                        val (r,w) = peer()
+                        val now = getNow()
+                        w.writeLineX("$PRE peer _ping_")
+                        val ret = r.readLineX().let {
+                            if (it == "true") {
+                                (getNow() - now).toString()
+                            } else {
+                                ""
+                            }
                         }
-                        "chain heads" -> {
-                            val state = reader.readLineX().toState()
-                            val heads = chain.getHeads(state)
-                            val hs = heads.joinToString(" ")
-                            writer.writeLineX(hs)
-                            System.err.println("chain heads: $hs")
+                        writer.writeLineX(ret)
+                        System.err.println("peer ping: $ret")
+                    }
+                    "_ping_" -> {
+                        writer.writeLineX("true")
+                        System.err.println("peer _ping_")
+                    }
+                    "chains" -> {
+                        val (r,w) = peer()
+                        w.writeLineX("$PRE peer _chains_")
+                        val ret = r.readLineX()
+                        writer.writeLineX(ret)
+                        System.err.println("peer chains")
+                    }
+                    "_chains_" -> {
+                        val ret = local.chainsList().joinToString(" ")
+                        writer.writeLineX(ret)
+                        System.err.println("peer _chains_: $ret")
+                    }
+                    else -> {
+                        val name = reader.readLineX().nameCheck()
+                        val chain = synchronized(getLock()) {
+                            local.chainsLoad(name)
                         }
-                        "chain traverse" -> {
-                            val state = reader.readLineX().toState()
-                            val hashes = chain.getHeads(state)
-                            val downto = reader.readLineX().split(" ")
-                            //println("H=$heads // D=$downto")
-                            val all = chain
-                                .bfsBacks(hashes,false) {
-                                    //println("TRY ${it.hash} -> ${downto.contains(it.hash)}")
-                                    !downto.contains(it.hash)
+                        synchronized(getLock(chain)) {
+                            when (cmd2) {
+                                "send" -> {
+                                    val (r,w) = peer()
+                                    w.writeLineX("$PRE peer _recv_")
+                                    w.writeLineX(name)
+                                    val (nmin,nmax) = peerSend(r, w, chain)
+                                    System.err.println("peer send: $chain: ($nmin/$nmax)")
+                                    writer.writeLineX("$nmin / $nmax")
                                 }
-                                .map {it.hash}
-                                .reversed()
-                            //println("H=$heads // D=$downto")
-                            val ret = all.joinToString(" ")
-                            writer.writeLineX(ret)
-                            System.err.println("chain traverse: $ret")
-                        }
-                        "chain get" -> {
-                            val b_p  = reader.readLineX()
-                            val hash = reader.readLineX()
-                            val crypt= reader.readLineX()
-
-                            val ret = when (b_p) {
-                                "block"   -> chain.fsLoadBlock(hash).toJson()
-                                "payload" -> chain.fsLoadPay(hash, if (crypt == "") null else crypt)
-                                else -> error("impossible case")
+                                "_send_" -> {
+                                    val (nmin,nmax) = peerSend(reader, writer, chain)
+                                    System.err.println("peer _send_: $name: ($nmin/$nmax)")
+                                    thread {
+                                        signal(name, nmin)
+                                    }
+                                    //writer.writeLineX(ret)
+                                }
+                                "recv" -> {
+                                    val (r,w) = peer()
+                                    w.writeLineX("$PRE peer _send_")
+                                    w.writeLineX(name)
+                                    val (nmin,nmax) = peerRecv(r, w, chain)
+                                    System.err.println("peer recv: $chain: ($nmin/$nmax)")
+                                    writer.writeLineX("$nmin / $nmax")
+                                }
+                                "_recv_" -> {
+                                    val (nmin,nmax) = peerRecv(reader, writer, chain)
+                                    System.err.println("peer _recv_: $name: ($nmin/$nmax)")
+                                    thread {
+                                        signal(name, nmin)
+                                    }
+                                    //writer.writeLineX(ret)
+                                }
+                                else -> { error("$ln: invalid header type") }
                             }
-
-                            writer.writeLineX(ret.length.toString())
-                            writer.writeBytes(ret)
-                            //writer.writeLineX("\n")
-                            System.err.println("chain get: $hash")
                         }
-                        "chain remove" -> {
-                            val hash = reader.readLineX()
-                            chain.blockRemove(hash)
-                            writer.writeLineX("true")
-                            System.err.println("chain remove: $hash")
-                        }
-                        "chain reps" -> {
-                            val ref = reader.readLineX()
+                    }
+                }
+            }
+            "crypto" -> when (cmd2) {
+                "create" -> {
+                    fun pwHash (pwd: ByteArray) : ByteArray {
+                        val out  = ByteArray(32)                       // TODO: why?
+                        val salt = ByteArray(PwHash.ARGON2ID_SALTBYTES)     // all zeros
+                        assert(lazySodium.cryptoPwHash(
+                            out,out.size, pwd,pwd.size, salt,
+                            PwHash.OPSLIMIT_INTERACTIVE, PwHash.MEMLIMIT_INTERACTIVE, PwHash.Alg.getDefault()
+                        ))
+                        return out
+                    }
 
-                            val likes =
-                                if (ref.hashIsBlock()) {
-                                    val (pos,neg) = chain.repsPost(ref)
-                                    pos - neg
-                                } else {
-                                    chain.repsAuthor(ref, getNow(), chain.getHeads(State.ALL))
+                    val type  = reader.readLineX()
+                    val plain = reader.readLineX().toByteArray()
+                    val pwh   = pwHash(plain)
+
+                    when (type) {
+                        "shared" -> {
+                            writer.writeLineX(Key.fromBytes(pwh).asHexString)
+                        }
+                        "pubpvt" -> {
+                            val keys = lazySodium.cryptoSignSeedKeypair(pwh)
+                            //println("PUBPVT: ${keys.publicKey.asHexString} // ${keys.secretKey.asHexString}")
+                            writer.writeLineX(
+                                keys.publicKey.asHexString + ' ' +
+                                        keys.secretKey.asHexString
+                            )
+                        }
+                    }
+                }
+            }
+            "chains" -> when (cmd2) {
+                "join" -> {
+                    val name= reader.readLineX().nameCheck()
+                    val trusted= reader.readLineX().toBoolean()
+                    val type= reader.readLineX()
+                    val pub =
+                        if (type.isEmpty()) {
+                            null
+                        } else {
+                            val oonly= type.toBoolean()
+                            val pub= reader.readLineX()
+                            ChainPub(oonly, pub)
+                        }
+                    val chain = synchronized (getLock()) {
+                        local.chainsJoin(name, trusted, pub)
+                    }
+                    writer.writeLineX(chain.hash)
+                    System.err.println("chains join: $name (${chain.hash})")
+                }
+                "leave" -> {
+                    val name= reader.readLineX().nameCheck()
+                    val ret = local.chainsLeave(name)
+                    writer.writeLineX(ret.toString())
+                    System.err.println("chains leave: $name -> $ret")
+                }
+                "list" -> {
+                    val ret = local.chainsList().joinToString(" ")
+                    writer.writeLineX(ret)
+                    System.err.println("chains list: $ret")
+                }
+                "listen" -> {
+                    client.soTimeout = 0
+                    synchronized (listenLists) {
+                        if (! listenLists.containsKey("*")) {
+                            listenLists["*"] = mutableSetOf()
+                        }
+                        listenLists["*"]!!.add(writer)
+                    }
+                }
+            }
+            "chain" -> when (cmd2) {
+                "listen" -> {
+                    client.soTimeout = 0
+                    val name = reader.readLineX().nameCheck()
+                    synchronized (listenLists) {
+                        if (! listenLists.containsKey(name)) {
+                            listenLists[name] = mutableSetOf()
+                        }
+                        listenLists[name]!!.add(writer)
+                    }
+                }
+                else -> {
+                    val name  = reader.readLineX().nameCheck()
+                    val chain = synchronized (getLock()) {
+                        local.chainsLoad(name)
+                    }
+                    synchronized (getLock(chain)) {
+                        when (cmd2) {
+                            "genesis" -> {
+                                val hash  = chain.getGenesis()
+                                writer.writeLineX(hash)
+                                System.err.println("chain genesis: $hash")
+                            }
+                            "heads" -> {
+                                val state = reader.readLineX().toState()
+                                val heads = chain.getHeads(state)
+                                val hs = heads.joinToString(" ")
+                                writer.writeLineX(hs)
+                                System.err.println("chain heads: $hs")
+                            }
+                            "traverse" -> {
+                                val state = reader.readLineX().toState()
+                                val hashes = chain.getHeads(state)
+                                val downto = reader.readLineX().split(" ")
+                                //println("H=$heads // D=$downto")
+                                val all = chain
+                                    .bfsBacks(hashes,false) {
+                                        //println("TRY ${it.hash} -> ${downto.contains(it.hash)}")
+                                        !downto.contains(it.hash)
+                                    }
+                                    .map {it.hash}
+                                    .reversed()
+                                //println("H=$heads // D=$downto")
+                                val ret = all.joinToString(" ")
+                                writer.writeLineX(ret)
+                                System.err.println("chain traverse: $ret")
+                            }
+                            "get" -> {
+                                val b_p  = reader.readLineX()
+                                val hash = reader.readLineX()
+                                val crypt= reader.readLineX()
+
+                                val ret = when (b_p) {
+                                    "block"   -> chain.fsLoadBlock(hash).toJson()
+                                    "payload" -> chain.fsLoadPay(hash, if (crypt == "") null else crypt)
+                                    else -> error("impossible case")
                                 }
 
-                            writer.writeLineX(likes.toString())
-                            System.err.println("chain reps: $likes")
-                        }
+                                writer.writeLineX(ret.length.toString())
+                                writer.writeBytes(ret)
+                                //writer.writeLineX("\n")
+                                System.err.println("chain get: $hash")
+                            }
+                            "remove" -> {
+                                val hash = reader.readLineX()
+                                chain.blockRemove(hash)
+                                writer.writeLineX("true")
+                                System.err.println("chain remove: $hash")
+                            }
+                            "reps" -> {
+                                val ref = reader.readLineX()
 
-                        "chain post" -> {
-                            val sign = reader.readLineX()   // "" / <pvt>
-                            val crypt= reader.readLineX()
-                            val lkn     = reader.readLineX().toInt()
-                            val lkr  = reader.readLineX()
-                            val len     = reader.readLineX().toInt()
-                            val pay  = reader.readNBytesX(len).toString(Charsets.UTF_8)
-                            reader.readLineX()
-                            assert(pay.length <= S128_pay) { "post is too large" }
+                                val likes =
+                                    if (ref.hashIsBlock()) {
+                                        val (pos,neg) = chain.repsPost(ref)
+                                        pos - neg
+                                    } else {
+                                        chain.repsAuthor(ref, getNow(), chain.getHeads(State.ALL))
+                                    }
 
-                            val like =
-                                if (lkn == 0) {
-                                    assert(lkr.isEmpty())
-                                    null
-                                } else {
-                                    assert(lkn==-1 || lkn==1) { "invalid like" }
-                                    assert(lkr.hashIsBlock()) { "expected block hash" }
-                                    Like(lkn, lkr)
+                                writer.writeLineX(likes.toString())
+                                System.err.println("chain reps: $likes")
+                            }
+
+                            "post" -> {
+                                val sign = reader.readLineX()   // "" / <pvt>
+                                val crypt= reader.readLineX()
+                                val lkn     = reader.readLineX().toInt()
+                                val lkr  = reader.readLineX()
+                                val len     = reader.readLineX().toInt()
+                                val pay  = reader.readNBytesX(len).toString(Charsets.UTF_8)
+                                reader.readLineX()
+                                assert(pay.length <= S128_pay) { "post is too large" }
+
+                                val like =
+                                    if (lkn == 0) {
+                                        assert(lkr.isEmpty())
+                                        null
+                                    } else {
+                                        assert(lkn==-1 || lkn==1) { "invalid like" }
+                                        assert(lkr.hashIsBlock()) { "expected block hash" }
+                                        Like(lkn, lkr)
+                                    }
+
+                                var ret: String
+                                try {
+                                    val blk = chain.blockNew (
+                                        Immut (
+                                            0,
+                                            Payload(false, ""),
+                                            null,
+                                            like,
+                                            emptyArray()
+                                        ),
+                                        pay,
+                                        if (sign.isEmpty()) null else sign,
+                                        if (crypt.isEmpty()) null else crypt
+                                    )
+                                    ret = blk.hash
+                                } catch (e: Throwable) {
+                                    //System.err.println(e.stackTrace.contentToString())
+                                    ret = e.message!!
                                 }
+                                writer.writeLineX(ret)
+                                System.err.println("chain post: $ret")
 
-                            var ret: String
-                            try {
-                                val blk = chain.blockNew (
-                                    Immut (
-                                        0,
-                                        Payload(false, ""),
-                                        null,
-                                        like,
-                                        emptyArray()
-                                    ),
-                                    pay,
-                                    if (sign.isEmpty()) null else sign,
-                                    if (crypt.isEmpty()) null else crypt
-                                )
-                                ret = blk.hash
-                            } catch (e: Throwable) {
-                                //System.err.println(e.stackTrace.contentToString())
-                                ret = e.message!!
+                                thread {
+                                    signal(name,1)
+                                }
                             }
-                            writer.writeLineX(ret)
-                            System.err.println("chain post: $ret")
-
-                            thread {
-                                signal(name,1)
-                            }
+                            else -> { error("$ln: invalid header type") }
                         }
-
-                        // PEER
-
-                        "peer send" -> {
-                            val host2 = reader.readLineX()
-                            val (host,port) = host2.hostSplit()
-                            val socket = Socket_5s(host, port)
-                            val r = DataInputStream(socket.getInputStream()!!)
-                            val w = DataOutputStream(socket.getOutputStream()!!)
-                            w.writeLineX("$PRE peer _recv_")
-                            w.writeLineX(chain.name)
-                            val (nmin,nmax) = peerSend(r, w, chain)
-                            System.err.println("peer send: $name: ($nmin/$nmax)")
-                            writer.writeLineX("$nmin / $nmax")
-                        }
-                        "peer recv" -> {
-                            val host2 = reader.readLineX()
-                            val (host,port) = host2.hostSplit()
-                            val socket = Socket_5s(host, port)
-                            val r = DataInputStream(socket.getInputStream()!!)
-                            val w = DataOutputStream(socket.getOutputStream()!!)
-                            w.writeLineX("$PRE peer _send_")
-                            w.writeLineX(chain.name)
-                            val (nmin,nmax) = peerRecv(r, w, chain)
-                            System.err.println("peer recv: $name: ($nmin/$nmax)")
-                            writer.writeLineX("$nmin / $nmax")
-                        }
-                        "peer _send_" -> {
-                            val r = DataInputStream(remote.getInputStream()!!)
-                            val w = DataOutputStream(remote.getOutputStream()!!)
-                            val (nmin,nmax) = peerSend(r, w, chain)
-                            System.err.println("peer _send_: $name: ($nmin/$nmax)")
-                            thread {
-                                signal(name, nmin)
-                            }
-                            //writer.writeLineX(ret)
-                        }
-                        "peer _recv_" -> {
-                            val r = DataInputStream(remote.getInputStream()!!)
-                            val w = DataOutputStream(remote.getOutputStream()!!)
-                            val (nmin,nmax) = peerRecv(r, w, chain)
-                            System.err.println("peer _recv_: $name: ($nmin/$nmax)")
-                            thread {
-                                signal(name, nmin)
-                            }
-                            //writer.writeLineX(ret)
-                        }
-                        else -> { error("$ln: invalid header type") }
                     }
                 }
             }
