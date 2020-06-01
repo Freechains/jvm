@@ -117,6 +117,7 @@ fun main_ (args: Array<String>) : String {
             opts["peer"] as Boolean -> {
                 when {
                     opts["ping"] as Boolean -> {
+                        //kotlin.io.println(">>> ${opts["<host:port>"] as String}")
                         writer.writeLineX("$PRE peer ping")
                         writer.writeLineX(opts["<host:port>"] as String)
                         return reader.readLineX()
@@ -271,7 +272,7 @@ fun main_ (args: Array<String>) : String {
                         val pay = when {
                             opts["inline"] as Boolean -> (opts["<path_or_text>"] as String)
                             opts["file"]   as Boolean -> File(opts["<path_or_text>"] as String).readBytes().toString(Charsets.UTF_8)
-                            opts["-"]      as Boolean -> DataInputStream(System.`in`).readAllBytesX()!!.toString(Charsets.UTF_8)
+                            opts["-"]      as Boolean -> DataInputStream(System.`in`).readAllBytesX().toString(Charsets.UTF_8)
                             else -> error("impossible case")
                         }
                         writer.writeLineX(pay.length.toString())

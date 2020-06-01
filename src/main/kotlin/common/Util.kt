@@ -4,12 +4,12 @@ import java.net.Socket
 import java.time.Instant
 
 const val MAJOR    = 0
-const val MINOR    = 4
-const val REVISION = 1
+const val MINOR    = 5
+const val REVISION = 0
 const val VERSION  = "v$MAJOR.$MINOR.$REVISION"
 const val PRE      = "FC $VERSION"
 
-const val PORT_8330 = 8330
+const val PORT_8330 = 8330 //8888  // TODO: back to 8330
 
 const val ms   = 1.toLong()
 const val sec  = 1000*ms
