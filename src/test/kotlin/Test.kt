@@ -205,6 +205,7 @@ class Tests {
         Thread.sleep(200)
 
         main__(arrayOf("peer", "localhost:8331", "ping")).let {
+            println(">>> $it")
             assert(it.toInt() < 50)
         }
         main_(arrayOf("peer", "localhost:11111", "ping")).let {
