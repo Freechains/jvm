@@ -346,14 +346,15 @@ class Tests {
         Thread.sleep(200)
         main_(arrayOf("chains", "join", "#"))
 
+        var ok = 0
         val t1 = thread {
             val socket = Socket("localhost", PORT_8330)
             val writer = DataOutputStream(socket.getOutputStream()!!)
             val reader = DataInputStream(socket.getInputStream()!!)
-            writer.writeLineX("$PRE chain listen")
-            writer.writeLineX("#")
+            writer.writeLineX("$PRE chain # listen")
             val n = reader.readLineX().toInt()
             assert(n == 1) { "error 1"}
+            ok++
         }
 
         val t2 = thread {
@@ -362,13 +363,15 @@ class Tests {
             val reader = DataInputStream(socket.getInputStream()!!)
             writer.writeLineX("$PRE chains listen")
             val x = reader.readLineX()
-            assert(x == "1 /") { "error 2"}
+            assert(x == "1 #") { "error 2"}
+            ok++
         }
 
         Thread.sleep(200)
         main_(arrayOf("chain", "#", "post", "inline", "aaa", S0))
         t1.join()
         t2.join()
+        assert(ok == 2)
     }
     @Test
     fun m02_crypto() {

@@ -192,6 +192,14 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                         val ret = reader.readLineX()
                         return Pair(true,ret)
                     }
+                    "listen" -> {
+                        assert(cmds.size == 2)
+                        writer.writeLineX("$PRE chains listen")
+                        while (true) {
+                            val n_name = reader.readLineX()
+                            println(n_name)
+                        }
+                    }
                 }
             }
             "chain" -> {
@@ -279,6 +287,14 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                         assert(reader.readLineX() == "true")
                         return Pair(true,null)
                     }
+                    "listen" -> {
+                        assert(cmds.size == 3)
+                        writer.writeLineX("$PRE chain $chain listen")
+                        while (true) {
+                            val n = reader.readLineX()
+                            println(n)
+                        }
+                    }
                 }
             }
         }
@@ -294,44 +310,4 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
         return Pair(false,e.message)
     }
     return Pair(false, "! $CMD")
-
-    /*
-    try {
-        val opts = Docopt(doc).withVersion("freechains $VERSION").parse(args.toMutableList())
-
-
-        // host start does not connect to daemon
-
-        // all remaining connect to daemon
-
-        when {
-            opts["chains"] as Boolean -> {
-                when {
-                    opts["listen"] as Boolean -> {
-                        writer.writeLineX("$PRE chains listen")
-                        while (true) {
-                            val n_name = reader.readLineX()
-                            println(n_name)
-                        }
-                    }
-                }
-            }
-            opts["chain"] as Boolean -> {
-                when {
-                    opts["listen"] as Boolean -> {
-                        writer.writeLineX("$PRE chain listen")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        while (true) {
-                            val n = reader.readLineX()
-                            println(n)
-                        }
-                    }
-                }
-            }
-        }
-        error("bug found")
-    } catch (e: Throwable) {
-        return Pair(false,e.message)
-    }
-     */
 }
