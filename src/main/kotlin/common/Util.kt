@@ -4,7 +4,7 @@ import java.net.Socket
 import java.time.Instant
 
 const val MAJOR    = 0
-const val MINOR    = 5
+const val MINOR    = 6
 const val REVISION = 0
 const val VERSION  = "v$MAJOR.$MINOR.$REVISION"
 const val PRE      = "FC $VERSION"
