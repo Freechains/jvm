@@ -1,3 +1,5 @@
+@file:Suppress("UnusedImport")
+
 package org.freechains.common
 
 import org.freechains.platform.fsRoot
@@ -18,24 +20,24 @@ Usage:
     
     freechains crypto create (shared | pubpvt) <passphrase>
     
-    freechains chains join #<chain>
-    freechains chains leave #<chain>
+    freechains chains join  <chain>
+    freechains chains leave <chain>
     freechains chains list
     freechains chains listen
     
-    freechains chain genesis <chain>
-    freechains chain heads <chain> (all | linked | blocked)
-    freechains chain get <chain> (block | payload) <hash>
-    freechains chain post <chain> (file | inline | -) [<path_or_text>]
-    freechains chain (like | dislike) <chain> <hash>
-    freechains chain reps <chain> <hash_or_pub>
-    freechains chain remove <chain> <hash>
-    freechains chain traverse <chain> (all | linked) <hashes>...
-    freechains chain listen <chain>
+    freechains chain <chain> genesis
+    freechains chain <chain> heads (all | linked | blocked)
+    freechains chain <chain> get (block | payload) <hash>
+    freechains chain <chain> post (file | inline | -) [<path_or_text>]
+    freechains chain <chain> (like | dislike) <hash>
+    freechains chain <chain> reps <hash_or_pub>
+    freechains chain <chain> remove <hash>
+    freechains chain <chain> traverse (all | linked) <hashes>...
+    freechains chain <chain> listen
     
-    freechains peer ping <host:port>
-    freechains peer chains <host:port>
-    freechains peer (send | recv) <host:port> <chain>
+    freechains peer <host:port> ping
+    freechains peer <host:port> chains
+    freechains peer <host:port> (send | recv) <chain>
 
 Options:
     --help              [none]            displays this help
@@ -53,7 +55,7 @@ More Information:
 """
 
 fun main (args: Array<String>) {
-    val xxx = fsRoot
+    //val xxx = fsRoot
     main_(args).let { (ok,msg) ->
         if (ok) {
             if (msg != null) {
@@ -63,13 +65,6 @@ fun main (args: Array<String>) {
             System.err.println("! " + if (msg != null) msg else "unknown error")
             exitProcess(1)
         }
-    }
-}
-
-fun main__ (args: Array<String>) : String {
-    return main_(args).let { (ok,msg) ->
-        assert(ok)
-        if (msg == null) "" else msg
     }
 }
 
@@ -151,8 +146,8 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
             }
             "peer" -> {
                 assert(cmds.size in 3..4)
-                val remote = cmds[2]
-                when (cmds[1]) {
+                val remote = cmds[1]
+                when (cmds[2]) {
                     "ping" -> {
                         assert(cmds.size == 3)
                         writer.writeLineX("$PRE peer ping")
@@ -198,17 +193,15 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                     }
                     "leave" -> {
                         assert(cmds.size == 3)
-                        val chain = cmds[2]
                         writer.writeLineX("$PRE chains leave")
-                        writer.writeLineX(chain)
+                        writer.writeLineX(cmds[2])
                         val ret = reader.readLineX()
                         return Pair(true,ret)
                     }
                     "join" -> {
                         assert(cmds.size == 3)
-                        val chain = cmds[2]
                         writer.writeLineX("$PRE chains join")
-                        writer.writeLineX(chain)
+                        writer.writeLineX(cmds[2])
                         val ret = reader.readLineX()
                         return Pair(true,ret)
                     }
@@ -216,7 +209,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
             }
             "chain" -> {
                 assert(cmds.size >= 3)
-                val chain = cmds[2]
+                val chain = cmds[1]
 
                 fun like (lk: String) : Pair<Boolean,String?> {
                     assert(cmds.size == 4)
@@ -241,7 +234,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                     return Pair(true,ret)
                 }
 
-                when (cmds[1]) {
+                when (cmds[2]) {
                     "genesis" -> {
                         assert(cmds.size == 3)
                         writer.writeLineX("$PRE chain genesis")
@@ -251,21 +244,18 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                     }
                     "heads" -> {
                         assert(cmds.size == 4)
-                        val mode = cmds[3]
                         writer.writeLineX("$PRE chain heads")
                         writer.writeLineX(chain)
-                        writer.writeLineX(mode)
+                        writer.writeLineX(cmds[3])
                         val ret = reader.readLineX()
                         return Pair(true,ret)
                     }
                     "get" -> {
                         assert(cmds.size == 5)
-                        val mode  = cmds[3]
-                        val hash  = cmds[4]
                         writer.writeLineX("$PRE chain get")
                         writer.writeLineX(chain)
-                        writer.writeLineX(mode)
-                        writer.writeLineX(hash)
+                        writer.writeLineX(cmds[3])
+                        writer.writeLineX(cmds[4])
                         writer.writeLineX(opts["--crypt"] ?: "")
                         val len = reader.readLineX().toInt()
                         val json = reader.readNBytesX(len).toString(Charsets.UTF_8)
@@ -276,7 +266,6 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                     }
                     "post" -> {
                         assert(cmds.size in 4..5)
-                        val mode  = cmds[3]
                         writer.writeLineX("$PRE chain post")
                         writer.writeLineX(chain)
                         writer.writeLineX(opts["--sign"] ?: "")
@@ -284,7 +273,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                         writer.writeLineX("0")
                         writer.writeLineX("")
 
-                        val pay = when (mode) {
+                        val pay = when (cmds[3]) {
                             "inline" -> cmds[4]
                             "file"   -> File(cmds[4]).readBytes().toString(Charsets.UTF_8)
                             "-"      -> DataInputStream(System.`in`).readAllBytesX().toString(Charsets.UTF_8)
@@ -300,20 +289,18 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                     }
                     "traverse" -> {
                         assert(cmds.size >= 5)
-                        val mode = cmds[3]
                         writer.writeLineX("$PRE chain traverse")
                         writer.writeLineX(chain)
-                        writer.writeLineX(mode)
+                        writer.writeLineX(cmds[3])
                         writer.writeLineX(cmds.drop(3).joinToString(" "))
                         val ret = reader.readLineX()
                         return Pair(true,ret)
                     }
                     "reps" -> {
                         assert(cmds.size == 4)
-                        val hash = cmds[3]
                         writer.writeLineX("$PRE chain reps")
                         writer.writeLineX(chain)
-                        writer.writeLineX(hash)
+                        writer.writeLineX(cmds[3])
                         val ret = reader.readLineX()
                         return Pair(true,ret)
                     }
@@ -321,10 +308,9 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                     "dislike" -> return like("-1")
                     "remove" -> {
                         assert(cmds.size == 4)
-                        val hash = cmds[3]
                         writer.writeLineX("$PRE chain remove")
                         writer.writeLineX(chain)
-                        writer.writeLineX(hash)
+                        writer.writeLineX(cmds[3])
                         assert(reader.readLineX() == "true")
                         return Pair(true,null)
                     }
