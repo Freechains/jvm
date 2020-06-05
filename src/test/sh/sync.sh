@@ -21,24 +21,22 @@ H1=--host=localhost:8401
 ###############################################################################
 echo "#### 1"
 
-freechains host create $FC/8400 8400
-freechains host start $FC/8400 &
+freechains host start $FC/8400 8400 &
 sleep 0.5
-freechains $H0 chains join /
+freechains $H0 chains "#" join
 
-freechains host create $FC/8401 8401
-freechains host start $FC/8401 &
+freechains host start $FC/8401 8401 &
 sleep 0.5
-freechains $H1 chains join /
+freechains $H1 chains "#" join
 
 freechains $H0 host now 0
 freechains $H1 host now 0
 
-freechains $H0 $S0 chain post / inline zero
-freechains $H0 $S1 chain post / inline xxxx
-freechains $H0 $S0 chain like / `freechains $H0 chain heads / blocked` --why="like xxxx"
+freechains $H0 $S0 chain "#" post inline zero
+freechains $H0 $S1 chain "#" post inline xxxx
+freechains $H0 $S0 chain "#" like `freechains $H0 chain "#" heads blocked` --why="like xxxx"
 
-freechains $H0 chain send / localhost:8401
+freechains $H0 chain send "#" localhost:8401
 
 # h0 <- zero <-- lxxxx
 #             \- xxxx
@@ -48,8 +46,8 @@ freechains $H1 host now 90000000
 
 echo ">>> LIKES"
 
-h1111=`freechains $H0 chain post / inline 1111`
-haaaa=`freechains $H1 chain post / inline aaaa`
+h1111=`freechains $H0 chain "#" post inline 1111`
+haaaa=`freechains $H1 chain "#" post inline aaaa`
 
 #                         1111
 # h0 <- zero <-- lxxxx <-/
@@ -58,8 +56,8 @@ haaaa=`freechains $H1 chain post / inline aaaa`
 
 ! diff -q $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 
-freechains $H0 $S0 chain like / $h1111 --why="like 1111"
-freechains $H1 $S1 chain like / $haaaa --why="like aaaa"
+freechains $H0 $S0 chain "#" like $h1111 --why="like 1111"
+freechains $H1 $S1 chain "#" like $haaaa --why="like aaaa"
 
 #                         111
 # h0 <- zero <-- lxxxx <-/  <-- l111
@@ -69,8 +67,8 @@ freechains $H1 $S1 chain like / $haaaa --why="like aaaa"
 freechains $H0 host now 98000000
 freechains $H1 host now 98000000
 
-freechains $H0 peer send localhost:8401 /
-freechains $H1 peer send localhost:8400 /
+freechains $H0 peer localhost:8401 send "#"
+freechains $H1 peer localhost:8400 send "#"
 
 diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 

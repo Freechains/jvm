@@ -8,52 +8,49 @@ FC=/tmp/freechains
 ./clean.sh
 
 # 8400 (public and private keys)
-freechains host create $FC/8400 8400
-freechains host start $FC/8400 &
+freechains host start $FC/8400 8400 &
 sleep 0.5
 KEYS=`freechains --host=localhost:8400 crypto create pubpvt correct`
 PUB=`echo $KEYS | cut -d ' ' -f 1`
 PVT=`echo $KEYS | cut -d ' ' -f 2`
-freechains --host=localhost:8400 chains join / $PUB
+freechains --host=localhost:8400 chains join "@$PUB"
 
 # 8401 (no keys)
-freechains host create $FC/8401 8401
-freechains host start $FC/8401 &
+freechains host start $FC/8401 8401 &
 sleep 0.5
-freechains --host=localhost:8401 chains join /
+freechains --host=localhost:8401 chains join "#"
 
 # 8402 (public key only)
-freechains host create $FC/8402 8402
-freechains host start $FC/8402 &
+freechains host start $FC/8402 8402 &
 sleep 0.5
-freechains --host=localhost:8402 chains join / $PUB
+freechains --host=localhost:8402 chains join "@$PUB"
 
 # get genesis block of each host
-g0=`freechains --host=localhost:8400 chain genesis /`
-g1=`freechains --host=localhost:8401 chain genesis /`
-g2=`freechains --host=localhost:8402 chain genesis /`
+g0=`freechains --host=localhost:8400 chain "@$PUB" genesis`
+g1=`freechains --host=localhost:8401 chain "#" genesis`
+g2=`freechains --host=localhost:8402 chain "@$PUB" genesis`
 
 # compare them
 ! diff -q <(echo "$g0") <(echo "$g1") || exit 1
 diff <(echo "$g0") <(echo "$g2") || exit 1
 
 # post to 8400, send to 8401 (fail) 8402 (succees)
-freechains --host=localhost:8400 --sign=$PVT chain post / inline Hello_World
-freechains --host=localhost:8400 peer send localhost:8401 /  # FAIL
-freechains --host=localhost:8402 peer recv localhost:8400 /  # SUCCESS
+freechains --host=localhost:8400 --sign=$PVT chain "@$PUB" post inline Hello_World
+freechains --host=localhost:8400 peer localhost:8401 send "@$PUB"  # FAIL
+freechains --host=localhost:8402 peer localhost:8400 recv "@$PUB"  # SUCCESS
 
 # compare them
-! diff -q $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
-diff $FC/8400/chains/blocks/ $FC/8402/chains/blocks/      || exit 1
+! diff -q $FC/8400/chains/@$PUB/blocks/ $FC/8401/chains/@$PUB/blocks/ || exit 1
+diff $FC/8400/chains/@$PUB/blocks/ $FC/8402/chains/@$PUB/blocks/      || exit 1
 
 # post to 8400, send to 8401 (fail) 8402 (succees, but crypted)
-h=`freechains --host=localhost:8400 --sign=$PVT --crypt=$PVT chain post / inline Hello_World`
-freechains --host=localhost:8400 peer send localhost:8401 /  # FAIL
-freechains --host=localhost:8400 peer send localhost:8402 /  # SUCCESS
+h=`freechains --host=localhost:8400 --sign=$PVT --crypt=$PVT chain "@$PUB" post inline Hello_World`
+freechains --host=localhost:8400 peer localhost:8401 send "@$PUB"  # FAIL
+freechains --host=localhost:8400 peer localhost:8402 send "@$PUB"  # SUCCESS
 
-freechains --host=localhost:8400 --crypt=$PVT chain get / payload $h > $FC/dec.pay
+freechains --host=localhost:8400 --crypt=$PVT chain "@$PUB" get payload $h > $FC/dec.pay
 diff $FC/dec.pay <(echo 'Hello_World') || exit 1
-freechains --host=localhost:8402 chain get / block $h > $FC/enc.blk
+freechains --host=localhost:8402 chain "@$PUB" get block $h > $FC/enc.blk
 diff <(jq ".immut.pay.crypt" $FC/enc.blk) <(echo 'true') || exit 1
 
 # stop hosts

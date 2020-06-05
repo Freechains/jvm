@@ -9,6 +9,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
 import java.net.ConnectException
+import java.net.SocketTimeoutException
 import kotlin.system.exitProcess
 
 val doc = """
@@ -83,6 +84,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
         }
         .toMap()
 
+    val CMD = "freechains ${args.joinToString(" ")}"
     //println(cmds)
     //println(opts)
 
@@ -277,20 +279,21 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                         assert(reader.readLineX() == "true")
                         return Pair(true,null)
                     }
-
                 }
             }
         }
     } catch (e: AssertionError) {
-        val msg = if (e.message != null) e.message else "freechains ${args.joinToString(" ")}"
+        val msg = if (e.message != null) e.message else "! $CMD"
         return Pair(false, msg)
     } catch (e: ConnectException) {
         return Pair(false, "connection refused")
+    } catch (e: SocketTimeoutException) {
+        return Pair(false, "connection timeout")
     } catch (e: Throwable) {
-        println("ERR - TODO - $e - ${e.message}")
+        println("ERR - TODO - $e - ${e.message} - ($CMD)")
         return Pair(false,e.message)
     }
-    return Pair(false, "freechains ${args.joinToString(" ")}")
+    return Pair(false, "! $CMD")
 
     /*
     try {
