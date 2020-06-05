@@ -1,60 +1,23 @@
 package org.freechains.common
 
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.UnstableDefault
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
 import org.freechains.platform.fsRoot
 import java.io.File
 
-@Serializable
 data class Host (
-    val root : String,
-    val port : Int
+    val root: String,
+    val port: Int
 )
 
-// JSON
-
-fun Host.toJson () : String {
-    @UseExperimental(UnstableDefault::class)
-    val json = Json(JsonConfiguration(prettyPrint=true))
-    return json.stringify(Host.serializer(), this)
-}
-
-fun String.fromJsonToHost () : Host {
-    @UseExperimental(UnstableDefault::class)
-    val json = Json(JsonConfiguration(prettyPrint=true))
-    return json.parse(Host.serializer(), this)
-}
-
-// FILE SYSTEM
-
-fun Host.fsSave () {
-    File(this.root + "/host").writeText(this.toJson()+"\n")
-}
-
-fun Host_load (dir: String) : Host {
-    assert(dir.startsWith("/"))
-    return File(fsRoot + "/" + dir + "/host").readText().fromJsonToHost()
-}
-
-fun Host_exists (dir: String) : Boolean {
-    assert(dir.startsWith("/"))
-    return File(fsRoot + "/" + dir).exists()
-}
-
-fun Host_create (dir: String, port: Int = PORT_8330) : Host {
-    assert(dir.startsWith("/"))
-    val root = fsRoot + dir
-    val fs = File(root)
-    assert(!fs.exists()) { "directory already exists: " + root }
-    fs.mkdirs()
-    val host = Host(root, port)
-    host.fsSave()
+fun Host_load (dir: String, port: Int = PORT_8330) : Host {
+    assert(dir.startsWith("/")) { "path must be absolute" }
+    val host = Host(fsRoot+dir+"/", port)
+    File(host.root).let {
+        if (!it.exists()) {
+            it.mkdirs()
+        }
+    }
     return host
 }
-
-// SPLIT
 
 fun String.hostSplit () : Pair<String,Int> {
     val lst = this.split(":")
@@ -68,17 +31,15 @@ fun String.hostSplit () : Pair<String,Int> {
 // CHAINS
 
 fun Host.chainsLoad (name: String) : Chain {
-    name.nameCheck()
-    val name_ = name.replace('/','_')
-    val file = File(this.root + "/chains/" + name_ + "/" + "chain")
-    return file.readText().fromJsonToChain()
+    val file = File(this.root + "/chains/" + name + "/" + "chain")
+    val chain = file.readText().fromJsonToChain()
+    chain.root = this.root
+    return chain
 }
 
-fun Host.chainsJoin (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
-    name.nameCheck()
-    val name_ = name.replace('/','_')
-    val chain = Chain(this.root+"/chains/", name, trusted, pub)
-    val file = File(chain.root + "/" + name_ + "/" + "chain")
+fun Host.chainsJoin (name: String) : Chain {
+    val chain = Chain(this.root,name).validate()
+    val file = File(chain.path() + "/chain")
     assert(!file.exists()) { "chain already exists: $chain"}
     chain.fsSave()
     val genesis = Block (
@@ -98,9 +59,8 @@ fun Host.chainsJoin (name: String, trusted: Boolean, pub: ChainPub?) : Chain {
 }
 
 fun Host.chainsLeave (name: String) : Boolean {
-    name.nameCheck()
-    val name_ = name.replace('/','_')
-    val file = File(this.root + "/chains/" + name_ + "/")
+    val chain = Chain(this.root,name).validate()
+    val file = File(chain.path())
     return file.exists() && file.deleteRecursively()
 }
 

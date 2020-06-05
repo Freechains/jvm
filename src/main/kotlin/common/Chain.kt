@@ -17,31 +17,46 @@ import kotlin.math.ceil
 // internal methods are private but are used in tests
 
 @Serializable
-data class ChainPub (
-    val oonly : Boolean,
-    val key   : HKey
-)
-
-@Serializable
 data class Chain (
-    val root    : String,
-    val name    : String,
-    val trusted : Boolean,
-    val pub     : ChainPub?
+    var root  : String,
+    val name  : String
 ) {
-    val path    : String = this.root + "/" + this.name.replace('/','_')
-    val hash    : String = this.toHash()
-    val heads   : ArrayList<Hash> = arrayListOf(this.getGenesis())
+    val hash  : String = this.name.calcHash()
+    val heads : ArrayList<Hash> = arrayListOf(this.getGenesis())
 }
 
 // TODO: change to contract/constructor assertion
-fun String.nameCheck () : String {
-    assert (
-        this.startsWith('/') &&
-        (this.length==1 || !this.endsWith('/')) &&
-        !this.contains('_')
-    ) { "invalid chain: $this"}
+fun Chain.validate () : Chain {
+    val rest = when (this.name.first()) {
+        '#' -> this.name.drop(1)
+        '$' -> this.name.drop(1)
+        '@' -> this.name.drop( if (this.name.drop(1).first() == '!') 2 else 1)
+        else -> null
+    }
+    assert(rest!=null && rest.all { it.isLetterOrDigit() || it=='.' }) {
+        "invalid chain name: $this"
+    }
     return this
+}
+
+fun Chain.pub () : HKey? {
+    if (this.name.first() == '@') {
+        return this.name.drop(1)
+    } else {
+        return null
+    }
+}
+
+fun Chain.oonly () : Boolean {
+    return this.name.first()=='@' && this.name.drop(1).first()=='!'
+}
+
+fun Chain.trusted () : Boolean {
+    return this.name.first() == '$'
+}
+
+fun Chain.path () : String {
+    return this.root + "/chains/" + this.name + "/"
 }
 
 // JSON
@@ -61,7 +76,7 @@ fun String.fromJsonToChain () : Chain {
 // GENESIS
 
 fun Chain.getGenesis () : Hash {
-    return "0_" + this.toHash()
+    return "0_" + this.hash
 }
 
 // HASH
@@ -69,11 +84,6 @@ fun Chain.getGenesis () : Hash {
 val zeros = ByteArray(GenericHash.BYTES)
 fun String.calcHash () : String {
     return lazySodium.cryptoGenericHash(this, Key.fromBytes(zeros))
-}
-
-private fun Chain.toHash () : String {
-    val pub = this.pub?.let { it.oonly.toString()+"_"+it.key } ?: ""
-    return (this.name+this.trusted.toString()+pub).calcHash()
 }
 
 fun Immut.toHash () : Hash {
@@ -182,20 +192,20 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
 // FILE SYSTEM
 
 internal fun Chain.fsSave () {
-    val dir = File(this.path + "/blocks/")
+    val dir = File(this.path() + "/blocks/")
     if (!dir.exists()) {
         dir.mkdirs()
     }
-    File(this.path + "/" + "chain").writeText(this.toJson())
+    File(this.path() + "/" + "chain").writeText(this.toJson())
 }
 
 fun Chain.fsLoadBlock (hash: Hash) : Block {
-    return File(this.path + "/blocks/" + hash + ".blk").readText().jsonToBlock()
+    return File(this.path() + "/blocks/" + hash + ".blk").readText().jsonToBlock()
 }
 
 fun Chain.fsLoadPay (hash: Hash, crypt: HKey?) : String {
     val blk = this.fsLoadBlock(hash)
-    val pay = File(this.path + "/blocks/" + hash + ".pay").readBytes().toString(Charsets.UTF_8)
+    val pay = File(this.path() + "/blocks/" + hash + ".pay").readBytes().toString(Charsets.UTF_8)
     if (crypt==null || !blk.immut.pay.crypt) {
         return pay
     }
@@ -204,13 +214,13 @@ fun Chain.fsLoadPay (hash: Hash, crypt: HKey?) : String {
 
 fun Chain.fsExistsBlock (hash: Hash) : Boolean {
     return (this.hash == hash) ||
-           File(this.path + "/blocks/" + hash + ".blk").exists()
+           File(this.path() + "/blocks/" + hash + ".blk").exists()
 }
 
 fun Chain.fsSaveBlock (blk: Block) {
-    File(this.path + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
+    File(this.path() + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
 
 fun Chain.fsSavePay (hash: Hash, pay: String) {
-    File(this.path + "/blocks/" + hash + ".pay").writeText(pay)
+    File(this.path() + "/blocks/" + hash + ".pay").writeText(pay)
 }

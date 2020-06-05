@@ -70,9 +70,8 @@ class Simulation {
         }
         for (i in 0 until N) {
             val h = 8400 + i
-            main(arrayOf("host", "create", "/tmp/freechains/sim/$h/", "$h"))
             thread {
-                main(arrayOf("host", "start", "/tmp/freechains/sim/$h/"))
+                main(arrayOf("host", "start", "/tmp/freechains/sim/$h/", "$h"))
             }
         }
     }

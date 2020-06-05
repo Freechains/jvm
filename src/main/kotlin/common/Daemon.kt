@@ -14,10 +14,10 @@ import org.freechains.platform.lazySodium
 import java.util.*
 import kotlin.collections.HashSet
 
-class Daemon (host : Host) {
+class Daemon (local_: Host) {
     private val listenLists = mutableMapOf<String,MutableSet<DataOutputStream>>()
-    private val server = ServerSocket(host.port)
-    private val local = host
+    private val server = ServerSocket(local_.port)
+    private val local = local_
 
     private fun getLock (chain: Chain? = null) : String {
         return (local.root + (chain?.hash ?: "")).intern()
@@ -150,7 +150,7 @@ class Daemon (host : Host) {
                         System.err.println("peer _chains_: $ret")
                     }
                     else -> {
-                        val name = reader.readLineX().nameCheck()
+                        val name = reader.readLineX()
                         val chain = synchronized(getLock()) {
                             local.chainsLoad(name)
                         }
@@ -227,31 +227,21 @@ class Daemon (host : Host) {
             }
             "chains" -> when (cmd2) {
                 "join" -> {
-                    val name= reader.readLineX().nameCheck()
-                    val trusted= reader.readLineX().toBoolean()
-                    val type= reader.readLineX()
-                    val pub =
-                        if (type.isEmpty()) {
-                            null
-                        } else {
-                            val oonly= type.toBoolean()
-                            val pub= reader.readLineX()
-                            ChainPub(oonly, pub)
-                        }
-                    val chain = synchronized (getLock()) {
-                        local.chainsJoin(name, trusted, pub)
+                    val name= reader.readLineX()
+                    val chain= synchronized (getLock()) {
+                        local.chainsJoin(name)
                     }
                     writer.writeLineX(chain.hash)
                     System.err.println("chains join: $name (${chain.hash})")
                 }
                 "leave" -> {
-                    val name= reader.readLineX().nameCheck()
-                    val ret = local.chainsLeave(name)
+                    val name= reader.readLineX()
+                    val ret= local.chainsLeave(name)
                     writer.writeLineX(ret.toString())
                     System.err.println("chains leave: $name -> $ret")
                 }
                 "list" -> {
-                    val ret = local.chainsList().joinToString(" ")
+                    val ret= local.chainsList().joinToString(" ")
                     writer.writeLineX(ret)
                     System.err.println("chains list: $ret")
                 }
@@ -268,7 +258,7 @@ class Daemon (host : Host) {
             "chain" -> when (cmd2) {
                 "listen" -> {
                     client.soTimeout = 0
-                    val name = reader.readLineX().nameCheck()
+                    val name = reader.readLineX()
                     synchronized (listenLists) {
                         if (! listenLists.containsKey(name)) {
                             listenLists[name] = mutableSetOf()
@@ -277,28 +267,28 @@ class Daemon (host : Host) {
                     }
                 }
                 else -> {
-                    val name  = reader.readLineX().nameCheck()
-                    val chain = synchronized (getLock()) {
+                    val name= reader.readLineX()
+                    val chain= synchronized (getLock()) {
                         local.chainsLoad(name)
                     }
                     synchronized (getLock(chain)) {
                         when (cmd2) {
                             "genesis" -> {
-                                val hash  = chain.getGenesis()
+                                val hash= chain.getGenesis()
                                 writer.writeLineX(hash)
                                 System.err.println("chain genesis: $hash")
                             }
                             "heads" -> {
-                                val state = reader.readLineX().toState()
-                                val heads = chain.getHeads(state)
-                                val hs = heads.joinToString(" ")
+                                val state= reader.readLineX().toState()
+                                val heads= chain.getHeads(state)
+                                val hs= heads.joinToString(" ")
                                 writer.writeLineX(hs)
                                 System.err.println("chain heads: $hs")
                             }
                             "traverse" -> {
-                                val state = reader.readLineX().toState()
-                                val hashes = chain.getHeads(state)
-                                val downto = reader.readLineX().split(" ")
+                                val state= reader.readLineX().toState()
+                                val hashes= chain.getHeads(state)
+                                val downto= reader.readLineX().split(" ")
                                 //println("H=$heads // D=$downto")
                                 val all = chain
                                     .bfsBacks(hashes,false) {
@@ -329,15 +319,15 @@ class Daemon (host : Host) {
                                 System.err.println("chain get: $hash")
                             }
                             "remove" -> {
-                                val hash = reader.readLineX()
+                                val hash= reader.readLineX()
                                 chain.blockRemove(hash)
                                 writer.writeLineX("true")
                                 System.err.println("chain remove: $hash")
                             }
                             "reps" -> {
-                                val ref = reader.readLineX()
+                                val ref= reader.readLineX()
 
-                                val likes =
+                                val likes=
                                     if (ref.hashIsBlock()) {
                                         val (pos,neg) = chain.repsPost(ref)
                                         pos - neg

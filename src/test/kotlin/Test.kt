@@ -27,7 +27,9 @@ import kotlin.concurrent.thread
  *                                reps             28-02    29-02    17-03   19-03    25-04   28-04   04-05
  *  -   736 ->   809 ->   930 ->  1180 ->  1131 ->  1365 ->  1434 ->  1598 -> 1681 -> 1500 -> 1513 -> 1555 LOC
  *  - 10553 -> 10555 -> 10557 -> 10568 -> 10575 -> 10590 -> 10607 ->  5691 -> .... -> 5702 KB
- *  - return codes from main
+ *  - ping return version
+ *  - peer chains return one by line with parameters
+ *  - return codes from main_
  *  - permission for client
  *  - android app client para controlar host: registrar hosts, chains, users, etc, receber notificacoes
  *  - passar dir de instalacao p/ install
@@ -104,7 +106,7 @@ const val S1 = "--sign=$PVT1"
 class Tests {
 
     @Test
-    fun a_reset() {
+    fun a_reset () {
         assert(File("/tmp/freechains/tests/").deleteRecursively())
     }
 
@@ -157,8 +159,8 @@ class Tests {
     @Test
     fun b1_chain() {
         a_reset()
-        val h = Host_create("/tmp/freechains/tests/local/")
-        val c1 = h.chainsJoin("/uerj", false, null)
+        val h = Host_load("/tmp/freechains/tests/local/")
+        val c1 = h.chainsJoin("#uerj")
 
         val c2 = h.chainsLoad(c1.name)
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
@@ -173,7 +175,7 @@ class Tests {
     @Test
     fun c1_post() {
         val host = Host_load("/tmp/freechains/tests/local/")
-        val chain = host.chainsJoin("/", false, ChainPub(false,PUB0))
+        val chain = host.chainsJoin("@$PUB0")
         val n1 = chain.blockNew(H, "", PVT0, null)
         val n2 = chain.blockNew(H, "", PVT0, null)
         val n3 = chain.blockNew(H, "", null, null)
@@ -199,10 +201,10 @@ class Tests {
     fun d2_proto() {
         val local = Host_load("/tmp/freechains/tests/local/")
         thread { Daemon(local).daemon() }
-        Thread.sleep(100)
+        Thread.sleep(200)
 
-        main(arrayOf("host", "stop"))
-        Thread.sleep(100)
+        main_(arrayOf("host", "stop"))
+        Thread.sleep(200)
     }
 
     /*
@@ -224,35 +226,34 @@ class Tests {
         a_reset()
 
         // SOURCE
-        val src = Host_create("/tmp/freechains/tests/src/")
-        val srcChain = src.chainsJoin("/d3", false, ChainPub(false,PUB1))
+        val src = Host_load("/tmp/freechains/tests/src/")
+        val srcChain = src.chainsJoin("@$PUB1")
         srcChain.blockNew(HC, "", PVT1, null)
         srcChain.blockNew(HC, "", PVT1, null)
         thread { Daemon(src).daemon() }
 
         // DESTINY
-        val dst = Host_create("/tmp/freechains/tests/dst/", 8331)
-        dst.chainsJoin("/d3", false, null)
+        val dst = Host_load("/tmp/freechains/tests/dst/", 8331)
+        dst.chainsJoin("@$PUB1")
         thread { Daemon(dst).daemon() }
-        Thread.sleep(100)
+        Thread.sleep(200)
 
-        main_(arrayOf("peer", "ping", "localhost:8331")).let {
+        main__(arrayOf("peer", "ping", "localhost:8331")).let {
             assert(it.toInt() < 50)
         }
         main_(arrayOf("peer", "ping", "localhost:11111")).let {
-            println(">>> $it")
-            assert(it.isEmpty())
+            assert(!it.first && it.second==null)
         }
-        main_(arrayOf("peer", "chains", "localhost:8331")).let {
-            assert(it == "/d3")
+        main__(arrayOf("peer", "chains", "localhost:8331")).let {
+            assert(it == "@$PUB1")
         }
 
-        main(arrayOf("peer", "send", "localhost:8331", "/d3"))
-        Thread.sleep(100)
+        main_(arrayOf("peer", "send", "localhost:8331", "@$PUB1"))
+        Thread.sleep(200)
 
-        main(arrayOf(H1, "host", "stop"))
-        main(arrayOf("host", "stop"))
-        Thread.sleep(100)
+        main_(arrayOf(H1, "host", "stop"))
+        main_(arrayOf("host", "stop"))
+        Thread.sleep(200)
 
         // TODO: check if dst == src
         // $ diff -r /tmp/freechains/tests/dst/ /tmp/freechains/tests/src/
@@ -262,25 +263,25 @@ class Tests {
     fun f1_peers() {
         a_reset()
 
-        val h1 = Host_create("/tmp/freechains/tests/h1/", PORT_8330)
-        val h1Chain = h1.chainsJoin("/xxx", false, ChainPub(false,PUB1))
+        val h1 = Host_load("/tmp/freechains/tests/h1/", PORT_8330)
+        val h1Chain = h1.chainsJoin("@$PUB1")
         h1Chain.blockNew(H, "", PVT1, null)
         h1Chain.blockNew(H, "", PVT1, null)
 
-        val h2 = Host_create("/tmp/freechains/tests/h2/", 8331)
-        val h2Chain = h2.chainsJoin("/xxx", false, null)
+        val h2 = Host_load("/tmp/freechains/tests/h2/", 8331)
+        val h2Chain = h2.chainsJoin("@$PUB1")
         h2Chain.blockNew(H, "", PVT1, null)
         h2Chain.blockNew(H, "", PVT1, null)
 
-        Thread.sleep(100)
+        Thread.sleep(200)
         thread { Daemon(h1).daemon() }
         thread { Daemon(h2).daemon() }
-        Thread.sleep(100)
-        main(arrayOf(H0, "peer", "recv", "localhost:8331", "/xxx"))
-        Thread.sleep(100)
-        main(arrayOf(H1, "host", "stop"))
-        main(arrayOf("host", "stop"))
-        Thread.sleep(100)
+        Thread.sleep(200)
+        main_(arrayOf(H0, "peer", "recv", "localhost:8331", "@$PUB1"))
+        Thread.sleep(200)
+        main_(arrayOf(H1, "host", "stop"))
+        main_(arrayOf("host", "stop"))
+        Thread.sleep(200)
 
         // TODO: check if 8332 (h2) < 8331 (h1)
         // $ diff -r /tmp/freechains/tests/h1 /tmp/freechains/tests/h2/
@@ -289,85 +290,82 @@ class Tests {
     @Test
     fun m00_chains() {
         a_reset()
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M0/"))
-        //main(arrayOf("host", "stop"))
         thread {
-            main(arrayOf("host", "start", "/tmp/freechains/tests/M0/"))
+            main_(arrayOf("host", "start", "/tmp/freechains/tests/M0/"))
         }
-        Thread.sleep(100)
-        main_(arrayOf("chains", "list")).let {
+        Thread.sleep(200)
+        main__(arrayOf("chains", "list")).let {
             assert(it == "")
         }
-        main_(arrayOf("chains", "leave", "/xxx")).let {
+        main__(arrayOf("chains", "leave", "#xxx")).let {
             assert(it == "false")
         }
-        main_(arrayOf("chains", "join", "/xxx")).let {
+        main__(arrayOf("chains", "join", "#xxx")).let {
             assert(it.isNotEmpty())
         }
-        main_(arrayOf("chains", "join", "/yyy")).let {
+        main__(arrayOf("chains", "join", "#yyy")).let {
             assert(it.isNotEmpty())
         }
-        main_(arrayOf("chains", "list")).let {
-            assert(it == "/yyy /xxx")
+        main__(arrayOf("chains", "list")).let {
+            assert(it == "#yyy #xxx")
         }
-        main_(arrayOf("chains", "leave", "/xxx")).let {
+        main__(arrayOf("chains", "leave", "#xxx")).let {
             assert(it == "true")
         }
     }
 
     @Test
     fun m01_args() {
-        a_reset()
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M1/"))
-        //main(arrayOf("host", "stop"))
+        //a_reset()
+        main_(arrayOf("host", "stop"))
         thread {
-            main(arrayOf("host", "start", "/tmp/freechains/tests/M1/"))
+            main_(arrayOf("host", "start", "/tmp/freechains/tests/M1/"))
         }
-        Thread.sleep(100)
-        main(arrayOf("chains", "join", "/xxx"))
+        Thread.sleep(200)
+        main_(arrayOf("chains", "join", "#xxx"))
 
-        assert(main_(arrayOf("chain", "genesis", "/xxx")).startsWith("0_"))
-        assert(main_(arrayOf("chain", "heads", "/xxx", "linked")).startsWith("0_"))
+        assert(main__(arrayOf("chain", "genesis", "#xxx")).startsWith("0_"))
+        assert(main__(arrayOf("chain", "heads", "#xxx", "linked")).startsWith("0_"))
 
-        main_(arrayOf("chain", "post", "/xxx", "inline", "aaa", S0))
-        assert(main_(arrayOf("chain", "heads", "/xxx", "linked")).startsWith("1_"))
-        main_(arrayOf("chain", "heads", "/xxx", "blocked")).let {
+        main_(arrayOf("chain", "post", "#xxx", "inline", "aaa", S0))
+        assert(main__(arrayOf("chain", "heads", "#xxx", "linked")).startsWith("1_"))
+        main__(arrayOf("chain", "heads", "#xxx", "blocked")).let {
             assert(it.isEmpty())
         }
-        main_(arrayOf("chain", "heads", "/xxx", "linked")).let { list ->
+        main__(arrayOf("chain", "heads", "#xxx", "linked")).let { list ->
             list.split(' ').toTypedArray().let {
                 assert(it.size == 1)
                 assert(it[0].startsWith("1_"))
             }
         }
 
-        /*val h2 =*/ main_(arrayOf(S0, "chain", "post", "/xxx", "file", "/tmp/freechains/tests/M1/host"))
+        /*val h2 =*/ main_(arrayOf(S0, "chain", "post", "#xxx", "file", "/tmp/freechains/tests/M1/chains/#xxx/chain"))
 
         //main_(arrayOf(S0, "chain", "post", "/xxx", "file", "/tmp/20200504192434-0.eml"))
 
         // h0 -> h1 -> h2
 
-        assert(main_(arrayOf("chain", "heads", "/xxx", "linked")).startsWith("2_"))
-        assert(main_(arrayOf("chain", "heads", "/xxx", "blocked")).isEmpty())
+        assert(main__(arrayOf("chain", "heads", "#xxx", "linked")).startsWith("2_"))
+        assert(main__(arrayOf("chain", "heads", "#xxx", "blocked")).isEmpty())
 
-        //main(arrayOf("chain", "post", "/xxx", "file", "base64", "/bin/cat"))
-        main(arrayOf("host", "stop"))
+        //main_(arrayOf("chain", "post", "/xxx", "file", "base64", "/bin/cat"))
+        main_(arrayOf("host", "stop"))
         // TODO: check genesis 2x, "aaa", "host"
         // $ cat /tmp/freechains/tests/M1/chains/xxx/blocks/*
     }
 
     @Test
     fun m01_trav() {
+        //main_(arrayOf("host", "stop"))
         a_reset()
-        main(arrayOf("host", "create", "/tmp/freechains/tests/trav/"))
         thread {
-            main(arrayOf("host", "start", "/tmp/freechains/tests/trav/"))
+            main_(arrayOf("host", "start", "/tmp/freechains/tests/trav/"))
         }
-        Thread.sleep(100)
-        main(arrayOf("chains", "join", "/"))
-        val gen = main_(arrayOf("chain", "genesis", "/"))
-        main_(arrayOf("chain", "post", "/", "inline", "aaa", S0))
-        main_(arrayOf("chain", "traverse", "/", "all", gen)).let {
+        Thread.sleep(200)
+        main_(arrayOf("chains", "join", "#"))
+        val gen = main__(arrayOf("chain", "genesis", "#"))
+        main_(arrayOf("chain", "post", "#", "inline", "aaa", S0))
+        main__(arrayOf("chain", "traverse", "#", "all", gen)).let {
             it.split(" ").let {
                 assert(it.size == 1 && it[0].startsWith("1_"))
             }
@@ -377,19 +375,18 @@ class Tests {
     @Test
     fun m01_listen() {
         a_reset()
-        main(arrayOf("host", "create", "/tmp/freechains/tests/listen/"))
         thread {
-            main(arrayOf("host", "start", "/tmp/freechains/tests/listen/"))
+            main_(arrayOf("host", "start", "/tmp/freechains/tests/listen/"))
         }
-        Thread.sleep(100)
-        main(arrayOf("chains", "join", "/"))
+        Thread.sleep(200)
+        main_(arrayOf("chains", "join", "#"))
 
         val t1 = thread {
             val socket = Socket("localhost", PORT_8330)
             val writer = DataOutputStream(socket.getOutputStream()!!)
             val reader = DataInputStream(socket.getInputStream()!!)
             writer.writeLineX("$PRE chain listen")
-            writer.writeLineX("/")
+            writer.writeLineX("#")
             val n = reader.readLineX().toInt()
             assert(n == 1) { "error 1"}
         }
@@ -403,27 +400,27 @@ class Tests {
             assert(x == "1 /") { "error 2"}
         }
 
-        Thread.sleep(100)
-        main_(arrayOf("chain", "post", "/", "inline", "aaa", S0))
+        Thread.sleep(200)
+        main_(arrayOf("chain", "post", "#", "inline", "aaa", S0))
         t1.join()
         t2.join()
     }
     @Test
     fun m02_crypto() {
-        a_reset()
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M2/"))
+        main_(arrayOf("host", "stop"))
+        //a_reset()
         thread {
-            main(arrayOf("host", "start", "/tmp/freechains/tests/M2/"))
+            main_(arrayOf("host", "start", "/tmp/freechains/tests/M2/"))
         }
-        Thread.sleep(100)
+        Thread.sleep(200)
         val lazySodium = LazySodiumJava(SodiumJava())
         val kp: KeyPair = lazySodium.cryptoSignKeypair()
         val pk: Key = kp.publicKey
         val sk: Key = kp.secretKey
         assert(lazySodium.cryptoSignKeypair(pk.asBytes, sk.asBytes))
         //println("TSTTST: ${pk.asHexString} // ${sk.asHexString}")
-        main(arrayOf("crypto", "create", "shared", "senha secreta"))
-        main(arrayOf("crypto", "create", "pubpvt", "senha secreta"))
+        main_(arrayOf("crypto", "create", "shared", "senha secreta"))
+        main_(arrayOf("crypto", "create", "pubpvt", "senha secreta"))
 
         val msg = "mensagem secreta"
         val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
@@ -488,16 +485,16 @@ class Tests {
     fun m03_crypto_post() {
         //a_reset()
         val host = Host_load("/tmp/freechains/tests/M2/")
-        val c1 = host.chainsJoin("/sym", false, null)
+        val c1 = host.chainsJoin("#sym")
         c1.blockNew(HC, "", null, null)
-        val c2 = host.chainsJoin("/asy", false, ChainPub(false, PUB0))
+        val c2 = host.chainsJoin("@$PUB0")
         c2.blockNew(H, "", PVT0, PVT0)
     }
 
     @Test
     fun m04_crypto_encrypt() {
         val host = Host_load("/tmp/freechains/tests/M2/")
-        val c1 = host.chainsLoad("/sym")
+        val c1 = host.chainsLoad("#sym")
         //println(c1.root)
         val n1 = c1.blockNew(HC, "aaa", null, SHA0)
         //println(n1.hash)
@@ -509,83 +506,81 @@ class Tests {
     @Test
     fun m05_crypto_encrypt_sym() {
         //a_reset()
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M50/"))
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M51/", "8331"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M50/")) }
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M51/")) }
-        Thread.sleep(100)
-        main(
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M50/")) }
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M51/", "8331")) }
+        Thread.sleep(200)
+        main_(
             arrayOf (
                 "chains",
                 "join",
-                "/xxx"
+                "#xxx"
             )
         )
-        main(
+        main_(
             arrayOf (
                 H1,
                 "chains",
                 "join",
-                "/xxx"
+                "#xxx"
             )
         )
 
-        main(arrayOf("chain", "post", "/xxx", "inline", "aaa", "--crypt=$SHA0"))
-        main(arrayOf("peer", "send", "localhost:8331", "/xxx"))
+        main_(arrayOf("chain", "post", "#xxx", "inline", "aaa", "--crypt=$SHA0"))
+        main_(arrayOf("peer", "send", "localhost:8331", "#xxx"))
     }
 
     @Test
     fun m06_crypto_encrypt_asy() {
+        //main_(arrayOf("host", "stop"))
+        //main_(arrayOf(H1,"host", "stop"))
         a_reset() // must be here
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M60/"))
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M61/", "8331"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M60/")) }
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M61/")) }
-        Thread.sleep(100)
-        main(arrayOf("chains", "join", "/xxx", PUB0))
-        main(arrayOf(H1, "chains", "join", "/xxx", PUB0))
-        val hash = main_(arrayOf("chain", "post", "/xxx", "inline", "aaa", S0, "--crypt=$PVT0"))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M60/")) }
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M61/", "8331")) }
+        Thread.sleep(200)
+        main_(arrayOf("chains", "join", "@$PUB0"))
+        main_(arrayOf(H1, "chains", "join", "@$PUB0"))
+        val hash = main__(arrayOf("chain", "post", "@$PUB0", "inline", "aaa", S0, "--crypt=$PVT0"))
 
-        val pay = main_(arrayOf("chain", "get", "/xxx", "payload", hash, "--crypt=$PVT0"))
+        val pay = main__(arrayOf("chain", "get","@$PUB0", "payload", hash, "--crypt=$PVT0"))
         assert(pay == "aaa")
 
-        main(arrayOf("peer", "send", "localhost:8331", "/xxx"))
-        val json2 = main_(arrayOf(H1, "chain", "get", "/xxx", "block", hash))
+        main_(arrayOf("peer", "send", "localhost:8331", "@$PUB0"))
+        val json2 = main__(arrayOf(H1, "chain", "get", "@$PUB0", "block", hash))
         val blk2 = json2.jsonToBlock()
         assert(blk2.immut.pay.crypt)
 
-        val h2 = main_(arrayOf("chain", "post", "/xxx", "inline", "bbbb", S1))
-        val pay2 = main_(arrayOf("chain", "get", "/xxx", "payload", h2))
+        val h2 = main__(arrayOf("chain", "post", "@$PUB0", "inline", "bbbb", S1))
+        val pay2 = main__(arrayOf("chain", "get", "@$PUB0", "payload", h2))
         assert(pay2 == "bbbb")
     }
 
     @Test
     fun m07_genesis_fork() {
+        main_(arrayOf("host", "stop"))
+        main_(arrayOf(H1, "host", "stop"))
         a_reset()
 
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M70/"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M70/")) }
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M71/", "8331"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M71/")) }
-        Thread.sleep(100)
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M70/")) }
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M71/", "8331")) }
+        Thread.sleep(200)
 
-        main_(arrayOf(H0, "chains", "join", "/"))
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "first-0", S0))
-        main_(arrayOf(H1, "chains", "join", "/"))
-        main_(arrayOf(H1, "chain", "post", "/", "inline", "first-1", S1))
-        Thread.sleep(100)
+        main_(arrayOf(H0, "chains", "join", "#"))
+        main_(arrayOf(H0, "chain", "post", "#", "inline", "first-0", S0))
+        main_(arrayOf(H1, "chains", "join", "#"))
+        main_(arrayOf(H1, "chain", "post", "#", "inline", "first-1", S1))
+        Thread.sleep(200)
 
         // H0: g <- f0
         // H1: g <- f1
 
-        val r0 = main_(arrayOf(H1, "peer", "recv", "localhost:$PORT_8330", "/"))
-        val r1 = main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "/"))
+        val r0 = main__(arrayOf(H1, "peer", "recv", "localhost:$PORT_8330", "#"))
+        val r1 = main__(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "#"))
         assert(r0 == r1 && r0 == "0 / 1")
 
-        val r00 = main_(arrayOf(H0, "chain", "reps", "/", PUB0))
-        val r11 = main_(arrayOf(H1, "chain", "reps", "/", PUB1))
-        val r10 = main_(arrayOf(H0, "chain", "reps", "/", PUB1))
-        val r01 = main_(arrayOf(H1, "chain", "reps", "/", PUB0))
+        val r00 = main__(arrayOf(H0, "chain", "reps", "#", PUB0))
+        val r11 = main__(arrayOf(H1, "chain", "reps", "#", PUB1))
+        val r10 = main__(arrayOf(H0, "chain", "reps", "#", PUB1))
+        val r01 = main__(arrayOf(H1, "chain", "reps", "#", PUB0))
         assert(r00.toInt() == 29)
         assert(r11.toInt() == 29)
         assert(r10.toInt() == 0)
@@ -594,8 +589,8 @@ class Tests {
         main_(arrayOf(H0, "host", "now", (getNow() + 1*day).toString()))
         main_(arrayOf(H1, "host", "now", (getNow() + 1*day).toString()))
 
-        val x0 = main_(arrayOf(H0, "chain", "reps", "/", PUB0))
-        val x1 = main_(arrayOf(H1, "chain", "reps", "/", PUB1))
+        val x0 = main__(arrayOf(H0, "chain", "reps", "#", PUB0))
+        val x1 = main__(arrayOf(H1, "chain", "reps", "#", PUB1))
         assert(x0.toInt() == 30)
         assert(x1.toInt() == 30)
     }
@@ -603,70 +598,69 @@ class Tests {
     @Test
     fun m08_likes() {
         a_reset() // must be here
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M80/"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M80/")) }
-        Thread.sleep(100)
-        main(arrayOf("chains", "join", "/xxx", PUB0))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M80/")) }
+        Thread.sleep(200)
+        main_(arrayOf("chains", "join", "@$PUB0"))
 
         main_(arrayOf(H0, "host", "now", "0"))
 
-        val h11 = main_(arrayOf("chain", "post", "/xxx", "inline", "h11", S0))
-        val h22 = main_(arrayOf("chain", "post", "/xxx", "inline", "h22", S1))
-        /*val h21 =*/ main_(arrayOf("chain", "post", "/xxx", "inline", "h21", S0))
+        val h11 = main__(arrayOf("chain", "post", "@$PUB0", "inline", "h11", S0))
+        val h22 = main__(arrayOf("chain", "post", "@$PUB0", "inline", "h22", S1))
+        /*val h21 =*/ main_(arrayOf("chain", "post", "@$PUB0", "inline", "h21", S0))
 
         // h0 -> h11 -> h21
         //          \-> h22
 
-        main_(arrayOf("chain", "heads", "/xxx", "linked")).let { str ->
+        main__(arrayOf("chain", "heads", "@$PUB0", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
             }
             assert(str.startsWith("2_"))
         }
 
-        main_(arrayOf("chain", "like", "/xxx", h22, S0, "--why=l3")) // l3
+        main_(arrayOf("chain", "like", "@$PUB0", h22, S0, "--why=l3")) // l3
 
         // h0 -> h11 -> h21 -> l3
         //          \-> h22 /
 
-        main_(arrayOf("chain", "heads", "/xxx", "linked")).let { str ->
+        main__(arrayOf("chain", "heads", "@$PUB0", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 assert(it[0].startsWith("3_") || it[1].startsWith("3_"))
             }
         }
-        assert( "0" == main_(arrayOf("chain", "reps", "/xxx", PUB1)))
+        assert( "0" == main__(arrayOf("chain", "reps", "@$PUB0", PUB1)))
 
         main_(arrayOf(H0, "host", "now", (3*hour).toString()))
-        /*val h41 =*/ main_(arrayOf("chain", "post", "/xxx", "inline", "41", S0))
+        /*val h41 =*/ main_(arrayOf("chain", "post", "@$PUB0", "inline", "41", S0))
 
         // h0 -> h11 -> h21 -> l3 -> h41
         //          \-> h22 --/
 
         main_(arrayOf(H0, "host", "now", (1*day+4*hour).toString()))
 
-        assert(main_(arrayOf("chain", "heads", "/xxx", "linked")).startsWith("4_"))
-        assert("29" == main_(arrayOf("chain", "reps", "/xxx", PUB0)))
-        assert( "2" == main_(arrayOf("chain", "reps", "/xxx", PUB1)))
+        assert(main__(arrayOf("chain", "heads", "@$PUB0", "linked")).startsWith("4_"))
+        assert("29" == main__(arrayOf("chain", "reps", "@$PUB0", PUB0)))
+        assert( "2" == main__(arrayOf("chain", "reps", "@$PUB0", PUB1)))
 
         // like myself
-        main_(arrayOf("chain", "like", "/xxx", h11, S0)).let {
+        main__(arrayOf("chain", "like", "@$PUB0", h11, S0)).let {
             assert(it == "like must not target itself")
         }
 
-        val l5 = main_(arrayOf("chain", "like", "/xxx", h22, S0, "--why=l5")) // l5
+        val l5 = main__(arrayOf("chain", "like", "@$PUB0", h22, S0, "--why=l5")) // l5
 
         // h0 -> h11 -> h21 -> l3 -> h41 -> l5
         //          \-> h22 --/
 
-        main_(arrayOf("chain", "reps", "/xxx", PUB0)).let {
+        main__(arrayOf("chain", "reps", "@$PUB0", PUB0)).let {
             assert(it == "28")
         }
-        main_(arrayOf("chain", "reps", "/xxx", PUB1)).let {
+        main__(arrayOf("chain", "reps", "@$PUB0", PUB1)).let {
             assert(it == "3")
         }
 
-        main_(arrayOf(H0, "chain", "heads", "/xxx", "linked")).let { str ->
+        main__(arrayOf(H0, "chain", "heads", "@$PUB0", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
             }
@@ -674,31 +668,30 @@ class Tests {
         }
 
         // height is ~also 5~ 6
-        /*val l6 =*/ main_(arrayOf("chain","dislike","/xxx",l5,"--why=l6",S1))
+        /*val l6 =*/ main_(arrayOf("chain","dislike","@$PUB0",l5,"--why=l6",S1))
 
         // h0 <- h11 <- h21 <- l3 <- h41 <- l5
         //          \         /               \
         //           \- h22 <-------           l6
 
-        main_(arrayOf("chain", "reps", "/xxx", PUB1)).let {
+        main__(arrayOf("chain", "reps", "@$PUB0", PUB1)).let {
             assert(it == "2")
         }
-        main_(arrayOf("chain", "reps", "/xxx", PUB0)).let {
+        main__(arrayOf("chain", "reps", "@$PUB0", PUB0)).let {
             assert(it == "27")
         }
 
-        main_(arrayOf("host", "create", "/tmp/freechains/tests/M81/", "8331"))
-        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M81/")) }
-        Thread.sleep(100)
-        main_(arrayOf(H1, "chains", "join", "/xxx", PUB0))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M81/", "8331")) }
+        Thread.sleep(200)
+        main_(arrayOf(H1, "chains", "join", "@$PUB0"))
 
         // I'm in the future, old posts will be refused
         main_(arrayOf(H1, "host", "now", Instant.now().toEpochMilli().toString()))
 
-        val n1 = main_(arrayOf(H0, "peer", "send", "localhost:8331", "/xxx"))
+        val n1 = main__(arrayOf(H0, "peer", "send", "localhost:8331", "@$PUB0"))
         assert(n1 == "0 / 7")
 
-        main_(arrayOf(H0, "chain", "heads", "/xxx", "linked")).let { str ->
+        main__(arrayOf(H0, "chain", "heads", "@$PUB0", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 it.forEach { assert(it.contains("6_")) }
@@ -707,9 +700,9 @@ class Tests {
 
         // only very old (H1/H2/L3)
         main_(arrayOf(H1, "host", "now", "0"))
-        val n2 = main_(arrayOf(H1, "peer", "recv", "localhost:$PORT_8330", "/xxx"))
+        val n2 = main__(arrayOf(H1, "peer", "recv", "localhost:$PORT_8330", "@$PUB0"))
         assert(n2 == "4 / 7") { n2 }
-        main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let {
+        main__(arrayOf(H1, "chain", "heads", "@$PUB0", "linked")).let {
             assert(it.startsWith("3_"))
         }
 
@@ -719,17 +712,17 @@ class Tests {
 
         // still the same
         main_(arrayOf(H1, "host", "now", "${2*hour}"))
-        main_(arrayOf(H0, "peer", "send", "localhost:8331", "/xxx")).let {
+        main__(arrayOf(H0, "peer", "send", "localhost:8331", "@$PUB0")).let {
             assert(it == "0 / 3")
         }
-        assert("0" == main_(arrayOf("chain", "reps", "/xxx", PUB1)))
+        assert("0" == main__(arrayOf("chain", "reps", "@$PUB0", PUB1)))
 
         // now ok
         main_(arrayOf(H1, "host", "now", "${1*day + 4*hour + 100}"))
-        main_(arrayOf(H0, "peer", "send", "localhost:8331", "/xxx")).let {
+        main__(arrayOf(H0, "peer", "send", "localhost:8331", "@$PUB0")).let {
             assert(it == "3 / 3")
         }
-        main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let {
+        main__(arrayOf(H1, "chain", "heads", "@$PUB0", "linked")).let {
             assert(it.startsWith("6_"))
         }
 
@@ -737,27 +730,27 @@ class Tests {
         //          \               /         \
         //           \- h22 <-------           l6
 
-        assert("2" == main_(arrayOf("chain", "reps", "/xxx", PUB1)))
-        val h7 = main_(arrayOf(H1, "chain", "post", "/xxx", "inline", "no rep", S1))
+        assert("2" == main__(arrayOf("chain", "reps", "@$PUB0", PUB1)))
+        val h7 = main__(arrayOf(H1, "chain", "post", "@$PUB0", "inline", "no rep", S1))
 
         // h0 <- h11 <- h21 <- l3 <- h41 <- l5
         //          \               /         \
         //           \- h22 <-------           l6 <- h7
 
-        main_(arrayOf(H0, "peer", "recv", "localhost:8331", "/xxx")).let {
+        main__(arrayOf(H0, "peer", "recv", "localhost:8331", "@$PUB0")).let {
             assert(it == "1 / 1")
         }
-        main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let {
+        main__(arrayOf(H1, "chain", "heads", "@$PUB0", "linked")).let {
             assert(it.startsWith("7_"))
         }
 
-        main_(arrayOf(H1,"chain","like","/xxx",h7,S0))
+        main_(arrayOf(H1,"chain","like","@$PUB0",h7,S0))
 
         // h0 <- h11 <- h21 <- l3 <- h41 <- l5          l7
         //          \               /         \        /
         //           \- h22 <-------           l6 <- h7
 
-        main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let { str ->
+        main__(arrayOf(H1, "chain", "heads", "@$PUB0", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 it.forEach {
@@ -766,7 +759,7 @@ class Tests {
             }
         }
 
-        main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "/xxx")).let {
+        main__(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "@$PUB0")).let {
             assert(it == "1 / 1")
         }
 
@@ -774,7 +767,7 @@ class Tests {
         main_(arrayOf(H0, "host", "now", "${1*day + 7*hour}"))
         main_(arrayOf(H1, "host", "now", "${1*day + 7*hour}"))
 
-        main_(arrayOf(H0, "chain", "heads", "/xxx", "linked")).let { str ->
+        main__(arrayOf(H0, "chain", "heads", "@$PUB0", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 it.forEach {
@@ -782,7 +775,7 @@ class Tests {
                 }
             }
         }
-        main_(arrayOf(H1, "chain", "heads", "/xxx", "linked")).let { str ->
+        main__(arrayOf(H1, "chain", "heads", "@$PUB0", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 it.forEach {
@@ -792,85 +785,84 @@ class Tests {
         }
 
         // new post, no rep
-        val h8 = main_(arrayOf(H1, "chain", "post", "/xxx", "inline", "no sig"))
+        val h8 = main__(arrayOf(H1, "chain", "post", "@$PUB0", "inline", "no sig"))
 
         // h0 <- h11 <- h21 <- l3 <- h41 <- l5          l7 <- h8
         //          \               /         \        /
         //           \- h22 <-------           l6 <- h7
 
-        main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "/xxx")).let {
+        main__(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "@$PUB0")).let {
             assert(it.equals("1 / 1"))
         }
 
-        main_(arrayOf(H1, "chain", "heads", "/xxx", "blocked")).let {
+        main__(arrayOf(H1, "chain", "heads", "@$PUB0", "blocked")).let {
             assert(it.startsWith("9_"))
         }
 
-        main_(arrayOf(H1, "chain", "get", "/xxx", "payload", h8))
+        main__(arrayOf(H1, "chain", "get", "@$PUB0", "payload", h8))
             .let {
                 assert(it == "no sig")
             }
 
         // like post w/o pub
-        main_(arrayOf(H1,"chain","like","/xxx",h8,S0))
+        main_(arrayOf(H1,"chain","like","@$PUB0",h8,S0))
 
         // h0 <- h11 <- h21 <- l3 <- h41 <- l5       l7       l9
         //          \               /         \    /         /
         //           \- h22 <-------           l6 <- h7 <- h8
 
-        main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "/xxx")).let {
+        main__(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "@$PUB0")).let {
             assert (it == "1 / 1")
         }
-        main_(arrayOf(H1, "chain", "reps", "/xxx", PUB0)).let {
+        main__(arrayOf(H1, "chain", "reps", "@$PUB0", PUB0)).let {
             assert(it == "25")
         }
 
         main_(arrayOf(H1, "host", "now", "${1*day + 10*hour}"))
 
-        main_(arrayOf(H1, "chain", "reps", "/xxx", PUB0)).let {
+        main__(arrayOf(H1, "chain", "reps", "@$PUB0", PUB0)).let {
             assert(it == "25")
         }
-        main_(arrayOf(H0, "chain", "reps", "/xxx", PUB0)).let {
+        main__(arrayOf(H0, "chain", "reps", "@$PUB0", PUB0)).let {
             assert(it == "25")
         }
 
-        val ln = main_(arrayOf(H0, "chain", "reps", "/xxx", h7))
-        val l1 = main_(arrayOf(H0, "chain", "reps", "/xxx", h11))
-        val l2 = main_(arrayOf(H0, "chain", "reps", "/xxx", h22))
-        val l3 = main_(arrayOf(H0, "chain", "reps", "/xxx", l5))
-        val l4 = main_(arrayOf(H0, "chain", "reps", "/xxx", h8))
+        val ln = main__(arrayOf(H0, "chain", "reps", "@$PUB0", h7))
+        val l1 = main__(arrayOf(H0, "chain", "reps", "@$PUB0", h11))
+        val l2 = main__(arrayOf(H0, "chain", "reps", "@$PUB0", h22))
+        val l3 = main__(arrayOf(H0, "chain", "reps", "@$PUB0", l5))
+        val l4 = main__(arrayOf(H0, "chain", "reps", "@$PUB0", h8))
         println("$ln // $l1 // $l2 // $l3 // $l4")
         assert(ln == "1" && l1 == "0" && l2 == "2" && l3 == "-1" && l4 == "1")
     }
 
     @Test
     fun m10_cons() {
+        main_(arrayOf("host", "stop"))
         a_reset()
 
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M100/"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M100/")) }
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M101/", "8331"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M101/")) }
-        Thread.sleep(100)
-        main(arrayOf(H0, "chains", "join", "/", PUB0))
-        main(arrayOf(H1, "chains", "join", "/", PUB0))
-        main(arrayOf(H0, "host", "now", "0"))
-        main(arrayOf(H1, "host", "now", "0"))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M100/")) }
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M101/", "8331")) }
+        Thread.sleep(200)
+        main_(arrayOf(H0, "chains", "join", "@$PUB0"))
+        main_(arrayOf(H1, "chains", "join", "@$PUB0"))
+        main_(arrayOf(H0, "host", "now", "0"))
+        main_(arrayOf(H1, "host", "now", "0"))
 
-        val h1 = main_(arrayOf(H0, "chain", "post", "/", "inline", "h1", S1))
-        val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "h2", S1))
-        val hx = main_(arrayOf(H0, "chain", "post", "/", "inline", "hx", S0))
+        val h1 = main__(arrayOf(H0, "chain", "post", "@$PUB0", "inline", "h1", S1))
+        val h2 = main__(arrayOf(H0, "chain", "post", "@$PUB0", "inline", "h2", S1))
+        val hx = main__(arrayOf(H0, "chain", "post", "@$PUB0", "inline", "hx", S0))
 
         // h1 <- h2 (a) <- hx (r)
 
-        val ps1 = main_(arrayOf(H0, "chain", "heads", "/", "linked"))
-        val rs1 = main_(arrayOf(H0, "chain", "heads", "/", "blocked"))
+        val ps1 = main__(arrayOf(H0, "chain", "heads", "@$PUB0", "linked"))
+        val rs1 = main__(arrayOf(H0, "chain", "heads", "@$PUB0", "blocked"))
         assert(!ps1.contains(h1) && !ps1.contains(h2) &&  ps1.contains(hx))
         assert(!rs1.contains(h1) && !rs1.contains(h2) && !rs1.contains(hx))
 
-        main_(arrayOf(H1, "peer", "recv", "localhost:$PORT_8330", "/"))
+        main_(arrayOf(H1, "peer", "recv", "localhost:$PORT_8330", "@$PUB0"))
 
-        main_(arrayOf(H1, "chain", "post", "/", "inline", "h3",S1)).let {
+        main__(arrayOf(H1, "chain", "post", "@$PUB0", "inline", "h3",S1)).let {
             //assert(it == "backs must be accepted")
         }
 
@@ -879,16 +871,16 @@ class Tests {
 
         main_(arrayOf(H1, "host", "now", "${3*hour}"))
 
-        val h4 = main_(arrayOf(H1, "chain", "post", "/", "inline", "h4",S1))
+        val h4 = main__(arrayOf(H1, "chain", "post", "@$PUB0", "inline", "h4",S1))
         assert(h4.startsWith("5_"))
 
         // h1 <- h2 (a) <- h3 <- h4
         //   \-- hx (a)
 
-        main_(arrayOf(H0, "peer", "send", "localhost:8331", "/"))
+        main_(arrayOf(H0, "peer", "send", "localhost:8331", "@$PUB0"))
         main_(arrayOf(H1, "host", "now", "${6*hour}"))
 
-        main_(arrayOf(H1, "chain", "post", "/", "inline", "h5")).let {
+        main__(arrayOf(H1, "chain", "post", "@$PUB0", "inline", "h5")).let {
             assert(it.startsWith("6_"))
         }
     }
@@ -897,20 +889,18 @@ class Tests {
     fun m11_send_after_tine() {
         a_reset()
 
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M100/"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M100/")) }
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M101/", "8331"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M101/")) }
-        Thread.sleep(100)
-        main(arrayOf(H0, "chains", "join", "/"))
-        main(arrayOf(H1, "chains", "join", "/"))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M100/")) }
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M101/", "8331")) }
+        Thread.sleep(200)
+        main_(arrayOf(H0, "chains", "join", "#"))
+        main_(arrayOf(H1, "chains", "join", "#"))
 
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "h1",S0))
-        val h2 = main_(arrayOf(H0, "chain", "post", "/", "inline", "h2"))
-        main_(arrayOf(H0,"chain","like","/",h2,S0))
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "h3"))
+        main_(arrayOf(H0, "chain", "post", "#", "inline", "h1",S0))
+        val h2 = main__(arrayOf(H0, "chain", "post", "#", "inline", "h2"))
+        main_(arrayOf(H0,"chain","like","#",h2,S0))
+        main_(arrayOf(H0, "chain", "post", "#", "inline", "h3"))
 
-        main_(arrayOf(H0, "peer", "send", "localhost:8331", "/"))
+        main_(arrayOf(H0, "peer", "send", "localhost:8331", "#"))
 
         // this all to test an internal assertion
     }
@@ -919,38 +909,36 @@ class Tests {
     fun m12_state () {
         a_reset()
 
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M120/"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M120/")) }
-        Thread.sleep(100)
-        main(arrayOf(H0, "chains", "join", "/"))
-        main(arrayOf(H0, "host", "now", "0"))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M120/")) }
+        Thread.sleep(200)
+        main_(arrayOf(H0, "chains", "join", "#"))
+        main_(arrayOf(H0, "host", "now", "0"))
 
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M121/", "8331"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M121/")) }
-        Thread.sleep(100)
-        main(arrayOf(H1, "chains", "join", "/"))
-        main(arrayOf(H1, "host", "now", "0"))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M121/", "8331")) }
+        Thread.sleep(200)
+        main_(arrayOf(H1, "chains", "join", "#"))
+        main_(arrayOf(H1, "host", "now", "0"))
 
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "h1",S0))
-        val h21 = main_(arrayOf(H0, "chain", "post", "/", "inline", "h21"))
-        val h22 = main_(arrayOf(H0, "chain", "post", "/", "inline", "h22"))
+        main_(arrayOf(H0, "chain", "post", "#", "inline", "h1",S0))
+        val h21 = main__(arrayOf(H0, "chain", "post", "#", "inline", "h21"))
+        val h22 = main__(arrayOf(H0, "chain", "post", "#", "inline", "h22"))
 
         // h0 -> h1 -> h21
         //          -> h22
 
-        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "linked")).let {
             assert(it.startsWith("1_")) { it }
         }
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.startsWith("2_")) { it }
         }
 
-        main_(arrayOf(H0,"chain","like","/",h21,S0))
+        main_(arrayOf(H0,"chain","like","#",h21,S0))
 
         // h0 -> h1 -> h21 -> l2
         //          -> h22
 
-        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let { str ->
+        main__(arrayOf(H0, "chain", "heads", "#", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
                 it.forEach {
@@ -959,19 +947,19 @@ class Tests {
             }
         }
 
-        main_(arrayOf(H0,"chain","like","/",h22,S0))
+        main_(arrayOf(H0,"chain","like","#",h22,S0))
 
         // h0 -> h1 -> h21 -> l2 -> l3
         //          -> h22
 
-        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "linked")).let {
             it.split(' ').let {
                 assert(it.size == 1)
             }
         }
-        assert(main_(arrayOf("chain", "heads", "/", "blocked")).isEmpty())
+        assert(main__(arrayOf("chain", "heads", "#", "blocked")).isEmpty())
 
-        main_(arrayOf(H0, "peer", "send", "localhost:8331", "/")).let {
+        main__(arrayOf(H0, "peer", "send", "localhost:8331", "#")).let {
             assert(it.contains("5 / 5"))
         }
 
@@ -979,8 +967,8 @@ class Tests {
         // all accepted
         main_(arrayOf(H1, "host", "now", "${3*hour}"))
 
-        assert(main_(arrayOf(H1, "chain", "heads", "/", "blocked")).isEmpty())
-        main_(arrayOf(H1, "chain", "heads", "/", "linked")).let { str ->
+        assert(main__(arrayOf(H1, "chain", "heads", "#", "blocked")).isEmpty())
+        main__(arrayOf(H1, "chain", "heads", "#", "linked")).let { str ->
             assert(str.startsWith("4_"))
             str.split(' ').let {
                 assert(it.size == 1)
@@ -988,37 +976,37 @@ class Tests {
         }
 
         // l4 dislikes h22
-        /*val l4 =*/ main_(arrayOf(H0,"chain","dislike","/",h22,S0))
+        /*val l4 =*/ main_(arrayOf(H0,"chain","dislike","#",h22,S0))
 
         // h0 -> h1 -> h21 -> l2 -> l3 -> l4
         //          -> h22
 
-        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let { str ->
+        main__(arrayOf(H0, "chain", "heads", "#", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1)
             }
             assert(str.contains("5_"))
         }
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
 
-        /*val h43 =*/ main_(arrayOf(H0, "chain", "post", "/", "inline", "h43"))
+        /*val h43 =*/ main_(arrayOf(H0, "chain", "post", "#", "inline", "h43"))
 
         // h0 -> h1 -> h21 -> l2 -> l3 -> l4 -> h43
         //          -> h22
 
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.startsWith("6_"))
         }
 
 ////////
 
         main_(arrayOf(H1, "host", "now", "${1*hour}"))
-        main_(arrayOf(H1,"chain","dislike","/",h22,S0))     // one is not enough
-        main_(arrayOf(H1,"chain","dislike","/",h22,S0))     // one is not enough
+        main_(arrayOf(H1,"chain","dislike","#",h22,S0))     // one is not enough
+        main_(arrayOf(H1,"chain","dislike","#",h22,S0))     // one is not enough
         main_(arrayOf(H1, "host", "now", "${4*hour}"))
-        main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "/"))  // errors when merging
+        main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "#"))  // errors when merging
 
         // l4 dislikes h22 (reject it)
         // TODO: check if h22 contents are empty
@@ -1026,10 +1014,10 @@ class Tests {
         // h0 -> h1 -> h21 -> l2 -> l3 -> lx -> ly
         //          -> h22
 
-        main_(arrayOf(H1, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H1, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
-        main_(arrayOf(H1, "chain", "heads", "/", "linked")).let {
+        main__(arrayOf(H1, "chain", "heads", "#", "linked")).let {
             assert(it.startsWith("6_"))
         }
     }
@@ -1038,70 +1026,69 @@ class Tests {
     fun m13_reps () {
         a_reset()
 
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M13/"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M13/")) }
-        Thread.sleep(100)
-        main(arrayOf(H0, "chains", "join", "/"))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M13/")) }
+        Thread.sleep(200)
+        main_(arrayOf(H0, "chains", "join", "#"))
 
-        main(arrayOf(H0, "host", "now", "0"))
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "h1", S0))
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "h2", S1)).let {
-            main_(arrayOf(H0,S0,"chain","like","/",it))
+        main_(arrayOf(H0, "host", "now", "0"))
+        main_(arrayOf(H0, "chain", "post", "#", "inline", "h1", S0))
+        main__(arrayOf(H0, "chain", "post", "#", "inline", "h2", S1)).let {
+            main_(arrayOf(H0,S0,"chain","like","#",it))
         }
 
         // h0 <-- h1 <-- l2
         //            \- h2
 
-        main(arrayOf(H0, "host", "now", "${3*hour}"))
-        main_(arrayOf(H0, "chain", "reps", "/", PUB1)).let {
+        main_(arrayOf(H0, "host", "now", "${3*hour}"))
+        main__(arrayOf(H0, "chain", "reps", "#", PUB1)).let {
             assert(it == "0")
         }
 
-        main(arrayOf(H0, "host", "now", "${25*hour}"))
-        main_(arrayOf(H0, "chain", "reps", "/", PUB1)).let {
+        main_(arrayOf(H0, "host", "now", "${25*hour}"))
+        main__(arrayOf(H0, "chain", "reps", "#", PUB1)).let {
             assert(it == "2")
         }
 
-        main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "h3"))
+        main_(arrayOf(H0, S1, "chain", "post", "#", "inline", "h3"))
 
         // h0 <-- h1 <-- l2
         //            \- h2 <-- h3
 
-        main_(arrayOf(H0, "chain", "reps", "/", PUB1)).let {
+        main__(arrayOf(H0, "chain", "reps", "#", PUB1)).let {
             assert(it == "1")
         }
 
-        main(arrayOf(H0, "host", "now", "${50*hour}"))
-        main_(arrayOf(H0, "chain", "reps", "/", PUB1)).let {
+        main_(arrayOf(H0, "host", "now", "${50*hour}"))
+        main__(arrayOf(H0, "chain", "reps", "#", PUB1)).let {
             assert(it == "3")
         }
 
-        main(arrayOf(H0, "host", "now", "${53*hour}"))
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "h4", S1))
+        main_(arrayOf(H0, "host", "now", "${53*hour}"))
+        main_(arrayOf(H0, "chain", "post", "#", "inline", "h4", S1))
 
         // h0 <-- h1 <-- l2
         //            \- h2 <-- h3 <-- h4
 
-        main_(arrayOf(H0, "chain", "reps", "/", PUB1)).let {
+        main__(arrayOf(H0, "chain", "reps", "#", PUB1)).let {
             assert(it == "2")
         }
 
-        main(arrayOf(H0, "host", "now", "${78*hour}"))
-        main_(arrayOf(H0, "chain", "reps", "/", PUB1)).let {
+        main_(arrayOf(H0, "host", "now", "${78*hour}"))
+        main__(arrayOf(H0, "chain", "reps", "#", PUB1)).let {
             assert(it == "4") {it}
         }
 
-        main_(arrayOf(H0, "chain", "post", "/", "inline", "h5", S1))
+        main_(arrayOf(H0, "chain", "post", "#", "inline", "h5", S1))
 
         // h0 <-- h1 <-- l2
         //            \- h2 <-- h3 <-- h4 <-- h5
 
-        main_(arrayOf(H0, "chain", "reps", "/", PUB1)).let {
+        main__(arrayOf(H0, "chain", "reps", "#", PUB1)).let {
             assert(it == "3")
         }
 
-        main(arrayOf(H0, "host", "now", "${1000*hour}"))
-        main_(arrayOf(H0, "chain", "reps", "/", PUB1)).let {
+        main_(arrayOf(H0, "host", "now", "${1000*hour}"))
+        main__(arrayOf(H0, "chain", "reps", "#", PUB1)).let {
             assert(it == "5")
         }
     }
@@ -1110,74 +1097,73 @@ class Tests {
     fun m14_remove() {
         a_reset()
 
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M140/"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M140/")) }
-        Thread.sleep(100)
-        main(arrayOf("chains", "join", "/"))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M140/")) }
+        Thread.sleep(200)
+        main_(arrayOf("chains", "join", "#"))
 
-        main(arrayOf(H0, "host", "now", "0"))
+        main_(arrayOf(H0, "host", "now", "0"))
 
-        /*val h1  =*/ main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "h0"))
-        val h21 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "h21"))
-        /*val h20 =*/ main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "h20"))
+        /*val h1  =*/ main_(arrayOf(H0, S0, "chain", "post", "#", "inline", "h0"))
+        val h21 = main__(arrayOf(H0, S1, "chain", "post", "#", "inline", "h21"))
+        /*val h20 =*/ main_(arrayOf(H0, S0, "chain", "post", "#", "inline", "h20"))
 
         // h0 -> h1 --> h21
         //          \-> h20
 
         // no double spend
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "h30")).let {
+        main__(arrayOf(H0, S0, "chain", "post", "#", "inline", "h30")).let {
             //assert(it == "backs must be accepted")
         }
 
         // h0 -> h1 --> h21
         //          \-> h20 -> h30
 
-        main(arrayOf(H0, "host", "now", "${3*hour}"))
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "h40"))
+        main_(arrayOf(H0, "host", "now", "${3*hour}"))
+        main_(arrayOf(H0, S0, "chain", "post", "#", "inline", "h40"))
 
         // h0 -> h1 --> h20 -> h30 -> h40
         //          \-> h21
 
-        main(arrayOf(H0, "host", "now", "${6*hour}"))
-        /*val l50 =*/ main_(arrayOf(H0, S0, "chain", "like", "/", h21, "--why=l50"))
+        main_(arrayOf(H0, "host", "now", "${6*hour}"))
+        /*val l50 =*/ main_(arrayOf(H0, S0, "chain", "like", "#", h21, "--why=l50"))
 
         // h0 -> h1 --> h21
         //          \-> h20 -> h30 -> h40 -> l50
 
-        main(arrayOf(H0, "host", "now", "${9*hour}"))
+        main_(arrayOf(H0, "host", "now", "${9*hour}"))
 
-        val h61 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "h61"))
+        val h61 = main__(arrayOf(H0, S1, "chain", "post", "#", "inline", "h61"))
 
         // h0 -> h1 --> h21 -----------------------> h61
         //          \-> h20 -> h30 -> l40 -> l50 /
 
-        /*val l60 =*/ main_(arrayOf(H0, S0, "chain", "like", "/", h61, "--why=l60"))
+        /*val l60 =*/ main_(arrayOf(H0, S0, "chain", "like", "#", h61, "--why=l60"))
 
         // h0 -> h1 --> h21 -----------------------> h61
         //          \-> h20 -> h30 -> l40 -> l50 /-> l60
 
-        main(arrayOf(H0, "host", "now", "${34*hour}"))
-        /*val h7 =*/ main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "h7"))
+        main_(arrayOf(H0, "host", "now", "${34*hour}"))
+        /*val h7 =*/ main_(arrayOf(H0, S1, "chain", "post", "#", "inline", "h7"))
 
         // h0 -> h1 --> h21 ---------------------\-> h61 --> h7
         //          \-> h20 -> h30 -> l40 -> l50 /-> l60 -/
 
         // removes h21 (wont remove anything)
-        /*val l- =*/ main_(arrayOf(H0, S0, "chain", "dislike", "/", h21, "--why=dislike"))
+        /*val l- =*/ main_(arrayOf(H0, S0, "chain", "dislike", "#", h21, "--why=dislike"))
 
         // h0 -> h1 --> h21 -----------------------> h61 --> h7
         //          \-> h20 -> h30 -> l40 -> l50 /-> l60 -/-> l-
 
-        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "linked")).let {
             assert(!it.contains("2_"))
         }
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
 
-        main(arrayOf(H0, "host", "now", "${40*hour}"))
+        main_(arrayOf(H0, "host", "now", "${40*hour}"))
 
-        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let { str ->
+        main__(arrayOf(H0, "chain", "heads", "#", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1) { it.size }
                 it.forEach {
@@ -1191,22 +1177,20 @@ class Tests {
     fun m15_rejected() {
         a_reset()
 
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M150/"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M150/")) }
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M151/", "8331"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M151/")) }
-        Thread.sleep(100)
-        main(arrayOf(H0, "chains", "join", "/"))
-        main(arrayOf(H1, "chains", "join", "/"))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M150/")) }
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M151/", "8331")) }
+        Thread.sleep(200)
+        main_(arrayOf(H0, "chains", "join", "#"))
+        main_(arrayOf(H1, "chains", "join", "#"))
 
-        main(arrayOf(H0, "host", "now", "0"))
-        main(arrayOf(H1, "host", "now", "0"))
+        main_(arrayOf(H0, "host", "now", "0"))
+        main_(arrayOf(H1, "host", "now", "0"))
 
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "0@h1"))
-        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "1@h2"))
-        main_(arrayOf(H0, S0, "chain", "like", "/", "--why=0@l2", h2))
+        main_(arrayOf(H0, S0, "chain", "post", "#", "inline", "0@h1"))
+        val h2 = main__(arrayOf(H0, S1, "chain", "post", "#", "inline", "1@h2"))
+        main_(arrayOf(H0, S0, "chain", "like", "#", "--why=0@l2", h2))
 
-        main_(arrayOf(H1, "peer", "recv", "localhost:$PORT_8330", "/"))
+        main_(arrayOf(H1, "peer", "recv", "localhost:$PORT_8330", "#"))
 
         // HOST-0
         // h0 <- 0@h1 <- 1@h2 <- 0@l2
@@ -1215,41 +1199,41 @@ class Tests {
         // h0 <- 0@h1 <- 1@h2 <- 0@l2
 
         // l3
-        main_(arrayOf(H0, S0, "chain", "dislike", "/", h2, "--why=0@l3"))
+        main_(arrayOf(H0, S0, "chain", "dislike", "#", h2, "--why=0@l3"))
 
         // HOST-0
         // h0 <- 0@h1 <- 1@h2 <- 0@l2 <- 0@l3-
 
-        main(arrayOf(H0, "host", "now", "${5*hour}"))
-        main(arrayOf(H1, "host", "now", "${5*hour}"))
+        main_(arrayOf(H0, "host", "now", "${5*hour}"))
+        main_(arrayOf(H1, "host", "now", "${5*hour}"))
 
-        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let { str ->
+        main__(arrayOf(H0, "chain", "heads", "#", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1) { it.size }
                 it.forEach { v -> assert(v.startsWith("4_")) }
             }
         }
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
 
-        main_(arrayOf(H1, "chain", "heads", "/", "linked")).let { str ->
+        main__(arrayOf(H1, "chain", "heads", "#", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1) { it.size }
                 it.forEach { v -> assert(v.startsWith("3_")) }
             }
         }
-        main_(arrayOf(H1, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H1, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
-        main(arrayOf(H0, "host", "now", "${25*hour}"))
-        main(arrayOf(H1, "host", "now", "${25*hour}"))
+        main_(arrayOf(H0, "host", "now", "${25*hour}"))
+        main_(arrayOf(H1, "host", "now", "${25*hour}"))
 
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
 
-        main_(arrayOf(H1, S1, "chain", "post", "/", "inline", "1@h3"))
+        main_(arrayOf(H1, S1, "chain", "post", "#", "inline", "1@h3"))
 
         // HOST-0
         // h0 <- 0@h1 <- 1@h2 <- 0@l2 <- 0@l3-
@@ -1257,7 +1241,7 @@ class Tests {
         // HOST-1
         // h0 <- 0@h1 <- 1@h2 <- 0@l2 <- 1@h3
 
-        main_(arrayOf(H1, "chain", "heads", "/", "linked")).let { str ->
+        main__(arrayOf(H1, "chain", "heads", "#", "linked")).let { str ->
             str.split(' ').let {
                 assert(it.size == 1) { it.size }
                 it.forEach { v -> assert(v.startsWith("4_")) }
@@ -1266,12 +1250,12 @@ class Tests {
 
         // send H1 -> H0
         // ~1@h3 will be rejected b/c 1@h2 is rejected in H0~
-        main_(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "/")).let {
+        main__(arrayOf(H1, "peer", "send", "localhost:$PORT_8330", "#")).let {
             assert(it.contains("1 / 1"))
         }
 
         // l4: try again after like // like will be ignored b/c >24h
-        main_(arrayOf(H0, S0, "chain", "like", "/", h2))
+        main_(arrayOf(H0, S0, "chain", "like", "#", h2))
 
         // HOST-0
         // h0 <- 0@h1 <- 0@l2 <-- 0@l3- <- 0@l4
@@ -1282,10 +1266,10 @@ class Tests {
         // h0 <- 0@h1 <- 0@l2 |
         //            <- 1@h2 | <- 1@h3
 
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
-        main_(arrayOf(H1, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H1, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
     }
@@ -1294,39 +1278,38 @@ class Tests {
     fun m16_likes_fronts () {
         a_reset()
 
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M16/"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M16/")) }
-        Thread.sleep(100)
-        main(arrayOf(H0, "chains", "join", "/"))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M16/")) }
+        Thread.sleep(200)
+        main_(arrayOf(H0, "chains", "join", "#"))
 
-        main(arrayOf(H0, "host", "now", "0"))
+        main_(arrayOf(H0, "host", "now", "0"))
 
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "0@h1"))
-        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "1@h2"))
-        main_(arrayOf(H0, S0, "chain", "like", "/", h2, "--why=0@l2"))
+        main_(arrayOf(H0, S0, "chain", "post", "#", "inline", "0@h1"))
+        val h2 = main__(arrayOf(H0, S1, "chain", "post", "#", "inline", "1@h2"))
+        main_(arrayOf(H0, S0, "chain", "like", "#", h2, "--why=0@l2"))
 
         // HOST-0
         // h0 <- 0@h1 <-- 0@l2
         //            <- 1@h2
 
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
 
-        main(arrayOf(H0, "host", "now", "${3*hour}"))
+        main_(arrayOf(H0, "host", "now", "${3*hour}"))
 
         // l4 dislikes h2: h2 should remain accepted b/c h2<-l3
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "0@h3"))
-        main_(arrayOf(H0, S0, "chain", "dislike", "/", h2, "--why=0@l3"))
+        main_(arrayOf(H0, S0, "chain", "post", "#", "inline", "0@h3"))
+        main_(arrayOf(H0, S0, "chain", "dislike", "#", h2, "--why=0@l3"))
 
         // HOST-0
         // h0 <- 0@h1 <-- 0@l2 \ 0@h3 -- 0@l3
         //            <- 1@h2  /
 
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
-        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "linked")).let {
             assert(it.startsWith("5_"))
         }
     }
@@ -1335,38 +1318,37 @@ class Tests {
     fun m17_likes_day () {
         a_reset()
 
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M17/"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M17/")) }
-        Thread.sleep(100)
-        main(arrayOf(H0, "chains", "join", "/"))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M17/")) }
+        Thread.sleep(200)
+        main_(arrayOf(H0, "chains", "join", "#"))
 
-        main(arrayOf(H0, "host", "now", "0"))
+        main_(arrayOf(H0, "host", "now", "0"))
 
-        main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "0@h1"))
-        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "1@h2"))
-        main_(arrayOf(H0, S0, "chain", "like", "/", h2))
+        main_(arrayOf(H0, S0, "chain", "post", "#", "inline", "0@h1"))
+        val h2 = main__(arrayOf(H0, S1, "chain", "post", "#", "inline", "1@h2"))
+        main_(arrayOf(H0, S0, "chain", "like", "#", h2))
 
         // HOST-0
         // h0 <- 0@h1 <-- 0@l2
         //            <- 1@h2
 
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
 
-        main(arrayOf(H0, "host", "now", "${25*hour}"))
+        main_(arrayOf(H0, "host", "now", "${25*hour}"))
 
         // l4 dislikes h2: h2 should remain accepted b/c (l3-h2 > 24h)
-        main_(arrayOf(H0, S0, "chain", "dislike", "/", h2))
+        main_(arrayOf(H0, S0, "chain", "dislike", "#", h2))
 
         // HOST-0
         // h0 <- 0@h1 <-- 0@l2 <-- 0@h3 <- 0@l4
         //            <- 1@h2 <-/
 
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
-        main_(arrayOf(H0, "chain", "heads", "/", "linked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "linked")).let {
             assert(it.startsWith("4_"))
         }
     }
@@ -1375,42 +1357,41 @@ class Tests {
     fun m18_remove () {
         a_reset()
 
-        main(arrayOf("host", "create", "/tmp/freechains/tests/M18/"))
-        thread { main(arrayOf("host", "start", "/tmp/freechains/tests/M18/")) }
-        Thread.sleep(100)
-        main(arrayOf(H0, "chains", "join", "/"))
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M18/")) }
+        Thread.sleep(200)
+        main_(arrayOf(H0, "chains", "join", "#"))
 
-        main(arrayOf(H0, "host", "now", "0"))
+        main_(arrayOf(H0, "host", "now", "0"))
 
-        val h1 = main_(arrayOf(H0, S0, "chain", "post", "/", "inline", "0@h1"))
-        val h2 = main_(arrayOf(H0, S1, "chain", "post", "/", "inline", "1@h2"))
+        val h1 = main__(arrayOf(H0, S0, "chain", "post", "#", "inline", "0@h1"))
+        val h2 = main__(arrayOf(H0, S1, "chain", "post", "#", "inline", "1@h2"))
 
         // h0 <- 0@h1 <- 1@h2
 
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.startsWith("2_"))
         }
-        main_(arrayOf("chain", "heads", "/", "all")).let { list ->
+        main__(arrayOf("chain", "heads", "#", "all")).let { list ->
             list.split(' ').toTypedArray().let {
                 assert(it.size == 1)
                 assert(it[0].startsWith("2_"))
             }
         }
 
-        main_(arrayOf(H0, "chain", "remove", "/", h1)).let {
-            assert(it == "")    // command fails
+        main_(arrayOf(H0, "chain", "remove", "#", h1)).let { (ok,err) ->
+            assert(!ok) // "! can only remove blocked block")
         }
 
-        main_(arrayOf(H0, "chain", "remove", "/", h2)).let {
-            assert(it == "true")
+        main__(arrayOf(H0, "chain", "remove", "#", h2)).let {
+            assert(it == "")
         }
 
         // h0 <- 0@h1
 
-        main_(arrayOf(H0, "chain", "heads", "/", "blocked")).let {
+        main__(arrayOf(H0, "chain", "heads", "#", "blocked")).let {
             assert(it.isEmpty())
         }
-        main_(arrayOf("chain", "heads", "/", "all")).let { list ->
+        main__(arrayOf("chain", "heads", "#", "all")).let { list ->
             list.split(' ').toTypedArray().let {
                 assert(it.size == 1)
                 assert(it[0].startsWith("1_"))

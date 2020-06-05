@@ -7,7 +7,7 @@ import org.freechains.platform.lazySodium
 import kotlin.math.max
 
 fun Chain.fromOwner (blk: Block) : Boolean {
-    return (this.pub != null) && blk.isFrom(this.pub.key)
+    return this.pub().let { it!=null && blk.isFrom(it) }
 }
 
 // STATE
@@ -38,7 +38,7 @@ fun Chain.blockState (blk: Block, now: Long) : State {
         // unchangeable
         (blk.hash.toHeight() <= 1)  -> State.ACCEPTED       // first two blocks
         this.fromOwner(blk)         -> State.ACCEPTED       // owner signature
-        this.trusted                -> State.ACCEPTED       // chain with trusted hosts/authors only
+        this.trusted()              -> State.ACCEPTED       // chain with trusted hosts/authors only
         (blk.immut.like != null)    -> State.ACCEPTED       // a like
 
         // changeable
@@ -167,7 +167,7 @@ fun Chain.blockAssert (blk: Block) {
             }
     }
 
-    if (this.pub!=null && this.pub.oonly) {
+    if (this.pub()!=null && this.oonly()) {
         assert(this.fromOwner(blk)) { "must be from owner" }
     }
 
@@ -200,7 +200,7 @@ fun Chain.blockAssert (blk: Block) {
         }
         assert (
             this.fromOwner(blk) ||   // owner has infinite reputation
-            this.trusted               ||   // dont check reps (private chain)
+            this.trusted()             ||   // dont check reps (private chain)
             this.repsAuthor(blk.sign!!.pub, imm.time, imm.backs.toList()) >= blk.hash.toHeight().toReps()
         ) {
             "like author must have reputation"

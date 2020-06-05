@@ -1,43 +1,41 @@
 package org.freechains.common
 
-import org.docopt.Docopt
+import org.freechains.platform.fsRoot
 import org.freechains.platform.readNBytesX
 import org.freechains.platform.readAllBytesX
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
-import kotlin.io.println as output
-
+import kotlin.system.exitProcess
 
 val doc = """
-freechains
+freechains $VERSION
 
 Usage:
-    freechains host create <dir> [<port>]
-    freechains host start <dir>
-    freechains [options] host stop
-    freechains [options] host now <time>
+    freechains host start <dir> [<port>]
+    freechains host stop
+    freechains host now <time>
     
-    freechains [options] crypto create (shared | pubpvt) <passphrase>
+    freechains crypto create (shared | pubpvt) <passphrase>
     
-    freechains [options] chains join <chain> [trusted] [ [owner-only] <pub> ]
-    freechains [options] chains leave <chain>
-    freechains [options] chains list
-    freechains [options] chains listen
+    freechains chains join #<chain>
+    freechains chains leave #<chain>
+    freechains chains list
+    freechains chains listen
     
-    freechains [options] chain genesis <chain>
-    freechains [options] chain heads <chain> (all | linked | blocked)
-    freechains [options] chain get <chain> (block | payload) <hash>
-    freechains [options] chain post <chain> (file | inline | -) [<path_or_text>]
-    freechains [options] chain (like | dislike) <chain> <hash>
-    freechains [options] chain reps <chain> <hash_or_pub>
-    freechains [options] chain remove <chain> <hash>
-    freechains [options] chain traverse <chain> (all | linked) <hashes>...
-    freechains [options] chain listen <chain>
+    freechains chain genesis <chain>
+    freechains chain heads <chain> (all | linked | blocked)
+    freechains chain get <chain> (block | payload) <hash>
+    freechains chain post <chain> (file | inline | -) [<path_or_text>]
+    freechains chain (like | dislike) <chain> <hash>
+    freechains chain reps <chain> <hash_or_pub>
+    freechains chain remove <chain> <hash>
+    freechains chain traverse <chain> (all | linked) <hashes>...
+    freechains chain listen <chain>
     
-    freechains [options] peer ping <host:port>
-    freechains [options] peer chains <host:port>
-    freechains [options] peer (send | recv) <host:port> <chain>
+    freechains peer ping <host:port>
+    freechains peer chains <host:port>
+    freechains peer (send | recv) <host:port> <chain>
 
 Options:
     --help              [none]            displays this help
@@ -55,266 +53,327 @@ More Information:
 """
 
 fun main (args: Array<String>) {
-    //println(args.contentToString())
-    output(main_(args))
+    val xxx = fsRoot
+    main_(args).let { (ok,msg) ->
+        if (ok) {
+            if (msg != null) {
+                println(msg)
+            }
+        } else {
+            System.err.println("! " + if (msg != null) msg else "unknown error")
+            exitProcess(1)
+        }
+    }
 }
 
-fun main_ (args: Array<String>) : String {
-    try {
-        val opts = Docopt(doc).withVersion("freechains $VERSION").parse(args.toMutableList())
+fun main__ (args: Array<String>) : String {
+    return main_(args).let { (ok,msg) ->
+        assert(ok)
+        if (msg == null) "" else msg
+    }
+}
 
-        fun optHost(): Pair<String, Int> {
-            return ((opts["--host"] as String?) ?: "localhost:$PORT_8330").hostSplit()
+fun main_ (args: Array<String>) : Pair<Boolean,String?> {
+    val cmds = args.filter { !it.startsWith("--") }
+    val opts = args
+        .filter { it.startsWith("--") }
+        .map {
+            if (it.contains('=')) {
+                val (k,v) = Regex("(--.*)=(.*)").find(it)!!.destructured
+                Pair(k,v)
+            } else {
+                Pair(it, null)
+            }
         }
+        .toMap()
 
-        // host create/start do not connect to daemon
+    //println(cmds)
+    //println(opts)
 
-        when {
-            opts["host"] as Boolean ->
-                when {
-                    opts["create"] as Boolean -> {
-                        val dir = opts["<dir>"] as String
-                        val port = (opts["<port>"] as String?)?.toInt() ?: PORT_8330
-                        val host = Host_create(dir, port)
-                        return host.toString()
-                    }
-                    opts["start"] as Boolean -> {
-                        val dir = opts["<dir>"] as String
-                        val host = Host_load(dir)
-                        output("Freechains $VERSION")
-                        output("Waiting for connections on port ${host.port}...")
-                        Daemon(host).daemon()
-                        return "true"
-                    }
+    when (cmds[0]) {
+        "host" -> {
+            assert(cmds.size >= 2)
+            when (cmds[1]) {
+                "start" -> {
+                    assert(cmds.size==3 || cmds.size==4)
+                    val dir= cmds[2]
+                    val port = if (cmds.size==4) cmds[3].toInt() else PORT_8330
+                    val host = Host_load(dir, port)
+                    println("Freechains $VERSION")
+                    println("Waiting for connections on $host...")
+                    Daemon(host).daemon()
+                    return Pair(true,null)
                 }
+            }
         }
+    }
 
-        // all remaining connect to daemon
-
-        val (host, port) = optHost()
+    try {
+        val (host, port) = (opts["--host"] ?: "localhost:$PORT_8330").hostSplit()
         val socket = Socket_5s(host, port)
         val writer = DataOutputStream(socket.getOutputStream()!!)
         val reader = DataInputStream(socket.getInputStream()!!)
 
-        when {
-            opts["host"] as Boolean ->
-                when {
-                    opts["stop"] as Boolean -> {
+        when (cmds[0]) {
+            "host" -> {
+                assert(cmds.size in 2..4)
+                when (cmds[1]) {
+                    "stop" -> {
+                        assert(cmds.size == 2)
                         writer.writeLineX("$PRE host stop")
                         assert(reader.readLineX() == "true")
                         socket.close()
-                        return "true"
+                        return Pair(true, null)
                     }
-                    opts["now"] as Boolean -> {
-                        val now= opts["<time>"] as String
+                    "now" -> {
+                        assert(cmds.size == 3)
+                        val now = cmds[2]
                         writer.writeLineX("$PRE host now")
                         writer.writeLineX(now)
                         assert(reader.readLineX() == "true")
                         socket.close()
-                        return "true"
-                    }
-                }
-            opts["peer"] as Boolean -> {
-                when {
-                    opts["ping"] as Boolean -> {
-                        //kotlin.io.println(">>> ${opts["<host:port>"] as String}")
-                        writer.writeLineX("$PRE peer ping")
-                        writer.writeLineX(opts["<host:port>"] as String)
-                        return reader.readLineX()
-                    }
-                    opts["chains"] as Boolean -> {
-                        writer.writeLineX("$PRE peer chains")
-                        writer.writeLineX(opts["<host:port>"] as String)
-                        return reader.readLineX()
-                    }
-                    opts["send"] as Boolean -> {
-                        writer.writeLineX("$PRE peer send")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        writer.writeLineX(opts["<host:port>"] as String)
-                        return reader.readLineX()
-                    }
-                    opts["recv"] as Boolean -> {
-                        writer.writeLineX("$PRE peer recv")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        writer.writeLineX(opts["<host:port>"] as String)
-                        return reader.readLineX()
+                        return Pair(true, null)
                     }
                 }
             }
-            opts["crypto"] as Boolean -> {
-                when {
-                    // freechains [options] crypto create (shared | pubpvt) <passphrase>
-                    opts["create"] as Boolean -> {
-                        val isShared = opts["shared"] as Boolean
+            "crypto" -> {
+                when (cmds[1]) {
+                    "create" -> {
+                        val mode = cmds[2]
+                        val pass = cmds[3]
                         writer.writeLineX("$PRE crypto create")
-                        writer.writeLineX(if (isShared) "shared" else "pubpvt")
-                        writer.writeLineX(opts["<passphrase>"] as String)
-                        return reader.readLineX()
+                        writer.writeLineX(mode)
+                        writer.writeLineX(pass)
+                        val ret = reader.readLineX()
+                        return Pair(true,ret)
                     }
                 }
             }
-            opts["chains"] as Boolean -> {
-                when {
-                    opts["join"] as Boolean -> {
-                        writer.writeLineX("$PRE chains join")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        writer.writeLineX((opts["trusted"] as Boolean).toString())
-                        if (opts["<pub>"] != null) {
-                            writer.writeLineX((opts["owner-only"] as Boolean? ?: false).toString())
-                            writer.writeLineX(opts["<pub>"] as String)
-                        } else {
-                            writer.writeLineX("")
-                        }
-                        return reader.readLineX()
+            "peer" -> {
+                assert(cmds.size in 3..4)
+                val remote = cmds[2]
+                when (cmds[1]) {
+                    "ping" -> {
+                        assert(cmds.size == 3)
+                        writer.writeLineX("$PRE peer ping")
+                        writer.writeLineX(remote)
+                        val ret = reader.readLineX()
+                        return Pair(true, ret)
                     }
-                    opts["leave"] as Boolean -> {
-                        writer.writeLineX("$PRE chains leave")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        return reader.readLineX()
+                    "chains" -> {
+                        assert(cmds.size == 3)
+                        writer.writeLineX("$PRE peer chains")
+                        writer.writeLineX(remote)
+                        val ret = reader.readLineX()
+                        return Pair(true,ret)
                     }
-                    opts["list"] as Boolean -> {
+                    "send" -> {
+                        assert(cmds.size == 4)
+                        val chain = cmds[3]
+                        writer.writeLineX("$PRE peer send")
+                        writer.writeLineX(chain)
+                        writer.writeLineX(remote)
+                        val ret = reader.readLineX()
+                        return Pair(true,ret)
+                    }
+                    "recv" -> {
+                        assert(cmds.size == 4)
+                        val chain = cmds[3]
+                        writer.writeLineX("$PRE peer recv")
+                        writer.writeLineX(chain)
+                        writer.writeLineX(remote)
+                        val ret = reader.readLineX()
+                        return Pair(true,ret)
+                    }
+                }
+            }
+            "chains" -> {
+                assert(cmds.size in 2..3)
+                when (cmds[1]) {
+                    "list" -> {
+                        assert(cmds.size == 2)
                         writer.writeLineX("$PRE chains list")
-                        return reader.readLineX()
+                        val ret = reader.readLineX()
+                        return Pair(true,ret)
                     }
-                    opts["listen"] as Boolean -> {
-                        writer.writeLineX("$PRE chains listen")
-                        while (true) {
-                            val n_name = reader.readLineX()
-                            output(n_name)
-                        }
+                    "leave" -> {
+                        assert(cmds.size == 3)
+                        val chain = cmds[2]
+                        writer.writeLineX("$PRE chains leave")
+                        writer.writeLineX(chain)
+                        val ret = reader.readLineX()
+                        return Pair(true,ret)
+                    }
+                    "join" -> {
+                        assert(cmds.size == 3)
+                        val chain = cmds[2]
+                        writer.writeLineX("$PRE chains join")
+                        writer.writeLineX(chain)
+                        val ret = reader.readLineX()
+                        return Pair(true,ret)
                     }
                 }
             }
-            opts["chain"] as Boolean -> {
-                when {
-                    opts["genesis"] as Boolean -> {
-                        writer.writeLineX("$PRE chain genesis")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        return reader.readLineX()
-                    }
-                    opts["heads"] as Boolean -> {
-                        writer.writeLineX("$PRE chain heads")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        writer.writeLineX (
-                            when {
-                                opts["all"]     as Boolean -> "all"
-                                opts["linked"]  as Boolean -> "linked"
-                                opts["blocked"] as Boolean -> "blocked"
-                                else -> error("bug found")
-                            }
-                        )
-                        return reader.readLineX()
-                    }
-                    opts["reps"] as Boolean -> {
-                        writer.writeLineX("$PRE chain reps")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        writer.writeLineX(opts["<hash_or_pub>"] as String)
-                        return reader.readLineX()
-                    }
+            "chain" -> {
+                assert(cmds.size >= 3)
+                val chain = cmds[2]
 
-                    opts["get"] as Boolean -> {
+                fun like (lk: String) : Pair<Boolean,String?> {
+                    assert(cmds.size == 4)
+                    assert(opts["--sign"] is String) { "expected `--sign`" }
+                    val hash = cmds[3]
+                    writer.writeLineX("$PRE chain post")
+                    writer.writeLineX(chain)
+                    writer.writeLineX(opts["--sign"] as String)
+                    writer.writeLineX("")   // crypt
+                    writer.writeLineX(lk)
+                    writer.writeLineX(hash)
+                    opts["--why"].let {
+                        if (it == null) {
+                            writer.writeLineX("0")
+                            writer.writeLineX("")
+                        } else {
+                            writer.writeLineX(it.length.toString())
+                            writer.writeLineX(it + "\n")
+                        }
+                    }
+                    val ret = reader.readLineX()
+                    return Pair(true,ret)
+                }
+
+                when (cmds[1]) {
+                    "genesis" -> {
+                        assert(cmds.size == 3)
+                        writer.writeLineX("$PRE chain genesis")
+                        writer.writeLineX(chain)
+                        val ret = reader.readLineX()
+                        return Pair(true, ret)
+                    }
+                    "heads" -> {
+                        assert(cmds.size == 4)
+                        val mode = cmds[3]
+                        writer.writeLineX("$PRE chain heads")
+                        writer.writeLineX(chain)
+                        writer.writeLineX(mode)
+                        val ret = reader.readLineX()
+                        return Pair(true,ret)
+                    }
+                    "get" -> {
+                        assert(cmds.size == 5)
+                        val mode  = cmds[3]
+                        val hash  = cmds[4]
                         writer.writeLineX("$PRE chain get")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        writer.writeLineX (
-                            when {
-                                opts["block"]   as Boolean -> "block"
-                                opts["payload"] as Boolean -> "payload"
-                                else -> error("bug found")
-                            }
-                        )
-                        writer.writeLineX(opts["<hash>"] as Hash)
-                        writer.writeLineX(opts["--crypt"] as String? ?: "")
+                        writer.writeLineX(chain)
+                        writer.writeLineX(mode)
+                        writer.writeLineX(hash)
+                        writer.writeLineX(opts["--crypt"] ?: "")
                         val len = reader.readLineX().toInt()
                         val json = reader.readNBytesX(len).toString(Charsets.UTF_8)
                         if (json.isEmpty()) {
                             System.err.println("not found")
                         }
-                        return json
+                        return Pair(true,json)
                     }
-
-                    opts["remove"] as Boolean -> {
-                        writer.writeLineX("$PRE chain remove")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        writer.writeLineX(opts["<hash>"] as Hash)
-                        assert(reader.readLineX() == "true")
-                        return "true"
-                    }
-
-                    opts["like"]    as Boolean ||
-                    opts["dislike"] as Boolean -> {
-                        val lk = if (opts["like"] as Boolean) "+1" else "-1"
-                        assert(opts["--sign"] is String) { "expected `--sign`" }
+                    "post" -> {
+                        assert(cmds.size in 4..5)
+                        val mode  = cmds[3]
                         writer.writeLineX("$PRE chain post")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        writer.writeLineX(opts["--sign"] as String)
-                        writer.writeLineX("")   // crypt
-                        writer.writeLineX(lk)
-                        writer.writeLineX((opts["<hash>"] as String))
-                        (opts["--why"] as String?).let {
-                            if (it == null) {
-                                writer.writeLineX("0")
-                                writer.writeLineX("")
-                            } else {
-                                writer.writeLineX(it.length.toString())
-                                writer.writeLineX(it + "\n")
-                            }
-                        }
-                        return reader.readLineX()
-                    }
-                    opts["post"] as Boolean -> {
-                        writer.writeLineX("$PRE chain post")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        writer.writeLineX(opts["--sign"] as String? ?: "")
-                        writer.writeLineX((opts["--crypt"] as String? ?: "").toString())
+                        writer.writeLineX(chain)
+                        writer.writeLineX(opts["--sign"] ?: "")
+                        writer.writeLineX((opts["--crypt"] ?: "").toString())
                         writer.writeLineX("0")
                         writer.writeLineX("")
 
-                        val pay = when {
-                            opts["inline"] as Boolean -> (opts["<path_or_text>"] as String)
-                            opts["file"]   as Boolean -> File(opts["<path_or_text>"] as String).readBytes().toString(Charsets.UTF_8)
-                            opts["-"]      as Boolean -> DataInputStream(System.`in`).readAllBytesX().toString(Charsets.UTF_8)
+                        val pay = when (mode) {
+                            "inline" -> cmds[4]
+                            "file"   -> File(cmds[4]).readBytes().toString(Charsets.UTF_8)
+                            "-"      -> DataInputStream(System.`in`).readAllBytesX().toString(Charsets.UTF_8)
                             else -> error("impossible case")
                         }
                         writer.writeLineX(pay.length.toString())
                         writer.writeBytes(pay)
                         writer.writeLineX("")
 
-                        val hash = reader.readLineX()
-                        return hash
-                    }
-                    // freechains chain traverse <chain> (all | linked) { <hash> }
-                    opts["traverse"] as Boolean -> {
-                        writer.writeLineX("$PRE chain traverse")
-                        writer.writeLineX(opts["<chain>"] as String)
-                        writer.writeLineX (
-                            when {
-                                opts["all"]     as Boolean -> "all"
-                                opts["linked"]  as Boolean -> "linked"
-                                opts["blocked"] as Boolean -> "blocked"
-                                else -> error("bug found")
-                            }
-                        )
-                        writer.writeLineX (
-                            (opts["<hashes>"] as ArrayList<Any?>)
-                                .filterIsInstance<String>()
-                                .joinToString(" ")
-                        )
                         val ret = reader.readLineX()
-                        return ret
+                        println("posted $ret")
+                        return Pair(true,ret)
                     }
+                    "traverse" -> {
+                        assert(cmds.size >= 5)
+                        val mode = cmds[3]
+                        writer.writeLineX("$PRE chain traverse")
+                        writer.writeLineX(chain)
+                        writer.writeLineX(mode)
+                        writer.writeLineX(cmds.drop(3).joinToString(" "))
+                        val ret = reader.readLineX()
+                        return Pair(true,ret)
+                    }
+                    "reps" -> {
+                        assert(cmds.size == 4)
+                        val hash = cmds[3]
+                        writer.writeLineX("$PRE chain reps")
+                        writer.writeLineX(chain)
+                        writer.writeLineX(hash)
+                        val ret = reader.readLineX()
+                        return Pair(true,ret)
+                    }
+                    "like"    -> return like("1")
+                    "dislike" -> return like("-1")
+                    "remove" -> {
+                        assert(cmds.size == 4)
+                        val hash = cmds[3]
+                        writer.writeLineX("$PRE chain remove")
+                        writer.writeLineX(chain)
+                        writer.writeLineX(hash)
+                        assert(reader.readLineX() == "true")
+                        return Pair(true,null)
+                    }
+
+                }
+            }
+        }
+    } catch (e: Exception) {
+        return Pair(false,e.message)
+    }
+    error("bug found")
+
+    /*
+    try {
+        val opts = Docopt(doc).withVersion("freechains $VERSION").parse(args.toMutableList())
+
+
+        // host start does not connect to daemon
+
+        // all remaining connect to daemon
+
+        when {
+            opts["chains"] as Boolean -> {
+                when {
+                    opts["listen"] as Boolean -> {
+                        writer.writeLineX("$PRE chains listen")
+                        while (true) {
+                            val n_name = reader.readLineX()
+                            println(n_name)
+                        }
+                    }
+                }
+            }
+            opts["chain"] as Boolean -> {
+                when {
                     opts["listen"] as Boolean -> {
                         writer.writeLineX("$PRE chain listen")
                         writer.writeLineX(opts["<chain>"] as String)
                         while (true) {
                             val n = reader.readLineX()
-                            output(n)
+                            println(n)
                         }
                     }
                 }
             }
         }
         error("bug found")
-    } catch (e: Throwable){
-        return ""
+    } catch (e: Throwable) {
+        return Pair(false,e.message)
     }
+     */
 }
