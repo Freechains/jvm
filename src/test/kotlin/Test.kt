@@ -302,6 +302,11 @@ class Tests {
             }
         }
 
+        main_(arrayOf("chain", "#xxx", "get", "block", "0_B5E21297B8EBEE0CFA0FA5AD30F21B8AE9AE9BBF25F2729989FE5A092B86B129")).let {
+            println(it)
+            assert(!it.first && it.second.equals("! block not found"))
+        }
+
         /*val h2 =*/ main_(arrayOf(S0, "chain", "#xxx", "post", "file", "/tmp/freechains/tests/M1/chains/#xxx/chain"))
 
         //main_(arrayOf(S0, "chain", "/xxx", "post", "file", "/tmp/20200504192434-0.eml"))

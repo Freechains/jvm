@@ -229,12 +229,13 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                         assert(cmds.size == 5)
                         val crypt = opts["--crypt"] ?: "plain"
                         writer.writeLineX("$PRE chain $chain get ${cmds[3]} ${cmds[4]} $crypt")
-                        val len = reader.readLineX().toInt()
-                        val json = reader.readNBytesX(len).toString(Charsets.UTF_8)
-                        if (json.isEmpty()) {
-                            System.err.println("not found")
+                        val len = reader.readLineX()
+                        if (len.startsWith('!')) {
+                            return Pair(false, len)
+                        } else {
+                            val json = reader.readNBytesX(len.toInt()).toString(Charsets.UTF_8)
+                            return Pair(true,json)
                         }
-                        return Pair(true,json)
                     }
                     "post" -> {
                         assert(cmds.size in 4..5)

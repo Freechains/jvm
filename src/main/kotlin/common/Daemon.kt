@@ -6,6 +6,7 @@ import org.freechains.platform.lazySodium
 import org.freechains.platform.readNBytesX
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.io.FileNotFoundException
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
@@ -308,14 +309,17 @@ class Daemon (local_: Host) {
                                     val hash = cmds[4]
                                     val crypt= cmds[5]
 
-                                    val ret = when (cmds[3]) {
-                                        "block"   -> chain.fsLoadBlock(hash).toJson()
-                                        "payload" -> chain.fsLoadPay(hash, if (crypt == "plain") null else crypt)
-                                        else -> error("impossible case")
+                                    try {
+                                        val ret = when (cmds[3]) {
+                                            "block"   -> chain.fsLoadBlock(hash).toJson()
+                                            "payload" -> chain.fsLoadPay(hash, if (crypt == "plain") null else crypt)
+                                            else -> error("impossible case")
+                                        }
+                                        writer.writeLineX(ret.length.toString())
+                                        writer.writeBytes(ret)
+                                    } catch (e: FileNotFoundException) {
+                                        writer.writeLineX("! block not found")
                                     }
-
-                                    writer.writeLineX(ret.length.toString())
-                                    writer.writeBytes(ret)
                                     //writer.writeLineX("\n")
                                     System.err.println("chain get: $hash")
                                 }
