@@ -493,20 +493,20 @@ class Tests {
         thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M60/")) }
         thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M61/", "8331")) }
         Thread.sleep(200)
-        main_(arrayOf("chains", "join", "@$PUB0"))
-        main_(arrayOf(H1, "chains", "join", "@$PUB0"))
-        val hash = main__(arrayOf("chain", "@$PUB0", "post", "inline", "aaa", S0, "--crypt=$PVT0"))
+        main_(arrayOf("chains", "join", "@!$PUB0"))
+        main_(arrayOf(H1, "chains", "join", "@!$PUB0"))
+        val hash = main__(arrayOf("chain", "@!$PUB0", "post", "inline", "aaa", S0, "--crypt=$PVT0"))
 
-        val pay = main__(arrayOf("chain", "@$PUB0", "get", "payload", hash, "--crypt=$PVT0"))
+        val pay = main__(arrayOf("chain", "@!$PUB0", "get", "payload", hash, "--crypt=$PVT0"))
         assert(pay == "aaa")
 
-        main_(arrayOf("peer", "localhost:8331", "send", "@$PUB0"))
-        val json2 = main__(arrayOf(H1, "chain", "@$PUB0", "get", "block", hash))
+        main_(arrayOf("peer", "localhost:8331", "send", "@!$PUB0"))
+        val json2 = main__(arrayOf(H1, "chain", "@!$PUB0", "get", "block", hash))
         val blk2 = json2.jsonToBlock()
         assert(blk2.immut.pay.crypt)
 
-        val h2 = main__(arrayOf("chain", "@$PUB0", "post", "inline", "bbbb", S1))
-        val pay2 = main__(arrayOf("chain", "@$PUB0", "get", "payload", h2))
+        val h2 = main__(arrayOf("chain", "@!$PUB0", "post", "inline", "bbbb", S1))
+        val pay2 = main__(arrayOf("chain", "@!$PUB0", "get", "payload", h2))
         assert(pay2 == "bbbb")
     }
 

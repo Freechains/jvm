@@ -13,18 +13,17 @@ PUB=3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322
 ###############################################################################
 echo "#### 1"
 
-freechains host create $FC/8400 8400
-freechains host start $FC/8400 &
+freechains host start $FC/8400 8400 &
 sleep 0.5
-freechains --host=localhost:8400 chains join / owner-only $PUB
+freechains --host=localhost:8400 chains join "@!$PUB"
 freechains --host=localhost:8400 host now 0
-g=`freechains --host=localhost:8400 chain genesis /`
-h=`freechains --host=localhost:8400 --sign=$PVT chain post / inline Hello_World`
-freechains --host=localhost:8400 chain get / block "$h" > $FC/freechains-tests-get-1.out
-freechains --host=localhost:8400 chain get / block 0_B5E21297B8EBEE0CFA0FA5AD30F21B8AE9AE9BBF25F2729989FE5A092B86B129 > $FC/freechains-tests-get-0.out
-hs=`freechains --host=localhost:8400 chain heads / linked`
-freechains --host=localhost:8400 chain get / block "$g" > $FC/freechains-tests-gen.out
-freechains --host=localhost:8400 chain get / block "$hs" > $FC/freechains-tests-heads.out
+g=`freechains --host=localhost:8400 chain "@!$PUB" genesis`
+h=`freechains --host=localhost:8400 --sign=$PVT chain "@!$PUB" post inline Hello_World`
+freechains --host=localhost:8400 chain "@!$PUB" get block "$h" > $FC/freechains-tests-get-1.out
+freechains --host=localhost:8400 chain "@!$PUB" get block 0_B5E21297B8EBEE0CFA0FA5AD30F21B8AE9AE9BBF25F2729989FE5A092B86B129 > $FC/freechains-tests-get-0.out
+hs=`freechains --host=localhost:8400 chain "@!$PUB" heads linked`
+freechains --host=localhost:8400 chain "@!$PUB" get block "$g" > $FC/freechains-tests-gen.out
+freechains --host=localhost:8400 chain "@!$PUB" get block "$hs" > $FC/freechains-tests-heads.out
 
 diff -I 1_ $FC/freechains-tests-gen.out   out/freechains-tests-get-0.out || exit 1
 diff -I 1_ $FC/freechains-tests-get-0.out out/freechains-tests-get-0.out || exit 1
@@ -32,9 +31,9 @@ diff -I time -I hash $FC/freechains-tests-get-1.out out/freechains-tests-get-1.o
 diff -I time -I hash $FC/freechains-tests-heads.out out/freechains-tests-get-1.out || exit 1
 
 uuencode /bin/cat cat > /tmp/cat.uu
-h=`freechains --host=localhost:8400 --sign=$PVT chain post / file /tmp/cat.uu`
+h=`freechains --host=localhost:8400 --sign=$PVT chain "@!$PUB" post file /tmp/cat.uu`
 echo $h
-freechains --host=localhost:8400 chain get / payload "$h" | uudecode -o /tmp/cat
+freechains --host=localhost:8400 chain "@!$PUB" get payload "$h" | uudecode -o /tmp/cat
 diff /tmp/cat /bin/cat || exit 1
 
 ###############################################################################
@@ -44,10 +43,10 @@ freechains host create $FC/8401 8401
 freechains host start $FC/8401 &
 sleep 0.5
 freechains --host=localhost:8401 host now 0
-freechains --host=localhost:8401 chains join / owner-only $PUB
-echo 111 | freechains --host=localhost:8400 chain --sign=$PVT post / -
-freechains --host=localhost:8400 chain --sign=$PVT post / inline 222
-freechains --host=localhost:8400 peer send localhost:8401 /
+freechains --host=localhost:8401 chains join "@!$PUB"
+echo 111 | freechains --host=localhost:8400 chain --sign=$PVT post "@!$PUB" -
+freechains --host=localhost:8400 chain --sign=$PVT "@!$PUB" post inline 222
+freechains --host=localhost:8400 peer localhost:8401 send "@!$PUB"
 
 diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 ret=`ls $FC/8400/chains/blocks/ | wc`
@@ -64,10 +63,10 @@ freechains host create $FC/8402 8402
 freechains host start $FC/8402 &
 sleep 0.5
 freechains --host=localhost:8402 host now 0
-freechains --host=localhost:8402 chains join / owner-only $PUB
-freechains --host=localhost:8402 chain recv / localhost:8400 &
+freechains --host=localhost:8402 chains join "@!$PUB"
+freechains --host=localhost:8402 chain "@!$PUB" recv localhost:8400 &
 P1=$!
-freechains --host=localhost:8401 peer send localhost:8402 / &
+freechains --host=localhost:8401 peer localhost:8402 send "@!$PUB" &
 P2=$!
 wait $P1 $P2
 #sleep 10
@@ -87,12 +86,12 @@ echo "#### 4"
 
 for i in $(seq 1 50)
 do
-  freechains --host=localhost:8400 --sign=$PVT chain post / inline $i
+  freechains --host=localhost:8400 --sign=$PVT chain "@!$PUB" post inline $i
 done
-freechains --host=localhost:8400 peer send localhost:8401 /
-freechains --host=localhost:8400 peer send localhost:8401 /
-freechains --host=localhost:8400 peer send localhost:8402 /
-freechains --host=localhost:8400 peer send localhost:8402 /
+freechains --host=localhost:8400 peer localhost:8401 send "@!$PUB"
+freechains --host=localhost:8400 peer localhost:8401 send "@!$PUB"
+freechains --host=localhost:8400 peer localhost:8401 send "@!$PUB"
+freechains --host=localhost:8400 peer localhost:8401 send "@!$PUB"
 
 diff $FC/8400/chains/blocks/ $FC/8401/chains/blocks/ || exit 1
 diff $FC/8401/chains/blocks/ $FC/8402/chains/blocks/ || exit 1
@@ -111,14 +110,14 @@ do
   freechains host start $FC/$i &
   sleep 0.5
   freechains --host=localhost:$i host now 0
-  freechains --host=localhost:$i chains join / owner-only $PUB
+  freechains --host=localhost:$i chains join "@!$PUB"
 done
 
 echo "#### 5.1"
 
 for i in $(seq 8411 8420)
 do
-  freechains --host=localhost:8400 peer send localhost:$i / &
+  freechains --host=localhost:8400 peer localhost:$i send "@!$PUB" &
 done
 
 echo "#### 5.2"
@@ -133,7 +132,7 @@ done
 
 for i in $(seq 8411 8420)
 do
-  freechains --host=localhost:$(($i+10)) chain recv / localhost:$i &
+  freechains --host=localhost:$(($i+10)) chain localhost:$i recv "@!$PUB" &
 done
 sleep 20
 
@@ -141,8 +140,8 @@ echo "#### 5.3"
 
 for i in $(seq 8421 8425)
 do
-  freechains --host=localhost:$i peer send localhost:$(($i+5)) / &
-  freechains --host=localhost:$i peer send localhost:$(($i+10)) / &
+  freechains --host=localhost:$i peer localhost:$(($i+5))  send "@!$PUB" &
+  freechains --host=localhost:$i peer localhost:$(($i+10)) send "@!$PUB" &
 done
 sleep 20
 

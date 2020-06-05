@@ -8,6 +8,7 @@ import org.freechains.platform.readAllBytesX
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
+import java.net.ConnectException
 import kotlin.system.exitProcess
 
 val doc = """
@@ -249,7 +250,6 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
 
                         writer.writeLineX("$PRE chain $chain post $sign $crypt ${pay.length}")
                         writer.writeBytes(pay)
-                        writer.writeLineX("")
 
                         val ret = reader.readLineX()
                         return Pair(true,ret)
@@ -279,10 +279,15 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                 }
             }
         }
-    } catch (e: Exception) {
+    } catch (e: AssertionError) {
+        return Pair(false, "freechains ${args.joinToString(" ")}")
+    } catch (e: ConnectException) {
+        return Pair(false, "connection refused")
+    } catch (e: Throwable) {
+        println("ERR - TODO - $e - ${e.message}")
         return Pair(false,e.message)
     }
-    error("bug found")
+    return Pair(false, "freechains ${args.joinToString(" ")}")
 
     /*
     try {
