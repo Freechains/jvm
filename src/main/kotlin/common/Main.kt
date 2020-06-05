@@ -63,7 +63,7 @@ fun main (args: Array<String>) {
                 println(msg)
             }
         } else {
-            System.err.println("! " + if (msg != null) msg else "unknown error")
+            System.err.println(msg!!)
             exitProcess(1)
         }
     }
@@ -252,6 +252,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                         writer.writeBytes(pay)
 
                         val ret = reader.readLineX()
+                        assert(!ret.startsWith('!')) { ret }
                         return Pair(true,ret)
                     }
                     "traverse" -> {
@@ -280,7 +281,8 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
             }
         }
     } catch (e: AssertionError) {
-        return Pair(false, "freechains ${args.joinToString(" ")}")
+        val msg = if (e.message != null) e.message else "freechains ${args.joinToString(" ")}"
+        return Pair(false, msg)
     } catch (e: ConnectException) {
         return Pair(false, "connection refused")
     } catch (e: Throwable) {

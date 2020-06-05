@@ -360,14 +360,14 @@ class Daemon (local_: Host) {
                                             if (crypt == "plain") null else crypt
                                         )
                                         ret = blk.hash
+                                        thread {
+                                            signal(name,1)
+                                        }
                                     } catch (e: Throwable) {
                                         //System.err.println(e.stackTrace.contentToString())
-                                        ret = e.message!!
+                                        ret = "! " + e.message!!
                                     }
                                     writer.writeLineX(ret)
-                                    thread {
-                                        signal(name,1)
-                                    }
                                     System.err.println("chain post: $ret")
                                 }
                                 "like" -> {

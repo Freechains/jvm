@@ -1,17 +1,15 @@
 package org.freechains.common
 
+import com.goterl.lazycode.lazysodium.interfaces.GenericHash
+import com.goterl.lazycode.lazysodium.utils.Key
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
-import java.io.File
-
-import com.goterl.lazycode.lazysodium.interfaces.GenericHash
-import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.platform.lazySodium
+import java.io.File
 import java.lang.Integer.max
 import java.lang.Integer.min
-import kotlin.math.absoluteValue
 import kotlin.math.ceil
 
 // internal methods are private but are used in tests
@@ -40,10 +38,10 @@ fun Chain.validate () : Chain {
 }
 
 fun Chain.pub () : HKey? {
-    if (this.name.first() == '@') {
-        return this.name.drop(1)
-    } else {
-        return null
+    return when {
+        this.name.startsWith("@!") -> this.name.drop(2)
+        this.name.startsWith('@')   -> this.name.drop(1)
+        else -> null
     }
 }
 
