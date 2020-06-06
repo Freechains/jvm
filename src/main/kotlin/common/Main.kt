@@ -12,7 +12,7 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import kotlin.system.exitProcess
 
-val doc = """
+const val help = """
 freechains $VERSION
 
 Usage:
@@ -57,20 +57,19 @@ More Information:
 """
 
 fun main (args: Array<String>) {
-    //val xxx = fsRoot
     main_(args).let { (ok,msg) ->
         if (ok) {
-            if (msg != null) {
+            if (msg.isNotEmpty()) {
                 println(msg)
             }
         } else {
-            System.err.println(msg!!)
+            System.err.println(msg)
             exitProcess(1)
         }
     }
 }
 
-fun main_ (args: Array<String>) : Pair<Boolean,String?> {
+fun main_ (args: Array<String>) : Pair<Boolean,String> {
     val cmds = args.filter { !it.startsWith("--") }
     val opts = args
         .filter { it.startsWith("--") }
@@ -85,8 +84,13 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
         .toMap()
 
     val CMD = "freechains ${args.joinToString(" ")}"
-    //println(cmds)
-    //println(opts)
+    //println(">>> $cmds")
+    //println(">>> $opts")
+
+    when {
+        opts.containsKey("--help") -> return Pair(true,  help)
+        (cmds.size == 0)           -> return Pair(false, help)
+    }
 
     when (cmds[0]) {
         "host" -> {
@@ -100,7 +104,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                     println("Freechains $VERSION")
                     println("Waiting for connections on $host...")
                     Daemon(host).daemon()
-                    return Pair(true,null)
+                    return Pair(true,"")
                 }
             }
         }
@@ -121,14 +125,14 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                         writer.writeLineX("$PRE host stop")
                         assert(reader.readLineX() == "true")
                         socket.close()
-                        return Pair(true, null)
+                        return Pair(true, "")
                     }
                     "now" -> {
                         assert(cmds.size == 3)
                         writer.writeLineX("$PRE host now ${cmds[2]}")
                         assert(reader.readLineX() == "true")
                         socket.close()
-                        return Pair(true, null)
+                        return Pair(true, "")
                     }
                 }
             }
@@ -206,7 +210,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                 assert(cmds.size >= 3)
                 val chain = cmds[1]
 
-                fun like (lk: String) : Pair<Boolean,String?> {
+                fun like (lk: String) : Pair<Boolean,String> {
                     assert(cmds.size == 4)
                     assert(opts["--sign"] is String) { "expected `--sign`" }
                     val (len,pay) = opts["--why"].let {
@@ -285,7 +289,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
                         assert(cmds.size == 4)
                         writer.writeLineX("$PRE chain $chain remove ${cmds[3]}")
                         assert(reader.readLineX() == "true")
-                        return Pair(true,null)
+                        return Pair(true,"")
                     }
                     "listen" -> {
                         assert(cmds.size == 3)
@@ -299,15 +303,13 @@ fun main_ (args: Array<String>) : Pair<Boolean,String?> {
             }
         }
     } catch (e: AssertionError) {
-        val msg = if (e.message != null) e.message else "! $CMD"
-        return Pair(false, msg)
+        return Pair(false, if (e.message == null) "! $CMD" else e.message!!)
     } catch (e: ConnectException) {
-        return Pair(false, "connection refused")
+        return Pair(false, "! connection refused")
     } catch (e: SocketTimeoutException) {
-        return Pair(false, "connection timeout")
+        return Pair(false, "! connection timeout")
     } catch (e: Throwable) {
-        println("ERR - TODO - $e - ${e.message} - ($CMD)")
-        return Pair(false,e.message)
+        return Pair(false, "! TODO - $e - ${e.message} - ($CMD)")
     }
     return Pair(false, "! $CMD")
 }

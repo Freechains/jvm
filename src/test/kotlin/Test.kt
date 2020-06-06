@@ -107,7 +107,7 @@ const val S1 = "--sign=$PVT1"
 fun main__ (args: Array<String>) : String {
     return main_(args).let { (ok,msg) ->
         assert(ok)
-        if (msg == null) "" else msg
+        msg
     }
 }
 
@@ -205,11 +205,11 @@ class Tests {
         Thread.sleep(200)
 
         main__(arrayOf("peer", "localhost:8331", "ping")).let {
-            println(">>> $it")
+            //println(">>> $it")
             assert(it.toInt() < 50)
         }
         main_(arrayOf("peer", "localhost:11111", "ping")).let {
-            assert(!it.first && it.second==null)
+            assert(!it.first && it.second=="! TODO - java.io.EOFException - null - (freechains peer localhost:11111 ping)")
         }
         main__(arrayOf("peer", "localhost:8331", "chains")).let {
             assert(it == "@$PUB1")
@@ -286,6 +286,16 @@ class Tests {
         }
         Thread.sleep(200)
         main_(arrayOf("chains", "join", "#xxx"))
+
+        main_(arrayOf("xxx","yyy")).let {
+            assert(!it.first)
+        }
+        main_(arrayOf()).let {
+            assert(!it.first && it.second.contains("Usage:"))
+        }
+        main_(arrayOf("--help")).let {
+            assert(it.first && it.second.contains("Usage:"))
+        }
 
         assert(main__(arrayOf("chain", "#xxx", "genesis")).startsWith("0_"))
         assert(main__(arrayOf("chain", "#xxx", "heads", "linked")).startsWith("0_"))
