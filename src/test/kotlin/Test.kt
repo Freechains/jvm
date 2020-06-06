@@ -586,10 +586,7 @@ class Tests {
             }
         }
         main__(arrayOf(H1, "peer", "localhost:8332", "send", "\$xxx")).let {
-            println(">>> $it")
-            main_(arrayOf(H2, "chain", "\$xxx", "get", "payload", hash)).let {
-                assert(!it.first && it.second=="! Could not decrypt message.")
-            }
+            assert(it.equals("0 / 1"))
         }
     }
 

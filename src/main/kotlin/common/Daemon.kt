@@ -526,6 +526,11 @@ fun peerRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) :
                 reader.readLineX()
                 assert(chain.getHeads(State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
 
+                // reject peers with different keys
+                if (chain.trusted()) {
+                    pay.decrypt(chain.key!!)  // throws exception if fails
+                }
+
                 //println("[recv] ${blk.hash} // len=$len2 // ${pay.length}")
                 chain.blockChain(blk,pay)
                 if (pay=="" && blk.immut.pay.hash!="".calcHash()) {
