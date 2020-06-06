@@ -44,9 +44,9 @@ Options:
     --help              [none]            displays this help
     --version           [none]            displays version information
     --host=<addr:port>  [all]             sets address and port to connect [default: localhost:${PORT_8330}]
-    --sign=<pvtkey>     [post|(dis)like]  signs post with given private key
-    --encrypt           [post]            encrypts post with public key (in public identity chain)
-    --decrypt=<pvtkey>] [get]             decrypts post with private key (in public identity chain)
+    --sign=<pvt>        [post|(dis)like]  signs post with given private key
+    --encrypt           [post]            encrypts post with public key (only in public identity chains)
+    --decrypt=<pvt>]    [get]             decrypts post with private key (only in public identity chains)
     --why=<text>        [(dis)like]       explains reason for the like
 
 More Information:
