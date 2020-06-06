@@ -35,7 +35,7 @@ fun Chain.validate () : Chain {
     assert(rest!=null && rest.all { it.isLetterOrDigit() || it=='.' }) {
         "invalid chain name: $this"
     }
-    if (this.trusted()) {
+    if (this.isDollar()) {
         assert(this.key != null) { "expected shared key" }
     } else {
         assert(this.key == null) { "unexpected shared key" }
@@ -43,7 +43,7 @@ fun Chain.validate () : Chain {
     return this
 }
 
-fun Chain.pub () : HKey? {
+fun Chain.isAt () : HKey? {
     return when {
         this.name.startsWith("@!") -> this.name.drop(2)
         this.name.startsWith('@')   -> this.name.drop(1)
@@ -51,11 +51,11 @@ fun Chain.pub () : HKey? {
     }
 }
 
-fun Chain.oonly () : Boolean {
-    return this.name.first()=='@' && this.name.drop(1).first()=='!'
+fun Chain.isAtBang () : Boolean {
+    return this.name.startsWith("@!")
 }
 
-fun Chain.trusted () : Boolean {
+fun Chain.isDollar () : Boolean {
     return this.name.first() == '$'
 }
 
@@ -212,7 +212,7 @@ fun Chain.fsLoadPay1 (hash: Hash, pubpvt: HKey?) : String {
     val pay = this.fsLoadPay0(hash)
     return when {
         !blk.immut.pay.crypt -> pay
-        this.trusted()       -> pay.decrypt(this.key!!)
+        this.isDollar()       -> pay.decrypt(this.key!!)
         (pubpvt == null)     -> pay
         else                 -> pay.decrypt(pubpvt)
     }

@@ -527,7 +527,7 @@ fun peerRecv (reader: DataInputStream, writer: DataOutputStream, chain: Chain) :
                 assert(chain.getHeads(State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
 
                 // reject peers with different keys
-                if (chain.trusted()) {
+                if (chain.isDollar()) {
                     pay.decrypt(chain.key!!)  // throws exception if fails
                 }
 
