@@ -1,8 +1,5 @@
 package org.freechains.common
 
-import com.goterl.lazycode.lazysodium.interfaces.PwHash
-import com.goterl.lazycode.lazysodium.utils.Key
-import org.freechains.platform.lazySodium
 import org.freechains.platform.readNBytesX
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -208,25 +205,12 @@ class Daemon (local_: Host) {
                 }
                 "crypto" -> when (cmds[1]) {
                     "create" -> {
-                        fun pwHash(pwd: ByteArray): ByteArray {
-                            val out = ByteArray(32)                       // TODO: why?
-                            val salt = ByteArray(PwHash.ARGON2ID_SALTBYTES)     // all zeros
-                            assert(
-                                lazySodium.cryptoPwHash(
-                                    out, out.size, pwd, pwd.size, salt,
-                                    PwHash.OPSLIMIT_INTERACTIVE, PwHash.MEMLIMIT_INTERACTIVE, PwHash.Alg.getDefault()
-                                )
-                            )
-                            return out
-                        }
-
-                        val pwh = pwHash(cmds[3].toByteArray())
                         when (cmds[2]) {
                             "shared" -> {
-                                writer.writeLineX(Key.fromBytes(pwh).asHexString)
+                                writer.writeLineX(cmds[3].toShared())
                             }
                             "pubpvt" -> {
-                                val keys = lazySodium.cryptoSignSeedKeypair(pwh)
+                                val keys = cmds[3].toPubPvt()
                                 //println("PUBPVT: ${keys.publicKey.asHexString} // ${keys.secretKey.asHexString}")
                                 writer.writeLineX(
                                     keys.publicKey.asHexString + ' ' +
@@ -239,8 +223,8 @@ class Daemon (local_: Host) {
                 "chains" -> when (cmds[1]) {
                     "join" -> {
                         val name = cmds[2]
-                        val chain = synchronized(getLock()) {
-                            local.chainsJoin(name, if (cmds.size == 4) cmds[3] else null)
+                        val chain = synchronized (getLock()) {
+                            local.chainsJoin(name, if (cmds.size == 3) null else cmds[3].toShared())
                         }
                         writer.writeLineX(chain.hash)
                         System.err.println("chains join: $name (${chain.hash})")
@@ -359,7 +343,7 @@ class Daemon (local_: Host) {
 
                                         var ret: String
                                         try {
-                                            val blk = chain.blockNew(
+                                            val blk = chain.blockNew (
                                                 Immut(
                                                     0,
                                                     Payload(false, ""),

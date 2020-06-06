@@ -174,7 +174,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                 }
             }
             "chains" -> {
-                assert(cmds.size in 2..3)
+                assert(cmds.size in 2..4)
                 when (cmds[1]) {
                     "list" -> {
                         assert(cmds.size == 2)

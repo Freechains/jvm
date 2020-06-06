@@ -18,7 +18,7 @@ import kotlin.math.ceil
 data class Chain (
     var root  : String,
     val name  : String,
-    val pass  : String?
+    val key   : HKey?
 ) {
     val hash  : String = this.name.calcHash()
     val heads : ArrayList<Hash> = arrayListOf(this.getGenesis())
@@ -36,9 +36,9 @@ fun Chain.validate () : Chain {
         "invalid chain name: $this"
     }
     if (this.trusted()) {
-        assert(this.pass != null) { "expected password" }
+        assert(this.key != null) { "expected password" }
     } else {
-        assert(this.pass == null) { "unexpected password" }
+        assert(this.key == null) { "unexpected password" }
     }
     return this
 }

@@ -2,8 +2,10 @@ package org.freechains.common
 
 import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.interfaces.Box
+import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import com.goterl.lazycode.lazysodium.interfaces.SecretBox
 import com.goterl.lazycode.lazysodium.utils.Key
+import com.goterl.lazycode.lazysodium.utils.KeyPair
 import org.freechains.platform.lazySodium
 
 private const val len = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322".length
@@ -12,6 +14,29 @@ typealias HKey = String
 
 fun HKey.keyIsPrivate () : Boolean {
     return this.length == len
+}
+
+// GENERATE
+
+fun String.toPwHash (): ByteArray {
+    val inp = this.toByteArray()
+    val out = ByteArray(32)                       // TODO: why 32?
+    val salt = ByteArray(PwHash.ARGON2ID_SALTBYTES)     // all zeros
+    assert(
+        lazySodium.cryptoPwHash(
+            out, out.size, inp, inp.size, salt,
+            PwHash.OPSLIMIT_INTERACTIVE, PwHash.MEMLIMIT_INTERACTIVE, PwHash.Alg.getDefault()
+        )
+    )
+    return out
+}
+
+fun String.toShared () : HKey {
+    return Key.fromBytes(this.toPwHash()).asHexString
+}
+
+fun String.toPubPvt () : KeyPair {
+    return lazySodium.cryptoSignSeedKeypair(this.toPwHash())
 }
 
 // ENCRYPT

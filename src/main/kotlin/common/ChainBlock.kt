@@ -50,7 +50,7 @@ fun Chain.blockState (blk: Block, now: Long) : State {
 
 // NEW
 
-fun Chain.blockNew (imm_: Immut, pay_: String, sign: HKey?, crypt: HKey?) : Block {
+fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, crypt: HKey?) : Block {
     assert(imm_.time      == 0.toLong()) { "time must not be set" }
     assert(imm_.pay.hash  == "")         { "pay must not be set" }
     assert(imm_.prev      == null)       { "prev must not be set" }
@@ -83,12 +83,13 @@ fun Chain.blockNew (imm_: Immut, pay_: String, sign: HKey?, crypt: HKey?) : Bloc
         ),
         pay = imm_.pay.copy (
             crypt = (crypt != null),
-            hash  = pay_.calcHash()
+            hash  = pay0.calcHash()
         ),
         prev  = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash,
         backs = backs.toTypedArray()
     )
-    val pay = if (crypt == null) pay_ else pay_.encrypt(crypt)
+    val pay1 = if (crypt == null)   pay0 else pay0.encrypt(crypt)       // external encryption
+    val pay2 = if (!this.trusted()) pay1 else pay1.encrypt(this.key!!)  // private chain encryption
     val hash = imm.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
@@ -105,7 +106,7 @@ fun Chain.blockNew (imm_: Immut, pay_: String, sign: HKey?, crypt: HKey?) : Bloc
         }
 
     val new = Block(imm, hash, signature)
-    this.blockChain(new,pay)
+    this.blockChain(new,pay2)
     return new
 }
 

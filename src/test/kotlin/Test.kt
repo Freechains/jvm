@@ -107,7 +107,7 @@ const val S1 = "--sign=$PVT1"
 
 fun main__ (args: Array<String>) : String {
     return main_(args).let { (ok,msg) ->
-        assert(ok)
+        assert(ok) { msg }
         msg
     }
 }
