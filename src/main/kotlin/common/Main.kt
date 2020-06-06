@@ -92,25 +92,25 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
         (cmds.size == 0)           -> return Pair(false, help)
     }
 
-    when (cmds[0]) {
-        "host" -> {
-            assert(cmds.size >= 2)
-            when (cmds[1]) {
-                "start" -> {
-                    assert(cmds.size==3 || cmds.size==4)
-                    val dir= cmds[2]
-                    val port = if (cmds.size==4) cmds[3].toInt() else PORT_8330
-                    val host = Host_load(dir, port)
-                    println("Freechains $VERSION")
-                    println("Waiting for connections on $host...")
-                    Daemon(host).daemon()
-                    return Pair(true,"")
+    try {
+        when (cmds[0]) {
+            "host" -> {
+                assert(cmds.size >= 2)
+                when (cmds[1]) {
+                    "start" -> {
+                        assert(cmds.size==3 || cmds.size==4)
+                        val dir= cmds[2]
+                        val port = if (cmds.size==4) cmds[3].toInt() else PORT_8330
+                        val host = Host_load(dir, port)
+                        println("Freechains $VERSION")
+                        println("Waiting for connections on $host...")
+                        Daemon(host).daemon()
+                        return Pair(true,"")
+                    }
                 }
             }
         }
-    }
 
-    try {
         val (host, port) = (opts["--host"] ?: "localhost:$PORT_8330").hostSplit()
         val socket = Socket_5s(host, port)
         val writer = DataOutputStream(socket.getOutputStream()!!)
@@ -303,7 +303,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
             }
         }
     } catch (e: AssertionError) {
-        return Pair(false, if (e.message == null) "! $CMD" else e.message!!)
+        return Pair(false, if (e.message.equals("Assertion failed")) "! $CMD" else e.message!!)
     } catch (e: ConnectException) {
         return Pair(false, "! connection refused")
     } catch (e: SocketTimeoutException) {
