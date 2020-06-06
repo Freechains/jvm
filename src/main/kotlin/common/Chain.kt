@@ -17,7 +17,8 @@ import kotlin.math.ceil
 @Serializable
 data class Chain (
     var root  : String,
-    val name  : String
+    val name  : String,
+    val pass  : String?
 ) {
     val hash  : String = this.name.calcHash()
     val heads : ArrayList<Hash> = arrayListOf(this.getGenesis())
@@ -33,6 +34,11 @@ fun Chain.validate () : Chain {
     }
     assert(rest!=null && rest.all { it.isLetterOrDigit() || it=='.' }) {
         "invalid chain name: $this"
+    }
+    if (this.trusted()) {
+        assert(this.pass != null) { "expected password" }
+    } else {
+        assert(this.pass == null) { "unexpected password" }
     }
     return this
 }

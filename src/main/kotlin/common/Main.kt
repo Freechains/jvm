@@ -22,7 +22,7 @@ Usage:
     
     freechains crypto create (shared | pubpvt) <passphrase>
     
-    freechains chains join  <chain>
+    freechains chains join  <chain> [<password>]
     freechains chains leave <chain>
     freechains chains list
     freechains chains listen
@@ -116,7 +116,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
         val writer = DataOutputStream(socket.getOutputStream()!!)
         val reader = DataInputStream(socket.getInputStream()!!)
 
-        when (cmds[0]) {
+        val ret : String = when (cmds[0]) {
             "host" -> {
                 assert(cmds.size in 2..4)
                 when (cmds[1]) {
@@ -125,24 +125,25 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                         writer.writeLineX("$PRE host stop")
                         assert(reader.readLineX() == "true")
                         socket.close()
-                        return Pair(true, "")
+                        ""
                     }
                     "now" -> {
                         assert(cmds.size == 3)
                         writer.writeLineX("$PRE host now ${cmds[2]}")
                         assert(reader.readLineX() == "true")
                         socket.close()
-                        return Pair(true, "")
+                        ""
                     }
+                    else -> ""
                 }
             }
             "crypto" -> {
                 when (cmds[1]) {
                     "create" -> {
                         writer.writeLineX("$PRE crypto create ${cmds[2]} ${cmds[3]}")
-                        val ret = reader.readLineX()
-                        return Pair(true,ret)
+                        reader.readLineX()
                     }
+                    else -> "!"
                 }
             }
             "peer" -> {
@@ -152,27 +153,24 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                     "ping" -> {
                         assert(cmds.size == 3)
                         writer.writeLineX("$PRE peer $remote ping")
-                        val ret = reader.readLineX()
-                        return Pair(true, ret)
+                        reader.readLineX()
                     }
                     "chains" -> {
                         assert(cmds.size == 3)
                         writer.writeLineX("$PRE peer $remote chains")
-                        val ret = reader.readLineX()
-                        return Pair(true,ret)
+                        reader.readLineX()
                     }
                     "send" -> {
                         assert(cmds.size == 4)
                         writer.writeLineX("$PRE peer $remote send ${cmds[3]}")
-                        val ret = reader.readLineX()
-                        return Pair(true,ret)
+                        reader.readLineX()
                     }
                     "recv" -> {
                         assert(cmds.size == 4)
                         writer.writeLineX("$PRE peer $remote recv ${cmds[3]}")
-                        val ret = reader.readLineX()
-                        return Pair(true,ret)
+                        reader.readLineX()
                     }
+                    else -> "!"
                 }
             }
             "chains" -> {
@@ -181,20 +179,18 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                     "list" -> {
                         assert(cmds.size == 2)
                         writer.writeLineX("$PRE chains list")
-                        val ret = reader.readLineX()
-                        return Pair(true,ret)
+                        reader.readLineX()
                     }
                     "leave" -> {
                         assert(cmds.size == 3)
                         writer.writeLineX("$PRE chains leave ${cmds[2]}")
-                        val ret = reader.readLineX()
-                        return Pair(true,ret)
+                        reader.readLineX()
                     }
                     "join" -> {
-                        assert(cmds.size == 3)
-                        writer.writeLineX("$PRE chains join ${cmds[2]}")
-                        val ret = reader.readLineX()
-                        return Pair(true,ret)
+                        assert(cmds.size in 3..4)
+                        val pass = if (cmds.size == 3) "" else " "+cmds[3]
+                        writer.writeLineX("$PRE chains join ${cmds[2]}$pass")
+                        reader.readLineX()
                     }
                     "listen" -> {
                         assert(cmds.size == 2)
@@ -203,14 +199,16 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                             val n_name = reader.readLineX()
                             println(n_name)
                         }
+                        "!"
                     }
+                    else -> "!"
                 }
             }
             "chain" -> {
                 assert(cmds.size >= 3)
                 val chain = cmds[1]
 
-                fun like (lk: String) : Pair<Boolean,String> {
+                fun like (lk: String) : String {
                     assert(cmds.size == 4)
                     assert(opts["--sign"] is String) { "expected `--sign`" }
                     val (len,pay) = opts["--why"].let {
@@ -222,22 +220,19 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                     }
                     writer.writeLineX("$PRE chain $chain like $lk ${cmds[3]} ${opts["--sign"]} $len")
                     writer.writeLineX(pay)
-                    val ret = reader.readLineX()
-                    return Pair(true,ret)
+                    return reader.readLineX()
                 }
 
                 when (cmds[2]) {
                     "genesis" -> {
                         assert(cmds.size == 3)
                         writer.writeLineX("$PRE chain $chain genesis")
-                        val ret = reader.readLineX()
-                        return Pair(true, ret)
+                        reader.readLineX()
                     }
                     "heads" -> {
                         assert(cmds.size == 4)
                         writer.writeLineX("$PRE chain $chain heads ${cmds[3]}")
-                        val ret = reader.readLineX()
-                        return Pair(true,ret)
+                        reader.readLineX()
                     }
                     "get" -> {
                         assert(cmds.size == 5)
@@ -245,10 +240,9 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                         writer.writeLineX("$PRE chain $chain get ${cmds[3]} ${cmds[4]} $crypt")
                         val len = reader.readLineX()
                         if (len.startsWith('!')) {
-                            return Pair(false, len)
+                            len
                         } else {
-                            val json = reader.readNBytesX(len.toInt()).toString(Charsets.UTF_8)
-                            return Pair(true,json)
+                            reader.readNBytesX(len.toInt()).toString(Charsets.UTF_8)
                         }
                     }
                     "post" -> {
@@ -266,30 +260,26 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                         writer.writeLineX("$PRE chain $chain post $sign $crypt ${pay.length}")
                         writer.writeBytes(pay)
 
-                        val ret = reader.readLineX()
-                        assert(!ret.startsWith('!')) { ret }
-                        return Pair(true,ret)
+                        reader.readLineX()
                     }
                     "traverse" -> {
                         assert(cmds.size >= 5)
                         val downto = cmds.drop(3).joinToString(" ")
                         writer.writeLineX("$PRE chain $chain traverse ${cmds[3]} $downto")
-                        val ret = reader.readLineX()
-                        return Pair(true,ret)
+                        reader.readLineX()
                     }
                     "reps" -> {
                         assert(cmds.size == 4)
                         writer.writeLineX("$PRE chain $chain reps ${cmds[3]}")
-                        val ret = reader.readLineX()
-                        return Pair(true,ret)
+                        reader.readLineX()
                     }
-                    "like"    -> return like("1")
-                    "dislike" -> return like("-1")
+                    "like"    -> like("1")
+                    "dislike" -> like("-1")
                     "remove" -> {
                         assert(cmds.size == 4)
                         writer.writeLineX("$PRE chain $chain remove ${cmds[3]}")
                         assert(reader.readLineX() == "true")
-                        return Pair(true,"")
+                        ""
                     }
                     "listen" -> {
                         assert(cmds.size == 3)
@@ -298,12 +288,20 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                             val n = reader.readLineX()
                             println(n)
                         }
+                        "!"
                     }
+                    else -> "!"
                 }
             }
+            else -> "!"
+        }
+        return when {
+            ret.equals("!")            -> Pair(false, "! " + CMD)
+            ret.startsWith("!") -> Pair(false, ret)
+            else                       -> Pair(true, ret)
         }
     } catch (e: AssertionError) {
-        return Pair(false, if (e.message.equals("Assertion failed")) "! $CMD" else e.message!!)
+        return Pair(false, "! " + if (e.message.equals("Assertion failed")) CMD else e.message!!)
     } catch (e: ConnectException) {
         return Pair(false, "! connection refused")
     } catch (e: SocketTimeoutException) {
@@ -311,5 +309,5 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
     } catch (e: Throwable) {
         return Pair(false, "! TODO - $e - ${e.message} - ($CMD)")
     }
-    return Pair(false, "! $CMD")
+
 }

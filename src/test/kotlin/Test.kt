@@ -101,6 +101,7 @@ const val SHA0 = "64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63
 
 const val H0 = "--host=localhost:$PORT_8330"
 const val H1 = "--host=localhost:8331"
+const val H2 = "--host=localhost:8332"
 const val S0 = "--sign=$PVT0"
 const val S1 = "--sign=$PVT1"
 
@@ -536,6 +537,36 @@ class Tests {
         main_(arrayOf("chains", "join", "@!$PUB0"))
         main_(arrayOf(H1, "chains", "join", "@!$PUB0"))
         val hash = main__(arrayOf("chain", "@!$PUB0", "post", "inline", "aaa", S0, "--crypt=$PVT0"))
+
+        val pay = main__(arrayOf("chain", "@!$PUB0", "get", "payload", hash, "--crypt=$PVT0"))
+        assert(pay == "aaa")
+
+        main_(arrayOf("peer", "localhost:8331", "send", "@!$PUB0"))
+        val json2 = main__(arrayOf(H1, "chain", "@!$PUB0", "get", "block", hash))
+        val blk2 = json2.jsonToBlock()
+        assert(blk2.immut.pay.crypt)
+
+        main_(arrayOf("chain", "@!$PUB0", "post", "inline", "bbbb", S1)).let {
+            assert(!it.first && it.second.equals("! must be from owner"))
+        }
+    }
+
+    @Test
+    fun m06y_shared() {
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M60y/")) }
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M61y/", "8331")) }
+        thread { main_(arrayOf("host", "start", "/tmp/freechains/tests/M62y/", "8332")) }
+        Thread.sleep(200)
+
+        main_(arrayOf("chains", "join", "\$xxx")).let {
+            assert(!it.first && it.second.equals("! expected password"))
+        }
+
+        main__(arrayOf(H0, "chains", "join", "\$xxx", "password"))
+        main__(arrayOf(H1, "chains", "join", "\$xxx", "password"))
+        main__(arrayOf(H2, "chains", "join", "\$xxx", "xxxxxxxx"))
+
+        val hash = main__(arrayOf("chain", "\$xxx", "post", "inline", "aaa"))
 
         val pay = main__(arrayOf("chain", "@!$PUB0", "get", "payload", hash, "--crypt=$PVT0"))
         assert(pay == "aaa")
