@@ -36,9 +36,9 @@ fun Chain.validate () : Chain {
         "invalid chain name: $this"
     }
     if (this.trusted()) {
-        assert(this.key != null) { "expected password" }
+        assert(this.key != null) { "expected shared key" }
     } else {
-        assert(this.key == null) { "unexpected password" }
+        assert(this.key == null) { "unexpected shared key" }
     }
     return this
 }
@@ -207,13 +207,19 @@ fun Chain.fsLoadBlock (hash: Hash) : Block {
     return File(this.path() + "/blocks/" + hash + ".blk").readText().jsonToBlock()
 }
 
-fun Chain.fsLoadPay (hash: Hash, crypt: HKey?) : String {
+fun Chain.fsLoadPay1 (hash: Hash, pubpvt: HKey?) : String {
     val blk = this.fsLoadBlock(hash)
-    val pay = File(this.path() + "/blocks/" + hash + ".pay").readBytes().toString(Charsets.UTF_8)
-    if (crypt==null || !blk.immut.pay.crypt) {
-        return pay
+    val pay = this.fsLoadPay0(hash)
+    return when {
+        !blk.immut.pay.crypt -> pay
+        this.trusted()       -> pay.decrypt(this.key!!)
+        (pubpvt == null)     -> pay
+        else                 -> pay.decrypt(pubpvt)
     }
-    return pay.decrypt(crypt)
+}
+
+fun Chain.fsLoadPay0 (hash: Hash) : String {
+    return File(this.path() + "/blocks/" + hash + ".pay").readBytes().toString(Charsets.UTF_8)
 }
 
 fun Chain.fsExistsBlock (hash: Hash) : Boolean {

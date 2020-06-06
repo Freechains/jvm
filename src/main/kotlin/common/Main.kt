@@ -2,7 +2,6 @@
 
 package org.freechains.common
 
-import org.freechains.platform.fsRoot
 import org.freechains.platform.readNBytesX
 import org.freechains.platform.readAllBytesX
 import java.io.DataInputStream
@@ -22,7 +21,7 @@ Usage:
     
     freechains crypto create (shared | pubpvt) <passphrase>
     
-    freechains chains join  <chain> [<password>]
+    freechains chains join  <chain> [<shared>]
     freechains chains leave <chain>
     freechains chains list
     freechains chains listen
@@ -46,7 +45,8 @@ Options:
     --version           [none]            displays version information
     --host=<addr:port>  [all]             sets address and port to connect [default: localhost:${PORT_8330}]
     --sign=<pvtkey>     [post|(dis)like]  signs post with given private key
-    --crypt=<key>       [get|post]        (de|en)crypts post with given shared or private key
+    --encrypt           [post]            encrypts post with public key (in public identity chain)
+    --decrypt=<pvtkey>] [get]             decrypts post with private key (in public identity chain)
     --why=<text>        [(dis)like]       explains reason for the like
 
 More Information:
@@ -188,8 +188,8 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                     }
                     "join" -> {
                         assert(cmds.size in 3..4)
-                        val pass = if (cmds.size == 3) "" else " "+cmds[3]
-                        writer.writeLineX("$PRE chains join ${cmds[2]}$pass")
+                        val shared = if (cmds.size == 3) "" else " "+cmds[3]
+                        writer.writeLineX("$PRE chains join ${cmds[2]}$shared")
                         reader.readLineX()
                     }
                     "listen" -> {
@@ -236,8 +236,9 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                     }
                     "get" -> {
                         assert(cmds.size == 5)
-                        val crypt = opts["--crypt"] ?: "plain"
-                        writer.writeLineX("$PRE chain $chain get ${cmds[3]} ${cmds[4]} $crypt")
+                        val decrypt= opts["--decrypt"].toString() // null or pvtkey
+
+                        writer.writeLineX("$PRE chain $chain get ${cmds[3]} ${cmds[4]} $decrypt")
                         val len = reader.readLineX()
                         if (len.startsWith('!')) {
                             len
@@ -248,7 +249,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                     "post" -> {
                         assert(cmds.size in 4..5)
                         val sign  = opts["--sign"]  ?: "anon"
-                        val crypt = opts["--crypt"] ?: "plain"
+                        val encrypt = opts.containsKey("--encrypt").toString() // null (false) or empty (true)
 
                         val pay = when (cmds[3]) {
                             "inline" -> cmds[4]
@@ -257,7 +258,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
                             else -> error("impossible case")
                         }
 
-                        writer.writeLineX("$PRE chain $chain post $sign $crypt ${pay.length}")
+                        writer.writeLineX("$PRE chain $chain post $sign $encrypt ${pay.length}")
                         writer.writeBytes(pay)
 
                         reader.readLineX()
@@ -303,6 +304,7 @@ fun main_ (args: Array<String>) : Pair<Boolean,String> {
     } catch (e: AssertionError) {
         return Pair(false, "! " + if (e.message.equals("Assertion failed")) CMD else e.message!!)
     } catch (e: ConnectException) {
+        assert(e.message == "Connection refused (Connection refused)")
         return Pair(false, "! connection refused")
     } catch (e: SocketTimeoutException) {
         return Pair(false, "! connection timeout")

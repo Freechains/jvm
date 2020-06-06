@@ -44,11 +44,11 @@ freechains --host=localhost:8402 peer localhost:8400 recv "@$PUB"  # SUCCESS
 diff $FC/8400/chains/@$PUB/blocks/ $FC/8402/chains/@$PUB/blocks/      || exit 1
 
 # post to 8400, send to 8401 (fail) 8402 (succees, but crypted)
-h=`freechains --host=localhost:8400 --sign=$PVT --crypt=$PVT chain "@$PUB" post inline Hello_World`
+h=`freechains --host=localhost:8400 --sign=$PVT --encrypt chain "@$PUB" post inline Hello_World`
 freechains --host=localhost:8400 peer localhost:8401 send "@$PUB"  # FAIL
 freechains --host=localhost:8400 peer localhost:8402 send "@$PUB"  # SUCCESS
 
-freechains --host=localhost:8400 --crypt=$PVT chain "@$PUB" get payload $h > $FC/dec.pay
+freechains --host=localhost:8400 --decrypt=$PVT chain "@$PUB" get payload $h > $FC/dec.pay
 diff $FC/dec.pay <(echo 'Hello_World') || exit 1
 freechains --host=localhost:8402 chain "@$PUB" get block $h > $FC/enc.blk
 diff <(jq ".immut.pay.crypt" $FC/enc.blk) <(echo 'true') || exit 1

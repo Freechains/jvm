@@ -125,8 +125,9 @@ class Tests {
 
     @BeforeEach
     fun stop () {
-        main_(arrayOf("host", "stop"))
-        main_(arrayOf(H1,"host", "stop"))
+        main_(arrayOf(H0, "host", "stop"))
+        main_(arrayOf(H1, "host", "stop"))
+        main_(arrayOf(H2, "host", "stop"))
     }
 
     @Test
@@ -158,7 +159,7 @@ class Tests {
         val c2 = h.chainsLoad(c1.name)
         assertThat(c1.hashCode()).isEqualTo(c2.hashCode())
 
-        val blk = c2.blockNew(HC, "", null, null)
+        val blk = c2.blockNew(HC, "", null, false)
         val blk2 = c2.fsLoadBlock(blk.hash)
         assertThat(blk.hashCode()).isEqualTo(blk2.hashCode())
 
@@ -169,9 +170,9 @@ class Tests {
     fun c1_post() {
         val host = Host_load("/tmp/freechains/tests/local/")
         val chain = host.chainsJoin("@$PUB0")
-        val n1 = chain.blockNew(H, "", PVT0, null)
-        val n2 = chain.blockNew(H, "", PVT0, null)
-        val n3 = chain.blockNew(H, "", null, null)
+        val n1 = chain.blockNew(H, "", PVT0, false)
+        val n2 = chain.blockNew(H, "", PVT0, false)
+        val n3 = chain.blockNew(H, "", null, false)
 
         var ok = false
         try {
@@ -195,8 +196,8 @@ class Tests {
         // SOURCE
         val src = Host_load("/tmp/freechains/tests/src/")
         val srcChain = src.chainsJoin("@$PUB1")
-        srcChain.blockNew(HC, "", PVT1, null)
-        srcChain.blockNew(HC, "", PVT1, null)
+        srcChain.blockNew(HC, "", PVT1, false)
+        srcChain.blockNew(HC, "", PVT1, false)
         thread { Daemon(src).daemon() }
 
         // DESTINY
@@ -210,7 +211,7 @@ class Tests {
             assert(it.toInt() < 50)
         }
         main_(arrayOf("peer", "localhost:11111", "ping")).let {
-            assert(!it.first && it.second=="! TODO - java.io.EOFException - null - (freechains peer localhost:11111 ping)")
+            assert(!it.first && it.second=="! connection refused")
         }
         main__(arrayOf("peer", "localhost:8331", "chains")).let {
             assert(it == "@$PUB1")
@@ -231,13 +232,13 @@ class Tests {
     fun f1_peers() {
         val h1 = Host_load("/tmp/freechains/tests/h1/", PORT_8330)
         val h1Chain = h1.chainsJoin("@$PUB1")
-        h1Chain.blockNew(H, "", PVT1, null)
-        h1Chain.blockNew(H, "", PVT1, null)
+        h1Chain.blockNew(H, "", PVT1, false)
+        h1Chain.blockNew(H, "", PVT1, false)
 
         val h2 = Host_load("/tmp/freechains/tests/h2/", 8331)
         val h2Chain = h2.chainsJoin("@$PUB1")
-        h2Chain.blockNew(H, "", PVT1, null)
-        h2Chain.blockNew(H, "", PVT1, null)
+        h2Chain.blockNew(H, "", PVT1, false)
+        h2Chain.blockNew(H, "", PVT1, false)
 
         Thread.sleep(200)
         thread { Daemon(h1).daemon() }
@@ -463,22 +464,23 @@ class Tests {
     fun m03_crypto_post() {
         //a_reset()
         val host = Host_load("/tmp/freechains/tests/M2/")
-        val c1 = host.chainsJoin("#sym")
-        c1.blockNew(HC, "", null, null)
+        val c1 = host.chainsJoin("\$sym", "password".toShared())
+        c1.blockNew(HC, "", null, false)
         val c2 = host.chainsJoin("@$PUB0")
-        c2.blockNew(H, "", PVT0, PVT0)
+        c2.blockNew(H, "", PVT0, true)
     }
 
     @Test
     fun m04_crypto_encrypt() {
         val host = Host_load("/tmp/freechains/tests/M2/")
-        val c1 = host.chainsLoad("#sym")
+        val c1 = host.chainsLoad("\$sym")
         //println(c1.root)
-        val n1 = c1.blockNew(HC, "aaa", null, SHA0)
+        val n1 = c1.blockNew(HC, "aaa", null, false)
         //println(n1.hash)
-        val n2 = c1.fsLoadPay(n1.hash, SHA0)
+        val n2 = c1.fsLoadPay1(n1.hash, null)
         assert(n2 == "aaa")
-        //Thread.sleep(500)
+        val n3 = c1.fsLoadPay0(n1.hash)
+        assert(n3 != "aaa")
     }
 
     @Test
@@ -503,7 +505,7 @@ class Tests {
             )
         )
 
-        main_(arrayOf("chain", "#xxx", "post", "inline", "aaa", "--crypt=$SHA0"))
+        main_(arrayOf("chain", "#xxx", "post", "inline", "aaa", "--encrypt"))
         main_(arrayOf("peer", "localhost:8331", "send", "#xxx"))
     }
 
@@ -514,9 +516,9 @@ class Tests {
         Thread.sleep(200)
         main_(arrayOf("chains", "join", "@$PUB0"))
         main_(arrayOf(H1, "chains", "join", "@$PUB0"))
-        val hash = main__(arrayOf("chain", "@$PUB0", "post", "inline", "aaa", S0, "--crypt=$PVT0"))
+        val hash = main__(arrayOf("chain", "@$PUB0", "post", "inline", "aaa", S0, "--encrypt"))
 
-        val pay = main__(arrayOf("chain", "@$PUB0", "get", "payload", hash, "--crypt=$PVT0"))
+        val pay = main__(arrayOf("chain", "@$PUB0", "get", "payload", hash, "--decrypt=$PVT0"))
         assert(pay == "aaa")
 
         main_(arrayOf("peer", "localhost:8331", "send", "@$PUB0"))
@@ -536,9 +538,9 @@ class Tests {
         Thread.sleep(200)
         main_(arrayOf("chains", "join", "@!$PUB0"))
         main_(arrayOf(H1, "chains", "join", "@!$PUB0"))
-        val hash = main__(arrayOf("chain", "@!$PUB0", "post", "inline", "aaa", S0, "--crypt=$PVT0"))
+        val hash = main__(arrayOf("chain", "@!$PUB0", "post", "inline", "aaa", S0, "--encrypt"))
 
-        val pay = main__(arrayOf("chain", "@!$PUB0", "get", "payload", hash, "--crypt=$PVT0"))
+        val pay = main__(arrayOf("chain", "@!$PUB0", "get", "payload", hash, "--decrypt=$PVT0"))
         assert(pay == "aaa")
 
         main_(arrayOf("peer", "localhost:8331", "send", "@!$PUB0"))
@@ -559,25 +561,35 @@ class Tests {
         Thread.sleep(200)
 
         main_(arrayOf("chains", "join", "\$xxx")).let {
-            assert(!it.first && it.second.equals("! expected password"))
+            assert(!it.first && it.second.equals("! expected shared key"))
         }
 
-        main__(arrayOf(H0, "chains", "join", "\$xxx", "password"))
-        main__(arrayOf(H1, "chains", "join", "\$xxx", "password"))
-        main__(arrayOf(H2, "chains", "join", "\$xxx", "xxxxxxxx"))
+        val key1 = "password".toShared()
+        val key2 = "xxxxxxxx".toShared()
+
+        main__(arrayOf(H0, "chains", "join", "\$xxx", key1))
+        main__(arrayOf(H1, "chains", "join", "\$xxx", key1))
+        main__(arrayOf(H2, "chains", "join", "\$xxx", key2))
 
         val hash = main__(arrayOf("chain", "\$xxx", "post", "inline", "aaa"))
 
-        val pay = main__(arrayOf("chain", "@!$PUB0", "get", "payload", hash, "--crypt=$PVT0"))
-        assert(pay == "aaa")
+        File("/tmp/freechains/tests/M60y/chains/\$xxx/blocks/$hash.pay").readText().let {
+            assert(!it.equals("aaa"))
+        }
+        main__(arrayOf("chain", "\$xxx", "get", "payload", hash)).let {
+            assert(it == "aaa")
+        }
 
-        main_(arrayOf("peer", "localhost:8331", "send", "@!$PUB0"))
-        val json2 = main__(arrayOf(H1, "chain", "@!$PUB0", "get", "block", hash))
-        val blk2 = json2.jsonToBlock()
-        assert(blk2.immut.pay.crypt)
-
-        main_(arrayOf("chain", "@!$PUB0", "post", "inline", "bbbb", S1)).let {
-            assert(!it.first && it.second.equals("! must be from owner"))
+        main__(arrayOf("peer", "localhost:8331", "send", "\$xxx")).let {
+            main__(arrayOf(H1, "chain", "\$xxx", "get", "payload", hash)).let {
+                assert(it == "aaa")
+            }
+        }
+        main__(arrayOf(H1, "peer", "localhost:8332", "send", "\$xxx")).let {
+            println(">>> $it")
+            main_(arrayOf(H2, "chain", "\$xxx", "get", "payload", hash)).let {
+                assert(!it.first && it.second=="! Could not decrypt message.")
+            }
         }
     }
 

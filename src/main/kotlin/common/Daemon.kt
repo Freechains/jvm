@@ -1,9 +1,11 @@
 package org.freechains.common
 
+import com.goterl.lazycode.lazysodium.exceptions.SodiumException
 import org.freechains.platform.readNBytesX
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.FileNotFoundException
+import java.net.ConnectException
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
@@ -224,7 +226,7 @@ class Daemon (local_: Host) {
                     "join" -> {
                         val name = cmds[2]
                         val chain = synchronized (getLock()) {
-                            local.chainsJoin(name, if (cmds.size == 3) null else cmds[3].toShared())
+                            local.chainsJoin(name, if (cmds.size == 3) null else cmds[3])
                         }
                         writer.writeLineX(chain.hash)
                         System.err.println("chains join: $name (${chain.hash})")
@@ -296,15 +298,11 @@ class Daemon (local_: Host) {
                                     }
                                     "get" -> {
                                         val hash = cmds[4]
-                                        val crypt = cmds[5]
-
+                                        val decrypt= if (cmds[5] == "null") null else cmds[5]
                                         try {
                                             val ret = when (cmds[3]) {
                                                 "block" -> chain.fsLoadBlock(hash).toJson()
-                                                "payload" -> chain.fsLoadPay(
-                                                    hash,
-                                                    if (crypt == "plain") null else crypt
-                                                )
+                                                "payload" -> chain.fsLoadPay1(hash, decrypt)
                                                 else -> error("impossible case")
                                             }
                                             writer.writeLineX(ret.length.toString())
@@ -336,7 +334,6 @@ class Daemon (local_: Host) {
 
                                     "post" -> {
                                         val sign = cmds[3]
-                                        val crypt = cmds[4]
                                         val len = cmds[5].toInt()
                                         val pay = reader.readNBytesX(len).toString(Charsets.UTF_8)
                                         assert(pay.length <= S128_pay) { "post is too large" }
@@ -353,7 +350,7 @@ class Daemon (local_: Host) {
                                                 ),
                                                 pay,
                                                 if (sign == "anon") null else sign,
-                                                if (crypt == "plain") null else crypt
+                                                cmds[4].toBoolean()
                                             )
                                             ret = blk.hash
                                             thread {
@@ -381,7 +378,7 @@ class Daemon (local_: Host) {
                                                 ),
                                                 pay,
                                                 cmds[5],
-                                                null
+                                                false
                                             )
                                             ret = blk.hash
                                         } catch (e: Throwable) {
@@ -402,6 +399,13 @@ class Daemon (local_: Host) {
             }
         } catch (e: AssertionError) {
             writer.writeLineX("! " + e.message!!)
+        } catch (e: ConnectException) {
+            assert(e.message == "Connection refused (Connection refused)")
+            writer.writeLineX("! connection refused")
+        } catch (e: SodiumException) {
+            writer.writeLineX("! " + e.message!!)
+        } catch (e: Throwable) {
+            writer.writeLineX("! TODO - $e - ${e.message}")
         }
     }
 }
@@ -464,7 +468,7 @@ fun peerSend (reader: DataInputStream, writer: DataOutputStream, chain: Chain) :
             writer.writeBytes(json)
             val pay = when (chain.blockState(out, getNow())) {
                 State.HIDDEN -> ""
-                else         -> chain.fsLoadPay(hash,null)
+                else         -> chain.fsLoadPay0(hash)
             }
             writer.writeLineX(pay.length.toString())
             writer.writeBytes(pay)
